@@ -467,6 +467,7 @@
                 <tbody id="an-ftab"></tbody>
               </table>
               <p class="anat-note" id="an-note"></p>
+              <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2/F3 を一致させる。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 90／F2 35／F3 70 Hz）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。聴感は未確認です。</p>
             </div>
           </div>
         </div>
@@ -545,6 +546,7 @@
             <button class="preset-chip song-chip" data-song="honke" aria-pressed="false">本家デモ（スキャット）</button>
             <button class="preset-chip song-chip" data-song="twinkle" aria-pressed="false">きらきらぼし（Twinkle, twinkle）</button>
             <button class="preset-chip song-chip" data-song="madeofair" aria-pressed="false">Made of air（本家オリジナル）</button>
+            <button class="preset-chip song-chip" data-song="hannya" aria-pressed="false">般若心経（倍音ボイス）</button>
           </div>
           <div class="preset-row" id="twinkleVariantRow" hidden>
             <span class="ctl-lab">歌詞</span>
@@ -696,8 +698,24 @@
           male:   { label: "成人男性", vtl: 15.8, f0Base: 118, f0Range: "100〜150 Hz", foldLen: 14.8, foldMemb: 11.8, oralFrac: 0.52, note: "公表平均" },
           female: { label: "成人女性", vtl: 13.8, f0Base: 206, f0Range: "180〜250 Hz", foldLen: 12.7, foldMemb: 10.0, oralFrac: 0.55, note: "公表平均" },
           child:  { label: "子ども（7歳前後）", vtl: 10.8, f0Base: 272, f0Range: "250〜300 Hz台", foldLen: 8.0, foldMemb: 6.5, oralFrac: 0.62, note: "近似（発達段階の平均像）" }
-        }
+        },
+        /* ⑦倍音唱法（読経の倍音ボイス）— 話者ではなく「発声技法」。声道長は話者プリセットのまま重ねる。
+           構造・物理量：声帯振動の高調波列（F0の整数倍）に、声道共鳴 F2/F3 を一致させる。
+             F2/F3 を最も近い高調波 k·F0 に合わせ、帯域幅を狭めると、その1本の倍音だけが
+             笛のように浮き上がる（倍音唱法の基本原理＝共鳴と高調波の一致。確立した音響理論）。
+             母音が変わるたび F2 の目標が動くので、倍音が母音に沿って旋律のように移る。
+           F0：低い一定音。日本の僧侶の読経の F0 の公表データは用意できていないため、
+             成人男性の f0Range の下端（100Hz）に近い G2（98Hz, MIDI43）を採用＝根拠なしの近似。
+           帯域幅（f2bw/f3bw/f1bw）：倍音1本を分離するには F0 間隔（約98Hz）より十分狭い必要がある、
+             という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
+           lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
+           ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
+        overtone: { f0Midi: 43, bw: [90, 35, 70], gains: [1, 2.6, 1.1], lpf: 5200 }
       };
+      /* 倍音唱法：F2/F3 を最も近い高調波 k·F0 に吸着（F1 は母音のまま） */
+      function otSnap(f, f0) {
+        return [f[0], Math.max(1, Math.round(f[1] / f0)) * Math.round(f0), Math.max(1, Math.round(f[2] / f0)) * Math.round(f0)];
+      }
       var speakerKey = "male";
       var CUR = ANAT.speakers.male;
       function vtlScale() { return ANAT.refVTL / CUR.vtl; }
@@ -1103,6 +1121,33 @@
         return [{ gi: m.gi, cons: m.cons, vowel: m.vowel, yoon: m.yoon, wordStart: true, wordEnd: true }];
       }
 
+      /* 般若心経（冒頭）の読経・倍音ボイス。経文は公有。読みは一般的な漢音でなく呉音の読経読み。
+         旋律は無く、低い一定音（ANAT.overtone.f0Midi）で各音節を等拍に読む。 */
+      (function () {
+        var ph = [
+          ["かん", "じー", "ざい", "ぼー", "さつ"],
+          ["ぎょう", "じん", "はん", "にゃー", "はー", "らー", "みっ", "たー", "じー"],
+          ["しょー", "けん", "ごー", "うん", "かい", "くー"],
+          ["どー", "いっ", "さい", "くー", "やく"],
+          ["しゃー", "りー", "し"],
+          ["しき", "ふい", "くー"],
+          ["くー", "ふい", "しき"],
+          ["しき", "そく", "ぜ", "くー"],
+          ["くー", "そく", "ぜ", "しき"]
+        ];
+        var notes = [];
+        ph.forEach(function (p, i) {
+          p.forEach(function (t) { notes.push({ t: t, m: ANAT.overtone.f0Midi, b: 1 }); });
+          if (i < ph.length - 1) notes.push({ rest: 1 });
+        });
+        SONGS.hannya = {
+          title: "般若心経（倍音ボイス）", file: "hannya-shingyo-overtone", beat: 0.6, overtone: true,
+          lyrics: ph.map(function (p) { return p.join(""); }).join(" "),
+          desc: "般若心経の冒頭（観自在菩薩〜空即是色）を、低い一定音（G2・約98Hz）で読経します。母音ごとに F2/F3 を最も近い高調波（F0の整数倍）に吸着させ、帯域幅を狭めて、その倍音を浮かび上がらせる倍音唱法の近似です（音響理論に基づく。F2が母音に沿って動くため、倍音が旋律のように移ります）。※日本の僧侶の読経のF0・帯域幅の公表データは用意できておらず、F0は成人男性の下端付近の近似、帯域幅も理論上の近似値です。聴感は未確認です。",
+          notes: notes
+        };
+      })();
+
       /* ---------- 歌モード：スコア構築 ----------
          歌詞をモーラ分解し、各音（ノート）にモーラ番号を対応づける。
          子音は短く、母音は拍いっぱいに伸ばす。音と音の間にポーズは入れずレガートでつなぎ、
@@ -1194,6 +1239,7 @@
       }
       function buildSongScore(song) {
         var def = song.def, beat = def.beat, segs = [];
+        var ot = !!def.overtone; /* 倍音唱法の曲（ANAT.overtone 参照）。他の曲では何も変わらない */
         var firstNote = null;
         def.notes.forEach(function (n) { if (!n.rest && !firstNote) firstNote = n; });
         var lastF = neutralF(), lastF0 = midiFreq(firstNote.m);
@@ -1228,7 +1274,7 @@
           var vdur = Math.max(0.08, total - used);
           var vp = Object.assign({}, VPOSE[first.vowel]);
           vp.jaw = Math.min(1, vp.jaw * 1.12 + 0.04); /* 歌唱らしく少し大きく開ける */
-          var vibOn = vdur >= 0.55;
+          var vibOn = vdur >= 0.55 && !ot;
           function vseg(gi, dur, ff, vibDelay, mv) {
             /* mv を渡した場合はそのモーラ自身の母音・ポーズで歌う（1音に複数モーラが
                対応する曲用）。省略時は従来どおり音頭モーラ（first）の母音・ポーズ。 */
@@ -1236,8 +1282,8 @@
             var pp = vp;
             if (mv) { pp = Object.assign({}, VPOSE[vow]); pp.jaw = Math.min(1, pp.jaw * 1.12 + 0.04); }
             return { dur: dur, type: "vowel", mora: gi, phase: "vowel", vowel: vow, pose: pp,
-                     f: vowelF(vow), fFrom: ff,
-                     gains: { v: 0.88, g: [1, 0.5, 0.22], nas: 0.015, noise: 0 },
+                     f: ot ? otSnap(vowelF(vow), f0) : vowelF(vow), fFrom: ot ? otSnap(ff, f0) : ff,
+                     gains: { v: 0.88, g: ot ? ANAT.overtone.gains : [1, 0.5, 0.22], nas: 0.015, noise: 0 },
                      f0a: f0, f0b: f0, flow: 1, legato: true, noteName: name, noteFreq: f0,
                      vib: vibOn ? { rate: 5.6, depth: 0.007, delay: vibDelay } : null };
           }
@@ -1264,6 +1310,7 @@
           lastF0 = f0;
         });
         segs.push({ dur: 0.18, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0 - 4, flow: 0.02 });
+        if (ot) segs.forEach(function (s) { s.bw = ANAT.overtone.bw; s.lpf = ANAT.overtone.lpf; });
         return segs;
       }
 
@@ -1303,7 +1350,7 @@
         noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
 
         osc.start(); noise.start();
-        return { master: master, osc: osc, oscGain: oscGain,
+        return { master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false,
                  f1: f1, f2: f2, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
       }
       function ensureCtx() {
@@ -1336,6 +1383,15 @@
           G.noiseG.gain.exponentialRampToValueAtTime(0.001, t + seg.dur + 0.03);
           G.oscGain.gain.setTargetAtTime(0, t, tc);
           return;
+        }
+        /* 倍音唱法の帯域幅・音源ローパス。通常のスコアでは otOn が偽のまま何もしない。
+           倍音スコアの後に通常スコアが来たら既定値（元の Q と 1250Hz）へ戻す。 */
+        if (seg.bw || G.otOn) {
+          [G.f1, G.f2, G.f3].forEach(function (b, i) {
+            b.f.Q.setTargetAtTime(seg.bw ? Math.max(0.6, seg.f[i] / seg.bw[i]) : G.defQ[i], t, 0.02);
+          });
+          G.lp.frequency.setTargetAtTime(seg.bw ? seg.lpf : 1250, t, 0.02);
+          G.otOn = !!seg.bw;
         }
         var fStart = seg.fFrom || seg.f;
         if (seg.burstF) G.noiseBP.frequency.setValueAtTime(seg.burstF, t);
@@ -1715,6 +1771,7 @@
           b.setAttribute("aria-pressed", b.dataset.song === key ? "true" : "false");
         });
         document.getElementById("songNote").textContent = currentSong.def.desc;
+        document.getElementById("an-overtone").hidden = !currentSong.def.overtone;
         var twRow = document.getElementById("twinkleVariantRow");
         if (twRow) {
           twRow.hidden = key !== "twinkle";
@@ -1868,7 +1925,7 @@
         });
         [["ふるさと", "furusato", null], ["SHOO BEE DOO", "shoo", null], ["本家デモ", "honke", null],
          ["Twinkle（英語詞）", "twinkle", "en"], ["きらきらぼし", "twinkle", "jp"],
-         ["Made of air", "madeofair", null]].forEach(function (pair) {
+         ["Made of air", "madeofair", null], ["般若心経（倍音ボイス）", "hannya", null]].forEach(function (pair) {
           var sd = buildSongData(pair[1], pair[2] || undefined);
           list.push(add(pair[0], buildSongScore(sd), sp2 ? buildSongScoreAs(sd, sp2) : null));
         });
