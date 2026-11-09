@@ -715,7 +715,7 @@
              という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
            lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
            ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200 }
+        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.45 }
       };
       /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
@@ -1316,7 +1316,12 @@
           lastF0 = f0;
         });
         segs.push({ dur: 0.18, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0 - 4, flow: 0.02 });
-        if (ot) segs.forEach(function (s) { s.bw = ANAT.overtone.bw; s.lpf = ANAT.overtone.lpf; });
+        /* 倍音声は母音が笛のように澄むため、子音の雑音（破裂・摩擦）が相対的に刺さってキシつく。
+           雑音ゲインだけ ANAT.overtone.noise 倍に下げる（近似。聴感での調整値） */
+        if (ot) segs.forEach(function (s) {
+          s.bw = ANAT.overtone.bw; s.lpf = ANAT.overtone.lpf;
+          if (s.gains && s.gains.noise) s.gains = Object.assign({}, s.gains, { noise: s.gains.noise * ANAT.overtone.noise });
+        });
         return segs;
       }
 
@@ -1400,7 +1405,9 @@
           G.f3.f.Q.setTargetAtTime(ot2 ? Math.max(0.6, seg.f[2] / seg.bw[2]) : G.defQ[2], t, 0.02);
           G.lp.frequency.setTargetAtTime(ot2 ? seg.lpf : 1250, t, 0.02);
           if (ot2) {
-            var tgt = seg.f[1], gA = g.g[1] * 0.9, hop = 0.008;
+            /* 子音（閉鎖・破裂・摩擦…）の短い区間ごとにホップすると、数十ms内に連続して跳んで
+               キシッと鳴る（か・ど・し・じで報告）。ホップは母音の区間だけにし、子音の間は直前の高調波に留める */
+            var tgt = (seg.type === "vowel" || G.otF2 === null) ? seg.f[1] : G.otF2, gA = g.g[1] * 0.9, hop = 0.008;
             if (G.otF2 !== tgt) {
               var nb = G.otBus ? G.f2 : G.f2b, ob = G.otBus ? G.f2b : G.f2;
               nb.f.frequency.cancelScheduledValues(t); nb.f.frequency.setValueAtTime(tgt, t);
