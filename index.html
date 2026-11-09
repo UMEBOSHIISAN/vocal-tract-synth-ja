@@ -715,7 +715,7 @@
              という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
            lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
            ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.45 }
+        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.2 }
       };
       /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
@@ -1317,7 +1317,7 @@
         });
         segs.push({ dur: 0.18, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0 - 4, flow: 0.02 });
         /* 倍音声は母音が笛のように澄むため、子音の雑音（破裂・摩擦）が相対的に刺さってキシつく。
-           雑音ゲインだけ ANAT.overtone.noise 倍に下げる（近似。聴感での調整値） */
+           雑音ゲインだけ ANAT.overtone.noise 倍に下げる（近似）。全区間を描画して高域の急な立ち上がりを測り、0.45 では破裂・摩擦で8件（最大約10倍）、0.2 では0件だった値。聴感は未確認 */
         if (ot) segs.forEach(function (s) {
           s.bw = ANAT.overtone.bw; s.lpf = ANAT.overtone.lpf;
           if (s.gains && s.gains.noise) s.gains = Object.assign({}, s.gains, { noise: s.gains.noise * ANAT.overtone.noise });
@@ -2304,6 +2304,23 @@
           for (var kk = -5; kk <= 5; kk++) { var zz = kk * 6; arc2.push([s0[0], s0[1] + 6 * (zz / 30) * (zz / 30), zz]); }
           g3Line(ctx, vp, arc2, "rgba(61,255,142,0.4)", 1);
         }
+        /* 舌の体積：上面から下面までを高さ、舌尖が細く舌体が広い幅をもつ楕円の輪切りで描く */
+        var topN = 26, under = tg.slice(topN);
+        for (var si = 1; si < topN; si += 2) {
+          var tp = tg[si], bt = null, bd = 1e9;
+          under.forEach(function (u) { var dd = Math.abs(u[0] - tp[0]); if (dd < bd) { bd = dd; bt = u; } });
+          if (!bt) continue;
+          var hy = Math.abs(bt[1] - tp[1]) / 2, my = (bt[1] + tp[1]) / 2, ww = Math.min(34, 9 + 26 * Math.sin(Math.PI * Math.min(1, si / (topN - 1))) * 0.95 + 3), ring3 = [];
+          for (var kk3 = 0; kk3 < 18; kk3++) { var t3 = kk3 / 18 * Math.PI * 2; ring3.push([tp[0] + (bt[0] - tp[0]) / 2, my + hy * Math.cos(t3), ww * Math.sin(t3)]); }
+          g3Line(ctx, vp, ring3, "rgba(61,255,142,0.35)", 1, true);
+        }
+        /* 歯列：上は固定、下は顎の開きに追従 */
+        [[299, 0], [332 + p.jaw * 14, 1]].forEach(function (rw) {
+          var arch = [];
+          for (var ka = -9; ka <= 9; ka++) { var ph = ka / 9 * 1.35; arch.push([372 + 74 * Math.cos(ph), rw[0], 38 * Math.sin(ph)]); }
+          g3Line(ctx, vp, arch, rw[1] ? "rgba(255,106,94,0.8)" : "rgba(94,231,255,0.85)", 1.4);
+          arch.forEach(function (q, i) { if (i % 2 === 0) g3Line(ctx, vp, [q, [q[0], q[1] + (rw[1] ? -14 : 14), q[2]]], rw[1] ? "rgba(255,106,94,0.5)" : "rgba(94,231,255,0.55)", 1); });
+        });
         /* 軟口蓋 */
         var vx = 300 + 34 * p.vel, vy = 334 - 64 * p.vel;
         [-14, -7, 0, 7, 14].forEach(function (z) { g3Line(ctx, vp, [[338, 254, z], [(338 + vx) / 2 - 8, ((254 + vy) / 2) + 2, z], [vx, vy, z]], "rgba(238,250,255,0.75)", 1.2); });
