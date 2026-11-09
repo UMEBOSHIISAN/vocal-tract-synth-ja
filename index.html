@@ -1,0 +1,2336 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>声道シミュレータ日本語版</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #010304;
+        --panel: #02090c;
+        --panel-edge: #175263;
+        --panel-edge-dim: #0d3542;
+        --ink: #d9f4ff;
+        --ink-dim: #7fa8b5;
+        --ink-faint: #4b7180;
+        --cyan: #5ee7ff;
+        --cyan-dim: #22798f;
+        --green: #3dff8e;
+        --green-dim: #14532d;
+        --red: #ff6a5e;
+        --pink: #ff8ae2;
+        --amber: #ffb454;
+        --white: #eefaff;
+        --mono: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background:
+          radial-gradient(1200px 700px at 50% -10%, #06222b 0%, transparent 60%),
+          var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        min-height: 100vh;
+        padding: 14px 12px 40px;
+      }
+      .stage { max-width: 1060px; margin: 0 auto; }
+
+      /* ---------- device panel ---------- */
+      .device {
+        border: 1px solid var(--panel-edge);
+        background: linear-gradient(180deg, #03141a 0%, var(--panel) 30%, #010608 100%);
+        box-shadow: 0 0 0 1px #000, 0 0 34px rgba(46, 190, 224, 0.12), inset 0 0 60px rgba(0, 20, 28, 0.8);
+        padding: 14px 16px 12px;
+        position: relative;
+        overflow: hidden;
+      }
+      .device::after {
+        content: "";
+        position: absolute; inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(255,255,255,0.022) 0 1px, transparent 1px 3px);
+        mix-blend-mode: overlay;
+      }
+      .faceplate {
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+        border-bottom: 1px solid var(--panel-edge-dim);
+        padding-bottom: 8px;
+      }
+      .faceplate .vt {
+        font-family: var(--mono);
+        font-size: 21px; letter-spacing: 0.34em; color: var(--cyan);
+        text-shadow: 0 0 12px rgba(94, 231, 255, 0.55);
+      }
+      .faceplate .vt-jp { font-size: 15px; font-weight: 700; letter-spacing: 0.42em; color: var(--ink); }
+      .faceplate .sub {
+        font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-dim);
+      }
+      .faceplate .live {
+        margin-left: auto; font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+        color: var(--ink-faint); display: flex; align-items: center; gap: 7px;
+      }
+      .live .dot { width: 8px; height: 8px; border-radius: 50%; background: #2a4a54; }
+      .live.on { color: var(--green); }
+      .live.on .dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
+
+      .tabs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+      .tab {
+        font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+        color: var(--ink-dim); background: transparent;
+        border: 1px solid var(--panel-edge-dim); padding: 6px 12px; cursor: pointer;
+      }
+      .tab .jp { font-family: var(--sans); letter-spacing: 0.1em; margin-right: 6px; }
+      .tab[aria-pressed="true"] {
+        color: var(--cyan); border-color: var(--cyan-dim);
+        background: rgba(94, 231, 255, 0.07);
+        box-shadow: inset 0 0 12px rgba(94, 231, 255, 0.08);
+      }
+      .tab:focus-visible, button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+      .formants {
+        display: flex; flex-wrap: wrap; gap: 8px 34px; margin-top: 12px;
+        font-family: var(--mono);
+      }
+      .formants .f { display: flex; align-items: baseline; gap: 9px; }
+      .formants .f .lab { font-size: 12px; color: var(--ink-faint); letter-spacing: 0.2em; }
+      .formants .f .val { font-size: 26px; color: var(--amber); text-shadow: 0 0 10px rgba(255, 180, 84, 0.35); min-width: 3.2ch; }
+      .formants .f .unit { font-size: 11px; color: var(--ink-faint); }
+      .formants .f0 .val { color: var(--cyan); text-shadow: 0 0 10px rgba(94, 231, 255, 0.35); }
+      .formants .f .note-name { font-size: 15px; color: var(--pink); letter-spacing: 0.06em; min-width: 3.4ch; text-shadow: 0 0 8px rgba(255, 138, 226, 0.4); }
+
+      .device-main {
+        display: grid; grid-template-columns: minmax(0, 1fr) 218px; gap: 10px;
+        margin-top: 6px; align-items: start;
+      }
+      .tract-wrap { position: relative; }
+      svg.tract { width: 100%; height: auto; display: block; }
+      .now-readout { padding: 10px 4px 0 6px; }
+      .now-kana {
+        font-size: 92px; line-height: 1.02; font-weight: 700; color: var(--green);
+        text-shadow: 0 0 22px rgba(61, 255, 142, 0.4);
+        min-height: 96px;
+      }
+      .now-roma { font-family: var(--mono); font-size: 21px; letter-spacing: 0.3em; color: var(--ink); margin-top: 2px; }
+      .now-kind { font-size: 12.5px; color: var(--amber); letter-spacing: 0.12em; margin-top: 8px; min-height: 1.4em; }
+      .now-memo { font-size: 13px; line-height: 1.75; color: var(--ink-dim); margin-top: 6px; min-height: 5.2em; }
+      .now-next { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); letter-spacing: 0.2em; margin-top: 8px; }
+      .now-next b { color: var(--ink-dim); font-weight: 400; }
+
+      .scope {
+        margin-top: 4px; border-top: 1px solid var(--panel-edge-dim); padding-top: 8px;
+      }
+      .scope .scope-head {
+        display: flex; justify-content: space-between; align-items: baseline;
+        font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--ink-faint);
+        margin-bottom: 4px;
+      }
+      .scope .scope-head .t { color: var(--ink-dim); }
+      canvas.scope-canvas { width: 100%; height: 92px; display: block; }
+      .measure { display: none; padding: 4px 2px 2px; }
+      .measure.show { display: block; }
+      .mrow { display: grid; grid-template-columns: 86px 1fr 64px; align-items: center; gap: 10px; margin: 5px 0; font-size: 12.5px; }
+      .mrow .mlab { color: var(--ink-dim); letter-spacing: 0.08em; }
+      .mrow .mbar { height: 7px; background: #07222b; position: relative; }
+      .mrow .mbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cyan); box-shadow: 0 0 8px rgba(94,231,255,0.5); width: 0%; }
+      .mrow .mbar.bi i { background: var(--green); box-shadow: 0 0 8px rgba(61,255,142,0.5); }
+      .mrow .mval { font-family: var(--mono); color: var(--amber); text-align: right; font-size: 13px; }
+
+      .legend {
+        display: flex; flex-wrap: wrap; gap: 8px 26px; align-items: center;
+        border-top: 1px solid var(--panel-edge-dim); margin-top: 10px; padding-top: 9px;
+        font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.14em; color: var(--ink-dim);
+      }
+      .legend .li { display: flex; align-items: center; gap: 7px; }
+      .legend .sw { width: 9px; height: 9px; border-radius: 50%; }
+      .legend .vals { margin-left: auto; display: flex; gap: 22px; flex-wrap: wrap; }
+      .legend .vals .v b { color: var(--amber); font-weight: 400; }
+      .legend .vals .v .pink { color: var(--pink); }
+
+      /* ---------- controls ---------- */
+      .controls { margin-top: 16px; }
+      .phrase {
+        display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px;
+      }
+      .word-group { display: flex; gap: 4px; padding: 5px; border: 1px dashed #17434f; }
+      .mora {
+        min-width: 46px; padding: 6px 4px 5px; text-align: center; cursor: pointer;
+        background: #04141a; border: 1px solid var(--panel-edge-dim); color: var(--ink);
+      }
+      .mora .k { display: block; font-size: 21px; font-weight: 700; line-height: 1.15; }
+      .mora .r { display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; color: var(--ink-faint); margin-top: 2px; }
+      .mora.active { border-color: var(--green); background: rgba(61, 255, 142, 0.1); box-shadow: 0 0 14px rgba(61,255,142,0.25); }
+      .mora.active .r { color: var(--green); }
+      .mora.done { border-color: #1d5b6b; }
+      .mora.done .k { color: var(--ink-dim); }
+
+      .transport { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+      .play-btn {
+        font-family: var(--sans); font-weight: 700; font-size: 17px; letter-spacing: 0.14em;
+        color: #03240f; background: var(--green); border: 1px solid var(--green);
+        padding: 13px 26px; cursor: pointer; box-shadow: 0 0 22px rgba(61, 255, 142, 0.35);
+      }
+      .play-btn:active { transform: translateY(1px); }
+      .stop-btn {
+        font-family: var(--mono); font-size: 13px; letter-spacing: 0.14em;
+        color: var(--ink-dim); background: transparent; border: 1px solid var(--panel-edge-dim);
+        padding: 12px 16px; cursor: pointer;
+      }
+      .seg-ctl { display: flex; flex-wrap: wrap; border: 1px solid var(--panel-edge-dim); }
+      .seg-ctl button {
+        font-family: var(--sans); font-size: 13px; color: var(--ink-dim);
+        background: transparent; border: 0; border-right: 1px solid var(--panel-edge-dim);
+        padding: 11px 13px; cursor: pointer; letter-spacing: 0.06em;
+      }
+      .seg-ctl button:last-child { border-right: 0; }
+      .seg-ctl button[aria-pressed="true"] { color: var(--cyan); background: rgba(94,231,255,0.09); }
+      .seg-ctl button .x { font-family: var(--mono); font-size: 11px; margin-left: 4px; color: var(--ink-faint); }
+      .seg-ctl button[aria-pressed="true"] .x { color: var(--cyan); }
+      .ctl-lab { font-size: 11px; letter-spacing: 0.22em; color: var(--ink-faint); margin-right: -2px; }
+      .loop-lab { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-dim); cursor: pointer; }
+      .loop-lab input {
+        appearance: none; -webkit-appearance: none; flex: none; margin: 0; cursor: pointer;
+        width: 40px; height: 20px; border: 1px solid var(--panel-edge-dim); background: #04141a; position: relative;
+      }
+      .loop-lab input::after {
+        content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #2a4a54;
+        transition: left 0.15s, background 0.15s;
+      }
+      .loop-lab input:checked { border-color: var(--cyan-dim); }
+      .loop-lab input:checked::after { left: 22px; background: var(--cyan); box-shadow: 0 0 8px rgba(94,231,255,0.6); }
+
+      .sub-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+      .word-btn, .vowel-btn {
+        font-family: var(--sans); font-size: 14px; color: var(--ink);
+        background: #04141a; border: 1px solid var(--panel-edge-dim); padding: 9px 14px; cursor: pointer;
+        letter-spacing: 0.08em;
+      }
+      .word-btn:hover, .vowel-btn:hover, .mora:hover { border-color: var(--cyan-dim); }
+      .vowel-btn { min-width: 52px; font-size: 17px; font-weight: 700; }
+      .vowel-btn .r { font-family: var(--mono); font-weight: 400; font-size: 10px; color: var(--ink-faint); margin-left: 5px; letter-spacing: 0.1em; }
+      .mode-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+      .free-panel { margin-bottom: 14px; }
+      .free-lab { display: block; font-size: 12px; letter-spacing: 0.14em; color: var(--ink-dim); margin-bottom: 7px; }
+      .free-panel textarea {
+        width: 100%; resize: vertical; min-height: 56px;
+        background: #04141a; border: 1px solid var(--panel-edge-dim); color: var(--ink);
+        font-family: var(--sans); font-size: 17px; line-height: 1.6; letter-spacing: 0.06em;
+        padding: 10px 12px;
+      }
+      .free-panel textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+      .preset-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 10px; }
+      .preset-chip {
+        font-family: var(--sans); font-size: 13px; color: var(--ink);
+        background: #04141a; border: 1px solid var(--panel-edge-dim); padding: 7px 12px; cursor: pointer;
+        letter-spacing: 0.05em;
+      }
+      .preset-chip:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+      .preset-chip[aria-pressed="true"] {
+        color: var(--cyan); border-color: var(--cyan-dim);
+        background: rgba(94, 231, 255, 0.07);
+        box-shadow: inset 0 0 12px rgba(94, 231, 255, 0.08);
+      }
+      .wav-btn {
+        font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em;
+        color: var(--cyan); background: transparent; border: 1px solid var(--cyan-dim);
+        padding: 12px 16px; cursor: pointer;
+      }
+      .wav-btn:hover { background: rgba(94, 231, 255, 0.08); }
+      .wav-btn:disabled { opacity: 0.45; cursor: wait; }
+      .parse-note { font-size: 12.5px; color: var(--ink-faint); margin: 9px 0 0; min-height: 1.5em; letter-spacing: 0.04em; }
+      .parse-note b { color: var(--green); font-weight: 500; }
+      .parse-note .warn { color: var(--amber); }
+
+      .anat-sec { border-top: 1px dashed #17434f; margin-top: 10px; padding-top: 9px; }
+      .anat-sec .ah { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; color: var(--ink-dim); margin-bottom: 6px; }
+      .anat-row { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; margin: 4px 0; }
+      .anat-row .al { color: var(--ink-dim); letter-spacing: 0.06em; min-width: 108px; }
+      .anat-row .av { font-family: var(--mono); color: var(--amber); }
+      .anat-row .av.cy { color: var(--cyan); }
+      .ftab { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0 4px; }
+      .ftab th, .ftab td { border: 1px solid var(--panel-edge-dim); padding: 4px 8px; text-align: right; font-family: var(--mono); }
+      .ftab th { color: var(--ink-dim); font-family: var(--sans); font-weight: 500; letter-spacing: 0.06em; }
+      .ftab td.k { text-align: left; font-family: var(--sans); color: var(--ink); }
+      .anat-note { font-size: 12px; line-height: 1.8; color: var(--ink-faint); margin: 8px 0 2px; }
+      .anat-note b { color: var(--ink-dim); font-weight: 500; }
+      .spk-info { font-size: 12px; color: var(--ink-faint); letter-spacing: 0.04em; }
+      .spk-info b { color: var(--amber); font-weight: 500; font-family: var(--mono); }
+      .mode-row input[type="range"] { accent-color: var(--cyan); width: 210px; max-width: 52vw; cursor: pointer; }
+      .man-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 7px 20px; margin-top: 4px; }
+      .man-ctl { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+      .man-ctl .ml { min-width: 92px; color: var(--ink-dim); letter-spacing: 0.04em; }
+      .man-ctl input[type="range"] { flex: 1; min-width: 0; accent-color: var(--cyan); cursor: pointer; }
+      .man-ctl .mv2 { font-family: var(--mono); font-size: 12px; color: var(--amber); min-width: 46px; text-align: right; }
+      .man-sound { font-size: 14px; padding: 9px 18px; box-shadow: none; }
+      .man-sound[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: #2a1503; box-shadow: 0 0 16px rgba(255, 180, 84, 0.4); }
+
+      .spec {
+        margin-top: 16px; font-size: 12px; line-height: 1.8; color: var(--ink-faint); letter-spacing: 0.04em;
+      }
+      .spec b { color: var(--ink-dim); font-weight: 500; }
+
+      @media (max-width: 760px) {
+        .device-main { grid-template-columns: minmax(0, 1fr); }
+        .now-readout { padding: 2px 2px 0; display: grid; grid-template-columns: auto 1fr; column-gap: 16px; align-items: start; }
+        .now-kana { font-size: 64px; min-height: 66px; }
+        .now-side { padding-top: 6px; }
+        .now-memo { min-height: 0; grid-column: 1 / -1; }
+        .faceplate .vt { font-size: 16px; }
+        .formants .f .val { font-size: 21px; }
+        .legend .vals { margin-left: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .device::after { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section class="device" aria-label="声道シミュレータ">
+        <div class="faceplate">
+          <span class="vt">VOCAL TRACT</span>
+          <span class="vt-jp">声道</span>
+          <span class="sub" id="faceSub">日本人・成人男性 / 正中矢状断面&nbsp; VTL 15.8cm</span>
+          <span class="live" id="liveInd"><span class="dot"></span><span id="liveTxt">STANDBY</span></span>
+        </div>
+
+        <div class="tabs" role="group" aria-label="表示モード">
+          <button class="tab" id="tab-pressure" aria-pressed="true"><span class="jp">音圧</span>SOUND PRESSURE</button>
+          <button class="tab" id="tab-airflow" aria-pressed="false"><span class="jp">気流</span>AIRFLOW</button>
+          <button class="tab" id="tab-measure" aria-pressed="false"><span class="jp">計測</span>MEASUREMENTS</button>
+        </div>
+
+        <div class="formants" aria-label="フォルマント周波数">
+          <div class="f"><span class="lab">F1</span><span class="val" id="f1v">---</span><span class="unit">Hz</span></div>
+          <div class="f"><span class="lab">F2</span><span class="val" id="f2v">---</span><span class="unit">Hz</span></div>
+          <div class="f"><span class="lab">F3</span><span class="val" id="f3v">---</span><span class="unit">Hz</span></div>
+          <div class="f f0"><span class="lab">F0</span><span class="val" id="f0v">---</span><span class="unit">Hz</span><span class="note-name" id="f0note"></span></div>
+        </div>
+
+        <div class="device-main">
+          <div class="tract-wrap">
+            <svg class="tract" viewBox="0 0 640 600" role="img" aria-label="声道の正中矢状断面図。舌、顎、唇、軟口蓋が発音に合わせて動きます。">
+              <defs>
+                <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="1.1" result="b" />
+                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+
+              <!-- vertebrae -->
+              <g stroke="#22798f" fill="none" stroke-width="1.4" opacity="0.75">
+                <rect x="150" y="292" width="38" height="38" rx="7" />
+                <rect x="150" y="340" width="38" height="38" rx="7" />
+                <rect x="150" y="388" width="38" height="38" rx="7" />
+                <rect x="150" y="436" width="38" height="38" rx="7" />
+                <rect x="150" y="484" width="38" height="38" rx="7" />
+                <rect x="150" y="532" width="38" height="38" rx="7" />
+              </g>
+
+              <!-- skull / face profile -->
+              <g stroke="#5ee7ff" fill="none" stroke-width="2" filter="url(#softGlow)">
+                <path d="M 118 596 C 100 470, 95 330, 107 220 C 115 130, 178 60, 278 50 C 374 40, 450 84, 471 170 C 479 202, 475 216, 481 240 C 490 264, 494 278, 485 288 C 478 296, 469 298, 463 302 L 465 308" />
+              </g>
+              <path d="M 133 596 C 117 472, 112 338, 123 228 C 130 144, 188 78, 280 67 C 366 57, 434 97, 453 173 C 460 200, 457 214, 462 236"
+                    stroke="#22798f" fill="none" stroke-width="1.3" />
+
+              <!-- nasal cavity -->
+              <g stroke="#5ee7ff" fill="none" stroke-width="1.5" opacity="0.9">
+                <path d="M 298 230 C 328 198, 398 190, 430 216" />
+                <path d="M 304 208 C 332 180, 390 172, 418 194" />
+                <ellipse cx="352" cy="210" rx="27" ry="8" />
+                <ellipse cx="368" cy="191" rx="20" ry="6.5" />
+                <path d="M 298 230 C 296 240, 297 248, 300 256" />
+              </g>
+
+              <!-- pharynx back wall + esophagus -->
+              <path d="M 218 252 C 211 332, 211 420, 226 488" stroke="#5ee7ff" fill="none" stroke-width="1.8" />
+              <path d="M 233 258 C 228 336, 228 416, 240 480" stroke="#22798f" fill="none" stroke-width="1.2" />
+              <path d="M 206 492 L 206 596" stroke="#22798f" fill="none" stroke-width="1.2" stroke-dasharray="4 5" />
+
+              <!-- hard palate + upper teeth -->
+              <g stroke="#5ee7ff" fill="none" stroke-width="2">
+                <path d="M 444 296 C 414 276, 368 263, 333 259" />
+              </g>
+              <path d="M 444 303 C 415 284, 370 271, 337 267" stroke="#22798f" fill="none" stroke-width="1.2" />
+              <g stroke="#5ee7ff" fill="none" stroke-width="1.6">
+                <path d="M 427 297 L 427 319 L 437 319 L 437 299" />
+                <path d="M 439 298 L 439 316 L 449 316 L 449 300" />
+              </g>
+
+              <!-- soft palate (velum) : path rewritten by JS -->
+              <path id="velumPath" d="" stroke="#eefaff" fill="none" stroke-width="7" stroke-linecap="round" opacity="0.92" />
+              <circle id="uvula" r="3.4" fill="#eefaff" />
+
+              <!-- epiglottis / hyoid -->
+              <path d="M 278 424 C 269 440, 267 456, 272 472" stroke="#22798f" fill="none" stroke-width="1.5" />
+              <path d="M 292 438 C 302 445, 315 445, 324 438" stroke="#22798f" fill="none" stroke-width="1.5" />
+
+              <!-- larynx / trachea -->
+              <g stroke="#5ee7ff" fill="none" stroke-width="1.7">
+                <path d="M 234 492 L 234 596" />
+                <path d="M 264 492 L 264 596" />
+                <path d="M 266 450 C 275 464, 275 480, 266 494" />
+              </g>
+              <g stroke="#22798f" fill="none" stroke-width="1.1">
+                <path d="M 234 516 C 244 511, 254 511, 264 516" />
+                <path d="M 234 540 C 244 535, 254 535, 264 540" />
+                <path d="M 234 564 C 244 559, 254 559, 264 564" />
+                <path d="M 234 588 C 244 583, 254 583, 264 588" />
+              </g>
+              <!-- vocal folds -->
+              <g id="folds" stroke="#5ee7ff" stroke-width="2" fill="none" filter="url(#softGlow)">
+                <path d="M 235 479 L 250 486" />
+                <path d="M 265 479 L 250 486" />
+              </g>
+
+              <!-- jaw group (rotated by JS) -->
+              <g id="jawG">
+                <g stroke="#ff6a5e" fill="none" stroke-width="2" filter="url(#softGlow)">
+                  <path d="M 276 330 C 292 356, 300 388, 308 414 C 318 446, 352 462, 392 456 C 424 452, 446 430, 450 398 C 451 388, 450 379, 447 371 C 449 361, 447 349, 443 339" />
+                </g>
+                <path d="M 293 350 C 305 374, 311 399, 319 421 C 329 443, 357 453, 389 449" stroke="#a83a32" fill="none" stroke-width="1.3" />
+                <g stroke="#ff6a5e" fill="none" stroke-width="1.6">
+                  <path d="M 419 337 L 419 318 L 430 318 L 430 335" />
+                  <path d="M 432 335 L 432 317 L 443 317 L 443 332" />
+                </g>
+                <circle cx="268" cy="318" r="5" stroke="#ff6a5e" fill="none" stroke-width="1.4" />
+                <!-- lower lip (translated by JS for closure / protrusion) -->
+                <g id="lowerLipG">
+                  <path d="M 435 330 C 449 322, 465 323, 468 332 C 470 342, 460 350, 447 349 C 438 348, 432 339, 435 330 Z"
+                        stroke="#ff8ae2" fill="rgba(255,138,226,0.16)" stroke-width="2" />
+                </g>
+              </g>
+
+              <!-- tongue (path + fan rewritten by JS) -->
+              <g id="fanG" stroke="#1d9e57" stroke-width="1" opacity="0.8"></g>
+              <path id="tonguePath" d="" stroke="#3dff8e" fill="rgba(61,255,142,0.15)" stroke-width="2" filter="url(#softGlow)" />
+              <g id="reticle" stroke="#3dff8e" stroke-width="1.4" fill="none">
+                <circle r="9" />
+                <path d="M -14 0 L -4 0 M 4 0 L 14 0 M 0 -14 L 0 -4 M 0 4 L 0 14" />
+              </g>
+
+              <!-- upper lip (translated by JS for protrusion) -->
+              <g id="upperLipG">
+                <path d="M 442 295 C 455 289, 470 291, 472 299 C 473 307, 463 314, 450 313 C 442 312, 438 301, 442 295 Z"
+                      stroke="#ff8ae2" fill="rgba(255,138,226,0.16)" stroke-width="2" />
+              </g>
+
+              <!-- airflow particles -->
+              <g id="particles"></g>
+            </svg>
+          </div>
+
+          <div class="now-readout" aria-live="polite">
+            <div class="now-kana" id="nowKana">な</div>
+            <div class="now-side">
+              <div class="now-roma" id="nowRoma">NA</div>
+              <div class="now-kind" id="nowKind">待機中</div>
+              <div class="now-next" id="nowNext">NEXT <b>—</b></div>
+            </div>
+            <p class="now-memo" id="nowMemo">再生すると「なまむぎ なまごめ なまたまご」を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。</p>
+          </div>
+        </div>
+
+        <div class="scope">
+          <div class="scope-head"><span class="t" id="scopeTitle">音圧波形 — SOUND PRESSURE</span><span id="scopeRight">CH-1 · LIPS</span></div>
+          <canvas class="scope-canvas" id="scopeCanvas" width="980" height="92"></canvas>
+          <div class="measure" id="measureBox">
+            <div class="mrow"><span class="mlab">舌の高さ</span><span class="mbar bi"><i id="mb-th"></i></span><span class="mval" id="mv-th">0.00</span></div>
+            <div class="mrow"><span class="mlab">舌の前後</span><span class="mbar bi"><i id="mb-tx"></i></span><span class="mval" id="mv-tx">+0.00</span></div>
+            <div class="mrow"><span class="mlab">顎の開き</span><span class="mbar"><i id="mb-jaw"></i></span><span class="mval" id="mv-jaw">0.00</span></div>
+            <div class="mrow"><span class="mlab">唇の開き</span><span class="mbar"><i id="mb-lip"></i></span><span class="mval" id="mv-lip">0.00</span></div>
+            <div class="mrow"><span class="mlab">鼻腔の開放</span><span class="mbar"><i id="mb-nas"></i></span><span class="mval" id="mv-nas">0.00</span></div>
+            <div class="mrow"><span class="mlab">推定 F1（調音）</span><span class="mbar bi"><i id="mb-ef1"></i></span><span class="mval" id="mv-ef1">—</span></div>
+            <div class="mrow"><span class="mlab">推定 F2（調音）</span><span class="mbar"><i id="mb-ef2"></i></span><span class="mval" id="mv-ef2">—</span></div>
+            <div class="mrow"><span class="mlab">音名 NOTE</span><span class="mbar bi"><i id="mb-note"></i></span><span class="mval" id="mv-note">—</span></div>
+            <div class="mrow"><span class="mlab">音程 F0</span><span class="mbar"><i id="mb-f0"></i></span><span class="mval" id="mv-f0">— Hz</span></div>
+            <div class="anat-sec" id="anatSec">
+              <div class="ah">解剖パラメータ — ANATOMY（全モード共通の基盤）</div>
+              <div class="anat-row"><span class="al">話者プリセット</span><span class="av cy" id="an-spk">—</span></div>
+              <div class="anat-row"><span class="al">声道長 VTL</span><span class="av" id="an-vtl">—</span></div>
+              <div class="anat-row"><span class="al">中立管共鳴（推定）</span><span class="av" id="an-neutral">—</span></div>
+              <div class="anat-row"><span class="al">口腔長／咽頭長</span><span class="av" id="an-ratio">—</span></div>
+              <div class="anat-row"><span class="al">声帯長（膜様部）</span><span class="av" id="an-fold">—</span></div>
+              <div class="anat-row"><span class="al">F0 基準（範囲）</span><span class="av" id="an-f0">—</span></div>
+              <table class="ftab" aria-label="適用中の日本語5母音フォルマント表">
+                <thead><tr><th style="text-align:left">母音</th><th>F1 (Hz)</th><th>F2 (Hz)</th><th>F3 (Hz)</th></tr></thead>
+                <tbody id="an-ftab"></tbody>
+              </table>
+              <p class="anat-note" id="an-note"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span class="li"><span class="sw" style="background:#3dff8e"></span>舌 TONGUE</span>
+          <span class="li"><span class="sw" style="background:#ff6a5e"></span>顎 JAW</span>
+          <span class="li"><span class="sw" style="background:#ff8ae2"></span>唇 LIPS</span>
+          <span class="li"><span class="sw" style="background:#eefaff"></span>軟口蓋 SOFT PALATE</span>
+          <span class="vals">
+            <span class="v">舌 前後 <b id="lgTx">+0.00</b></span>
+            <span class="v">舌 高低 <b id="lgTy">+0.00</b></span>
+            <span class="v">唇 <b class="pink" id="lgLip">開放</b></span>
+          </span>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="操作">
+        <div class="mode-row">
+          <span class="ctl-lab">モード</span>
+          <div class="seg-ctl" role="group" aria-label="モード">
+            <button id="modePhrase" aria-pressed="true">なまむぎ</button>
+            <button id="modeFree" aria-pressed="false">自由入力</button>
+            <button id="modeSong" aria-pressed="false">歌う</button>
+            <button id="modeManual" aria-pressed="false">手動調音</button>
+          </div>
+        </div>
+
+        <div class="mode-row">
+          <span class="ctl-lab">話者（解剖）</span>
+          <div class="seg-ctl" id="speakerCtl" role="group" aria-label="話者プリセット（解剖パラメータ）">
+            <button data-speaker="male" aria-pressed="true">成人男性</button>
+            <button data-speaker="female" aria-pressed="false">成人女性</button>
+            <button data-speaker="child" aria-pressed="false">子ども</button>
+          </div>
+          <span class="spk-info" id="speakerInfo"></span>
+        </div>
+
+        <div class="mode-row">
+          <span class="ctl-lab">声道長 VTL</span>
+          <input type="range" id="vtlSlider" min="10" max="18" step="0.1" value="15.8" aria-label="声道長（センチメートル）" />
+          <span class="spk-info" id="vtlVal">15.8 cm</span>
+          <span class="spk-info">プリセット間の長さは解剖アンカーから補間</span>
+        </div>
+
+        <div class="mode-row">
+          <span class="ctl-lab">デュエット</span>
+          <div class="seg-ctl" id="duetCtl" role="group" aria-label="デュエットの相手（第2声道）">
+            <button data-duet="" aria-pressed="true">なし</button>
+            <button data-duet="male" aria-pressed="false">成人男性</button>
+            <button data-duet="female" aria-pressed="false">成人女性</button>
+            <button data-duet="child" aria-pressed="false">子ども</button>
+          </div>
+          <span class="spk-info" id="duetInfo"></span>
+        </div>
+
+        <div class="free-panel" id="freePanel" hidden>
+          <label class="free-lab" for="freeInput">ひらがなで入力（カタカナも自動で読み替えます）</label>
+          <textarea id="freeInput" rows="2">かえるぴょこぴょこ みぴょこぴょこ</textarea>
+          <div class="preset-row">
+            <span class="ctl-lab">早口言葉</span>
+            <button class="preset-chip" data-text="かえるぴょこぴょこ みぴょこぴょこ あわせてぴょこぴょこ むぴょこぴょこ">かえるぴょこぴょこ</button>
+            <button class="preset-chip" data-text="となりのきゃくは よくかきくうきゃくだ">となりのきゃくは</button>
+            <button class="preset-chip" data-text="あかまきがみ あおまきがみ きまきがみ">あかまきがみ</button>
+            <button class="preset-chip" data-text="たけやぶ やけた">たけやぶ やけた</button>
+            <button class="preset-chip" data-text="ばななの なぞは まだなぞなのだぞ">ばななのなぞは</button>
+          </div>
+          <p class="parse-note" id="parseNote"></p>
+        </div>
+
+        <div class="free-panel" id="songPanel" hidden>
+          <span class="free-lab">曲を選ぶ — モーラごとに音程（F0）が旋律どおりに動き、声道も一緒に歌います</span>
+          <div class="preset-row" style="margin-top:0">
+            <button class="preset-chip song-chip" data-song="furusato" aria-pressed="true">ふるさと（唱歌）</button>
+            <button class="preset-chip song-chip" data-song="shoo" aria-pressed="false">SHOO BEE DOO</button>
+            <button class="preset-chip song-chip" data-song="honke" aria-pressed="false">本家デモ（スキャット）</button>
+            <button class="preset-chip song-chip" data-song="twinkle" aria-pressed="false">きらきらぼし（Twinkle, twinkle）</button>
+            <button class="preset-chip song-chip" data-song="madeofair" aria-pressed="false">Made of air（本家オリジナル）</button>
+          </div>
+          <div class="preset-row" id="twinkleVariantRow" hidden>
+            <span class="ctl-lab">歌詞</span>
+            <button class="preset-chip" data-tvariant="jp" aria-pressed="true">日本語（きらきらぼし）</button>
+            <button class="preset-chip" data-tvariant="en" aria-pressed="false">英語（本家の歌詞）</button>
+          </div>
+          <p class="parse-note" id="songNote"></p>
+        </div>
+
+        <div class="free-panel" id="manualPanel" hidden>
+          <span class="free-lab">調音パラメータを直接動かす — 断面図・推定フォルマント・音が連動します（値は再生スコアと同一の調音ポーズ）</span>
+          <div class="man-grid">
+            <label class="man-ctl"><span class="ml">舌先 前後</span><input type="range" id="manTx" min="385" max="445" step="1" value="406" /><span class="mv2" id="manTxV">406</span></label>
+            <label class="man-ctl"><span class="ml">舌先 上下</span><input type="range" id="manTy" min="295" max="360" step="1" value="338" /><span class="mv2" id="manTyV">338</span></label>
+            <label class="man-ctl"><span class="ml">舌体 前後</span><input type="range" id="manBx" min="305" max="380" step="1" value="350" /><span class="mv2" id="manBxV">350</span></label>
+            <label class="man-ctl"><span class="ml">舌体 上下</span><input type="range" id="manBy" min="275" max="380" step="1" value="340" /><span class="mv2" id="manByV">340</span></label>
+            <label class="man-ctl"><span class="ml">顎の開き</span><input type="range" id="manJaw" min="0" max="1" step="0.01" value="0.22" /><span class="mv2" id="manJawV">0.22</span></label>
+            <label class="man-ctl"><span class="ml">唇の開き</span><input type="range" id="manLip" min="0" max="1" step="0.01" value="0.30" /><span class="mv2" id="manLipV">0.30</span></label>
+            <label class="man-ctl"><span class="ml">唇の突出</span><input type="range" id="manPro" min="0" max="1" step="0.01" value="0" /><span class="mv2" id="manProV">0.00</span></label>
+            <label class="man-ctl"><span class="ml">軟口蓋の挙上</span><input type="range" id="manVel" min="0" max="1" step="0.01" value="0.55" /><span class="mv2" id="manVelV">0.55</span></label>
+            <label class="man-ctl"><span class="ml">ピッチ F0</span><input type="range" id="manF0" min="60" max="320" step="1" value="118" /><span class="mv2" id="manF0V">118 Hz</span></label>
+          </div>
+          <div class="preset-row">
+            <span class="ctl-lab">母音ポーズ</span>
+            <button class="preset-chip man-vowel" data-v="a">あ</button>
+            <button class="preset-chip man-vowel" data-v="i">い</button>
+            <button class="preset-chip man-vowel" data-v="u">う</button>
+            <button class="preset-chip man-vowel" data-v="e">え</button>
+            <button class="preset-chip man-vowel" data-v="o">お</button>
+            <button class="preset-chip man-vowel" data-v="n">中立</button>
+            <button class="play-btn man-sound" id="manSoundBtn" aria-pressed="false">声を出す</button>
+          </div>
+          <p class="parse-note">F1/F2/F3 は、日本語5母音の実測アンカー（現在の声道長でスケーリング済み）の間を舌体位置と顎開きの距離で補間した<b>推定値</b>です（実測ではありません）。計測タブの「推定 F1／F2（調音）」にも連動表示されます。WAV書き出しは今のポーズを約1.2秒の持続音として書き出します。</p>
+        </div>
+
+        <div class="phrase" id="phrase"></div>
+
+        <div class="transport">
+          <button class="play-btn" id="playBtn">▶ 発音する</button>
+          <button class="stop-btn" id="stopBtn">■ STOP</button>
+          <button class="wav-btn" id="wavBtn">WAV 書き出し</button>
+          <button class="wav-btn" id="wavBatchBtn">WAV 一括書き出し（全12件）</button>
+          <span class="ctl-lab">速度</span>
+          <div class="seg-ctl" id="speedCtl" role="group" aria-label="速度">
+            <button data-speed="0.6" aria-pressed="false">ゆっくり<span class="x">×0.6</span></button>
+            <button data-speed="1" aria-pressed="true">ふつう<span class="x">×1.0</span></button>
+            <button data-speed="1.6" aria-pressed="false">はやい<span class="x">×1.6</span></button>
+            <button data-speed="2" aria-pressed="false">もっとはやい<span class="x">×2.0</span></button>
+            <button data-speed="2.5" aria-pressed="false">げきはや<span class="x">×2.5</span></button>
+          </div>
+          <label class="loop-lab"><input type="checkbox" id="loopChk" />リピート</label>
+        </div>
+
+        <div class="sub-row" id="wordRow">
+          <span class="ctl-lab">単語だけ</span>
+          <button class="word-btn" data-word="0">なまむぎ（生麦）</button>
+          <button class="word-btn" data-word="1">なまごめ（生米）</button>
+          <button class="word-btn" data-word="2">なまたまご（生卵）</button>
+        </div>
+        <div class="sub-row">
+          <span class="ctl-lab">母音の練習</span>
+          <button class="vowel-btn" data-vowel="a">あ<span class="r">A</span></button>
+          <button class="vowel-btn" data-vowel="i">い<span class="r">I</span></button>
+          <button class="vowel-btn" data-vowel="u">う<span class="r">U</span></button>
+          <button class="vowel-btn" data-vowel="e">え<span class="r">E</span></button>
+          <button class="vowel-btn" data-vowel="o">お<span class="r">O</span></button>
+        </div>
+
+        <p class="spec">
+          <b>音の作り方：</b>録音やサンプルは使っていません。声帯の振動（基本周波数 F0）を音源に、声道の共鳴を F1/F2/F3 のフォルマントで再現する<b>フォルマント合成</b>で、その場で音を生成しています。
+          鼻音（な・ま行）は軟口蓋を下げて鼻腔へ、破裂音（が行・た行）は閉鎖→破裂の気流まで含めてモデル化しています。
+          歌モードではモーラごとに F0 を旋律へ合わせ、母音を伸ばして長い音にビブラートを加えます。
+          「WAV 書き出し」は今選んでいるフレーズ／曲をオフラインでレンダリングし、44.1kHz・16bit の WAV ファイルとして保存します（DAW にそのまま取り込めます）。
+          「WAV 一括書き出し」は、なまむぎ・早口言葉×5・歌×6（ふるさと全3番・SHOO BEE DOO・本家デモ・Twinkle, twinkle の英語詞／きらきらぼし の日本語詞・Made of air）の全プリセットをまとめて1件ずつ書き出します。ファイル名は「フレーズ名_日時.wav」なので、Ableton / Studio One へ素材を集めるときにそのまま見分けられます。
+          <b>解剖パラメータ：</b>声の土台は「解剖パラメータ層」に集約しています。声道長（日本人成人男性の代表値 15.8cm／女性 13.8cm／子ども 10.8cm）から一様管モデル Fn=(2n-1)c/(4L) で中立共鳴（シュワー）を計算し、日本語5母音の実測平均フォルマントを声道長でスケーリングします。「う」は唇の丸めが弱い圧縮型 [ɯᵝ] として F2 を高めに取るなど、日本語の調音の特徴も反映しています。話者プリセットを切り替えると、フレーズ・自由入力・歌・WAV書き出しの全モードに同じ土台が効きます（歌の音程だけは楽譜どおりの絶対音高を保ち、話者差は声道側に効かせます）。数値の根拠と近似の範囲は「計測」タブに表示しています。
+          <b>声道長スライダー：</b>声道長は 10〜18cm まで連続可変です。プリセット間の長さでは、F0基準・声帯長・口腔比を3つの解剖アンカー（子ども／成人女性／成人男性）の間で線形補間した推定値を使い、中立共鳴とフォルマントは一様管モデルとスケーリング則でその場で計算し直します。
+          <b>デュエット：</b>第2声を別の話者プリセットの声道パラメータで独立に合成し、同時に鳴らします（ピッチシフトした再生ではありません）。発話では第2声側の F0 基準でプロソディも組み直し、歌では旋律は同じまま声道だけが変わります。WAV書き出し（一括含む）にもそのまま混ざり、ファイル名に _duet が付きます。
+          <b>手動調音：</b>再生スコアと同じ調音ポーズ（舌先・舌体・顎・唇・軟口蓋）をスライダーで直接動かして音を出せます。表示される F1/F2/F3 は、日本語5母音の実測アンカー間を舌体位置と顎開きの距離で補間した推定値です。
+        </p>
+      </section>
+    </main>
+
+    <script>
+      "use strict";
+      /* ============================================================
+         声道シミュレータ日本語版
+         ジェスチャスコア（モーラ→子音＋母音の調音目標）から
+         ・フォルマント合成音声（Web Audio）
+         ・舌 / 顎 / 唇 / 軟口蓋のアニメーション
+         を同じ時計で駆動する。
+         ============================================================ */
+
+      /* ---------- data ---------- */
+      var WORDS = [
+        { label: "なまむぎ", kanji: "生麦", morae: [["な","NA","n","a"],["ま","MA","m","a"],["む","MU","m","u"],["ぎ","GI","g","i"]] },
+        { label: "なまごめ", kanji: "生米", morae: [["な","NA","n","a"],["ま","MA","m","a"],["ご","GO","g","o"],["め","ME","m","e"]] },
+        { label: "なまたまご", kanji: "生卵", morae: [["な","NA","n","a"],["ま","MA","m","a"],["た","TA","t","a"],["ま","MA","m","a"],["ご","GO","g","o"]] }
+      ];
+      var MORAE = [];
+      WORDS.forEach(function (w, wi) {
+        w.morae.forEach(function (m) {
+          MORAE.push({ kana: m[0], roma: m[1], cons: m[2], vowel: m[3], word: wi, gi: MORAE.length });
+        });
+      });
+      /* 現在ロードされているモーラ列（なまむぎ or 自由入力の分解結果） */
+      var SEQ = MORAE;
+      var appMode = "phrase";
+
+      /* ============================================================
+         解剖パラメータ層（全モード共通の基盤）
+         自由入力・早口言葉・歌・WAV書き出しはすべてここを参照する。
+         個別の音へのハードコードはせず、話者を替えるときは
+         ANAT.speakers の1エントリを差し替えるだけで済む構造。
+         各パラメータの根拠：
+         ①声道長 VTL — 声門〜口唇の解剖学的長さ。共鳴周波数は 1/VTL に比例。
+           日本人成人の公表平均の範囲（男 15.5〜16cm／女 13.5〜14cm、
+           欧米男性の代表値 約17cm より短い）から代表値を採用。
+           出典種別：MRI計測研究（日本人男性15名, Hatano et al. 2012ほか）・
+           解剖学教科書の公表平均。※集団平均であり個人の骨格そのものではない。
+         ②中立管共鳴 — 一様管モデル（片端閉・片端開）の音響理論：
+           Fn = (2n-1)·c/(4L), c=350 m/s（体温付近の音速）。
+           シュワー（中立母音）のフォルマントはこの式で決まる（確立した音響理論）。
+         ③母音フォルマント vowelRef — 基準話者（日本人成人男性, VTL=15.8cm）に
+           おける日本語5母音の実測平均に寄せた値。出典種別：日本語話者の
+           音響計測研究の公表平均（複数研究の中央付近）。
+           特徴：「う」は唇の丸めが弱い圧縮型 [ɯᵝ] のため欧米 /u/（F2≈870Hz）
+           より F2 が高い（≈1360Hz）。「い」は F2 が高い（≈2240Hz）。
+           他話者へは一様スケーリング F×(基準VTL/話者VTL) で変換（近似：
+           非一様スケーリングは捨象）。
+         ④声帯長 — 日本人成人の喉頭手術時実測（耳鼻咽喉科・頭頸部外科誌,
+           声帯長 男 14.8±3.0mm／女 12.7±2.3mm, 膜様部 男 11.8／女 10.0mm）。
+           子どもの値は成長途上の近似。
+         ⑤口腔／咽頭比率 oralFrac — 口腔長が声道長に占める割合。
+           成人では咽頭が相対的に長く、小児では喉頭が高位で咽頭が短い
+           （発達解剖学の確立した知見）に基づく近似値。
+         ⑥F0基準 — 日本語話者の発話基本周波数の公表範囲の中央付近
+           （男 100〜150Hz／女 180〜250Hz／小児 250〜300Hz台）。
+         ============================================================ */
+      var ANAT = {
+        c: 35000,          /* 音速 cm/s（350 m/s） */
+        refVTL: 15.8,      /* 基準声道長 cm（日本人成人男性の代表値） */
+        vowelRef: {        /* 基準話者での日本語5母音 [F1,F2,F3] Hz（実測平均寄せ） */
+          a: [755, 1175, 2860], i: [315, 2240, 3040], u: [375, 1360, 2280],
+          e: [500, 1770, 2620], o: [500, 860, 2740]
+        },
+        murmurRef: { n: [250, 1050, 2200], m: [240, 900, 2100] },  /* 鼻音マーマー共鳴（基準話者） */
+        closureRef: [240, 700, 2100],                              /* 閉鎖中の声道共鳴（基準話者） */
+        speakers: {
+          male:   { label: "成人男性", vtl: 15.8, f0Base: 118, f0Range: "100〜150 Hz", foldLen: 14.8, foldMemb: 11.8, oralFrac: 0.52, note: "公表平均" },
+          female: { label: "成人女性", vtl: 13.8, f0Base: 206, f0Range: "180〜250 Hz", foldLen: 12.7, foldMemb: 10.0, oralFrac: 0.55, note: "公表平均" },
+          child:  { label: "子ども（7歳前後）", vtl: 10.8, f0Base: 272, f0Range: "250〜300 Hz台", foldLen: 8.0, foldMemb: 6.5, oralFrac: 0.62, note: "近似（発達段階の平均像）" }
+        }
+      };
+      var speakerKey = "male";
+      var CUR = ANAT.speakers.male;
+      function vtlScale() { return ANAT.refVTL / CUR.vtl; }
+      /* 中立管（一様管）共鳴：シュワーのフォルマント [F1,F2,F3] */
+      function neutralF() {
+        var L = CUR.vtl, c = ANAT.c;
+        return [Math.round(c / (4 * L)), Math.round(3 * c / (4 * L)), Math.round(5 * c / (4 * L))];
+      }
+      function scaleArr(a) { var s = vtlScale(); return [Math.round(a[0] * s), Math.round(a[1] * s), Math.round(a[2] * s)]; }
+      /* 硬口蓋接近（拗音グライド）の共鳴目標：基準話者 [300,2150,2900] を話者スケーリング */
+      function palatalF() { return scaleArr([300, 2150, 2900]); }
+      function vowelF(v) { return scaleArr(ANAT.vowelRef[v] || ANAT.vowelRef.a); }
+      function murmurF(c) { return scaleArr(ANAT.murmurRef[c] || ANAT.murmurRef.n); }
+      function closureF() { return scaleArr(ANAT.closureRef); }
+      /* 咽頭長 cm と、断面図での喉頭高さオフセット px（基準話者比）
+         咽頭が短い話者ほど喉頭が高位になる（発達解剖・性差の反映） */
+      function pharynxCm(sp) { sp = sp || CUR; return sp.vtl * (1 - sp.oralFrac); }
+      function pharynxDy() { return (pharynxCm() - pharynxCm(ANAT.speakers.male)) * 7; }
+      /* 顎の開口スケール：下顎サイズは頭蓋サイズに概ね比例する近似 */
+      function jawScale() { return 0.7 + 0.3 * (CUR.vtl / ANAT.refVTL); }
+      /* 指定した話者オブジェクトを CUR に差し替えてスコア構築する（デュエットの第2声用）。
+         スコア構築は同期・純粋（CUR と ANAT だけを読む）なので、差し替えて戻せば
+         第2声道のフォルマント／F0基準で組み直したスコアが安全に得られる。 */
+      function withSpeaker(sp, fn) { var save = CUR; CUR = sp; try { return fn(); } finally { CUR = save; } }
+      function buildScoreAs(items, isPhrase, sp) { return withSpeaker(sp, function () { return buildScore(items, isPhrase); }); }
+      function buildSongScoreAs(song, sp) { return withSpeaker(sp, function () { return buildSongScore(song); }); }
+
+      /* 調音ポーズ: tx/ty=舌先, bx/by=舌体, jaw=顎, lip=唇の開き, lipClose=唇の閉鎖,
+         pro=唇の突出, vel=軟口蓋 (1=挙上/口腔, 0=下降/鼻腔) */
+      var NEUTRAL = { tx: 406, ty: 338, bx: 350, by: 340, jaw: 0.22, lip: 0.30, lipClose: 0, pro: 0, vel: 0.55 };
+      var VPOSE = {
+        a: { tx: 418, ty: 354, bx: 346, by: 370, jaw: 1.00, lip: 1.00, lipClose: 0, pro: 0.05, vel: 1 },
+        i: { tx: 430, ty: 320, bx: 368, by: 308, jaw: 0.16, lip: 0.42, lipClose: 0, pro: 0.00, vel: 1 },
+        u: { tx: 394, ty: 332, bx: 320, by: 314, jaw: 0.20, lip: 0.34, lipClose: 0, pro: 0.12, vel: 1 },
+        e: { tx: 424, ty: 332, bx: 360, by: 328, jaw: 0.42, lip: 0.58, lipClose: 0, pro: 0.05, vel: 1 },
+        o: { tx: 398, ty: 340, bx: 324, by: 332, jaw: 0.48, lip: 0.52, lipClose: 0, pro: 0.55, vel: 1 }
+      };
+      function consPose(cons, v) {
+        var p = Object.assign({}, VPOSE[v] || VPOSE.a);
+        if (cons === "n") { p.tx = 437; p.ty = 301; p.by = p.by + 16; p.jaw *= 0.75; p.vel = 0; }
+        else if (cons === "t" || cons === "d" || cons === "ts") { p.tx = 437; p.ty = 300; p.by = p.by + 14; p.jaw *= 0.75; p.vel = 1; }
+        else if (cons === "ch" || cons === "j") { p.tx = 433; p.ty = 303; p.by = p.by + 12; p.jaw *= 0.72; p.vel = 1; }
+        else if (cons === "m") { p.lip = 0; p.lipClose = 1; p.jaw = 0.14; p.by = p.by + 8; p.vel = 0; }
+        else if (cons === "b" || cons === "p") { p.lip = 0; p.lipClose = 1; p.jaw = 0.14; p.by = p.by + 8; p.vel = 1; }
+        else if (cons === "g" || cons === "k") { p.bx = 330; p.by = 280; p.tx = 400; p.ty = 350; p.jaw *= 0.7; p.vel = 1; }
+        else if (cons === "s" || cons === "z") { p.tx = 435; p.ty = 307; p.by = p.by + 8; p.jaw = 0.17; p.lip = 0.30; p.vel = 1; }
+        else if (cons === "sh") { p.tx = 428; p.ty = 310; p.by = p.by + 8; p.jaw = 0.20; p.pro = 0.28; p.vel = 1; }
+        else if (cons === "h") { /* 次の母音の形のまま */ }
+        else if (cons === "f") { p.jaw = 0.15; p.lip = 0.10; p.lipClose = 0.45; p.vel = 1; }
+        else if (cons === "r") { p.tx = 437; p.ty = 301; p.by = p.by + 10; p.jaw *= 0.8; p.vel = 1; }
+        else if (cons === "y") { p.tx = 430; p.ty = 318; p.bx = 368; p.by = 307; p.jaw = 0.18; p.lip = 0.42; p.vel = 1; }
+        else if (cons === "w") { p.tx = 396; p.ty = 330; p.bx = 322; p.by = 312; p.jaw = 0.22; p.lip = 0.30; p.pro = 0.50; p.vel = 1; }
+        return p;
+      }
+      var CONS_NAME = {
+        n: "歯茎鼻音 /n/", m: "両唇鼻音 /m/",
+        g: "軟口蓋破裂音 /g/（有声）", k: "軟口蓋破裂音 /k/（無声）",
+        t: "歯茎破裂音 /t/（無声）", d: "歯茎破裂音 /d/（有声）",
+        p: "両唇破裂音 /p/（無声）", b: "両唇破裂音 /b/（有声）",
+        s: "歯茎摩擦音 /s/", z: "歯茎摩擦音 /z/（有声）",
+        sh: "歯茎硬口蓋摩擦音 /ɕ/", ch: "破擦音 /tɕ/", ts: "破擦音 /ts/", j: "破擦音 /dʑ/（有声）",
+        h: "声門摩擦音 /h/", f: "唇歯摩擦音 /ɸ/",
+        r: "歯茎はじき音 /ɾ/", y: "硬口蓋接近音 /j/", w: "両唇軟口蓋接近音 /w/",
+        N: "撥音 /N/", Q: "促音 /Q/（つまる音）"
+      };
+      var CONS_MEMO = {
+        n: "舌先を上の歯茎に当て、軟口蓋を下げて声を鼻へ抜く。口は母音の形のまま、舌先だけが仕事をする。",
+        m: "両唇を閉じて、軟口蓋を下げ、声を鼻へ抜く。唇の閉鎖と鼻への共鳴が「ま」の正体。",
+        g: "舌の奥（舌背）を軟口蓋に押し当てて息をせき止め、一気に開放する。開放の瞬間に母音へ移る。",
+        k: "舌の奥を軟口蓋に当てて息をせき止め、一気に開放する。「が」と違い声帯は振動しない無声音。",
+        t: "舌先を上の歯茎に当てて息をせき止め、一気に開放する。声帯は振動しない無声音。",
+        d: "舌先を歯茎に当てて息をせき止め、一気に開放する。「た」と違い、閉鎖中も声帯が振動する有声音。",
+        p: "両唇を閉じて息をせき止め、一気に開放する。唇がはじける破裂音。",
+        b: "両唇を閉じて息をせき止め、一気に開放する。閉じている間も声帯が小さく振動する有声音。",
+        s: "舌先を歯茎に近づけ、細い溝から息を擦らせて出す摩擦音。歯の裏に冷たい息が当たる。",
+        z: "「す」の摩擦に声帯の振動を加えた有声摩擦音。口の形は「す」と同じ。",
+        sh: "舌を少し奥に引いて盛り上げ、唇を軽く丸めて息を擦らせる。「す」より太くこもった摩擦音。",
+        ch: "舌先の閉鎖を、摩擦音「し」に続けて一気に開放する破擦音。止める＋擦るの合わせ技。",
+        ts: "舌先の閉鎖を、摩擦音「す」に続けて一気に開放する破擦音。",
+        j: "「ち」の破擦音に声帯の振動を加えた有声音。閉鎖中から小さく声が鳴る。",
+        h: "声門（声帯の隙間）を狭めて息を擦らせる。口の形は次の母音の形をそのまま使う。",
+        f: "上の歯を下唇に軽く当て、その隙間から息を擦らせる摩擦音。日本語の「ふ」は両唇で作るのが本来の形。",
+        r: "舌先が歯茎に1回だけ短く接触する弾音（フラップ）。接触は約30msの一瞬で、舌体は次の母音の構えのまま。英語の R や L とは違う。",
+        y: "舌を「い」の位置に高く構えて、そのまま次の母音へ滑らせる半母音。",
+        w: "唇と舌の奥を「う」の形に構えて、次の母音へ滑らせる半母音。",
+        N: "軟口蓋を下げ、声を鼻に響かせるだけで1モーラを成す撥音。口の形は前後の音につられて変わる。",
+        Q: "次の子音の構えで息を止め、1モーラ分ためる促音。音は出ないが拍はある「詰まる音」。"
+      };
+      /* 子音クラス分類と合成パラメータ */
+      var STOP_C = { k: 1, g: 1, t: 1, d: 1, p: 1, b: 1 };
+      var VOICED_C = { g: 1, d: 1, b: 1 };
+      var BURST_F = { k: 2500, g: 2400, t: 4300, d: 3600, p: 1300, b: 1200 };
+      var FRIC_C = {
+        s:  { dur: 0.095, noise: 0.50, nf: 6200, v: 0,    f: [600, 1400, 2800], g: [0.25, 0.10, 0.05] },
+        z:  { dur: 0.085, noise: 0.30, nf: 5000, v: 0.30, f: [550, 1300, 2600], g: [0.50, 0.15, 0.05] },
+        sh: { dur: 0.100, noise: 0.50, nf: 3300, v: 0,    f: [500, 1500, 2600], g: [0.30, 0.15, 0.06] },
+        h:  { dur: 0.055, noise: 0.16, nf: 1200, v: 0.45, f: null,              g: [0.50, 0.25, 0.10] },
+        f:  { dur: 0.080, noise: 0.34, nf: 6800, v: 0,    f: [520, 1100, 2400], g: [0.22, 0.08, 0.04] }
+      };
+      var AFFR_C = {
+        ts: { nf: 5200, noise: 0.50, v: 0 },
+        ch: { nf: 3200, noise: 0.50, v: 0 },
+        j:  { nf: 3000, noise: 0.30, v: 0.30 }
+      };
+      function locusFor(c, v) {
+        if (c === "g" || c === "k") return scaleArr([590, (v === "i" || v === "e") ? 2280 : 1360, 2820]);
+        if (c === "h") return vowelF(v);
+        var L = {
+          n: [520, 1150, 2450], m: [500, 950, 2350], t: [560, 1750, 2600], d: [540, 1600, 2550],
+          p: [500, 950, 2350], b: [505, 980, 2380], s: [550, 1600, 2700], z: [545, 1500, 2600],
+          sh: [520, 1700, 2600], ch: [540, 1700, 2600], ts: [560, 1700, 2600], j: [540, 1600, 2550],
+          f: [520, 1100, 2400], r: [430, 1250, 2450], y: [280, 2250, 2950], w: [310, 880, 2150]
+        };
+        return scaleArr(L[c] || [520, 1300, 2400]);
+      }
+      var VOWEL_MEMO = {
+        a: "顎を大きく開け、舌は低く寝かせる。口の中が一番広くなる母音。",
+        i: "舌を高く前に押し上げ、唇は横に引く。顎はほぼ閉じたまま。",
+        u: "舌を高く奥へ。日本語の「う」は唇を丸めず上下に圧縮する [ɯᵝ] 型で、欧米の /u/ より F2 が高め（基準話者で約1360Hz）になる。",
+        e: "舌は中くらいの高さで前寄り。顎は半開き。",
+        o: "舌は中くらい・奥寄り。唇は軽く丸める程度で、欧米の /o/ ほど強く突き出さない。"
+      };
+      var VKANA = { a: "あ", i: "い", u: "う", e: "え", o: "お" };
+
+      /* ---------- 歌モード：曲データ ----------
+         notes: { t: かな（1音）, m: MIDIノート番号, b: 拍数 } / { rest: 拍数 }
+         ふるさとは verses（番ごとの歌詞）と melody（全番共通の旋律）で定義する。
+         melody の各音は g（その番の何番目のモーラの音か）を持ち、同じ g が続く音は
+         メリスマ（1モーラに複数音）を表す。 */
+      var NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+      function log2(x) { return Math.log(x) / Math.LN2; }
+      function midiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+      function midiName(m) { return NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1); }
+      function freqName(f) {
+        if (!f || f < 20) return "—";
+        return midiName(Math.round(69 + 12 * log2(f / 440)));
+      }
+      var SONGS = {
+        furusato: {
+          title: "ふるさと", file: "furusato", beat: 0.52,
+          lyrics: "うさぎおいし かのやま こぶなつりし かのかわ ゆめはいまも めぐりて わすれがたき ふるさと いかにいます ちちはは つつがなしや ともがき あめにかぜに つけても おもいいずる ふるさと こころざしを はたして いつのひにか かえらん やまはあおき ふるさと みずはきよき ふるさと",
+          desc: "唱歌『ふるさと』（高野辰之 作詞／岡野貞一 作曲）全3番・最後まで。旋律は原曲どおり（ハ長調、3拍子）：出だしは ド ド ド レ ミ レ ミ ミ ファ ソー。3行目「ゆめは いまも めぐりて」は、い・め・ぐ・りに1モーラ2音のメリスマが入る原曲の歌い回しまで再現しています。2番・3番も同じ旋律で歌い切ります。",
+          verses: [
+            "うさぎおいし かのやま こぶなつりし かのかわ ゆめはいまも めぐりて わすれがたき ふるさと",
+            "いかにいます ちちはは つつがなしや ともがき あめにかぜに つけても おもいいずる ふるさと",
+            "こころざしを はたして いつのひにか かえらん やまはあおき ふるさと みずはきよき ふるさと"
+          ],
+          /* 旋律（全番共通）：{ m: MIDI, b: 拍数, g: その番のモーラ番号(0-39) } / { rest: 拍数 }
+             1・2・4行目は1モーラ1音、3行目は は・い・め・ぐ・りにメリスマ（同じ g の連続）。 */
+          melody: [
+            { m: 60, b: 1, g: 0 }, { m: 60, b: 1, g: 1 }, { m: 60, b: 1, g: 2 },
+            { m: 62, b: 1.5, g: 3 }, { m: 64, b: 0.5, g: 4 }, { m: 62, b: 1, g: 5 },
+            { m: 64, b: 1, g: 6 }, { m: 64, b: 1, g: 7 }, { m: 65, b: 1, g: 8 },
+            { m: 67, b: 3, g: 9 }, { rest: 1 },
+            { m: 65, b: 1, g: 10 }, { m: 67, b: 1, g: 11 }, { m: 69, b: 1, g: 12 },
+            { m: 64, b: 1.5, g: 13 }, { m: 65, b: 0.5, g: 14 }, { m: 64, b: 1, g: 15 },
+            { m: 62, b: 1, g: 16 }, { m: 62, b: 1, g: 17 }, { m: 59, b: 1, g: 18 },
+            { m: 60, b: 2, g: 19 }, { rest: 1 },
+            { m: 62, b: 0.5, g: 20 }, { m: 60, b: 0.5, g: 21 },
+            { m: 62, b: 1, g: 22 }, { m: 55, b: 1, g: 22 },
+            { m: 60, b: 0.5, g: 23 }, { m: 62, b: 0.5, g: 23 },
+            { m: 64, b: 1, g: 24 }, { m: 64, b: 1, g: 25 },
+            { m: 65, b: 0.5, g: 26 }, { m: 64, b: 0.5, g: 26 },
+            { m: 65, b: 2, g: 27 }, { m: 69, b: 0.5, g: 27 },
+            { m: 67, b: 0.5, g: 28 }, { m: 65, b: 0.5, g: 28 },
+            { m: 64, b: 1.5, g: 29 }, { rest: 1 },
+            { m: 55, b: 1, g: 30 }, { m: 55, b: 1, g: 31 }, { m: 55, b: 1, g: 32 },
+            { m: 60, b: 1.5, g: 33 }, { m: 62, b: 0.5, g: 34 }, { m: 64, b: 1, g: 35 },
+            { m: 65, b: 1, g: 36 }, { m: 65, b: 1, g: 37 }, { m: 62, b: 1, g: 38 },
+            { m: 60, b: 2, g: 39 }
+          ]
+        },
+        shoo: {
+          title: "SHOO BEE DOO", file: "shoo-bee-doo", beat: 0.42,
+          lyrics: "しゅー びー どー しゅー びー どー しゅー びー どー",
+          desc: "しゅー・びー・どーを3回くり返すキャッチーなループ。旋律：ミ ソ ラ ／ ソ ラ ド′ ／ ラ ソ ミ（最後は長めに伸ばしてビブラート）。",
+          notes: [
+            { t: "しゅー", m: 64, b: 1 }, { t: "びー", m: 67, b: 1 }, { t: "どー", m: 69, b: 1 },
+            { t: "しゅー", m: 67, b: 1 }, { t: "びー", m: 69, b: 1 }, { t: "どー", m: 72, b: 1 },
+            { t: "しゅー", m: 69, b: 1 }, { t: "びー", m: 67, b: 1 }, { t: "どー", m: 64, b: 2.5 }
+          ]
+        },
+        /* 本家デモ（スキャット）：本家 Chimera のデモ動画の画面録画（約6秒）から抽出。
+           音節は画面表示、F0 は録画音声の自己相関推定（オクターブ誤差の可能性あり）。
+           本家 repo（jamesondh/chimera-vocal-synth）の DEMO_SONGS は
+           "Made of air" / "Twinkle, twinkle" の2曲のみで、このスキャットの楽譜データは
+           repo 内に存在しないことを確認済み。そのため抽出値を採用する。
+           beat は8分音符＝0.31秒（BPM95前後）として b を8分単位で記述。
+           3.56秒付近の短いシ♭（「ばー」の直前）は grace（助走音）として
+           「ば」のモーラを借りて再現する。
+           録画は冒頭フレーズのみ——デモ全体ではない。 */
+        honke: {
+          title: "本家デモ（スキャット）", file: "honke-demo-scat", beat: 0.31,
+          lyrics: "は ほ ほ ほ へー ほ へ へ へ びー ばー でー でー でー ぼっ ほ",
+          desc: "本家 Chimera（jamesondh/chimera-vocal-synth）のデモ動画で歌われるスキャットを再現。音節：HA → HO → HEY → HO → HE → BEE → BAH・DEE → BOP → HO。旋律：ド／シ♭×3／ファ（長）／シ♭・シ×3／ファ（長）／（シ♭の助走つき）ド（長）／レ×3／ソ（長）／ド。8分音符≒0.31秒（BPM95前後）のノリです。※これは本人の画面録画（約6秒）だけから起こした冒頭フレーズのみの再現で、デモ全体ではありません。F0 は録画音声の自己相関による推定のためオクターブ誤差の可能性があり、短いシ♭は前後の音域に寄せて配置しました（3.56秒付近の短いシ♭は「ばー」への助走音として付けています）。本家 repo のデモ曲データ（Made of air／Twinkle, twinkle の2曲のみ）にこのスキャットの楽譜は無かったため、抽出値をそのまま採用しています。",
+          notes: [
+            { t: "は", m: 48, b: 1.25 }, { rest: 0.75 },
+            { t: "ほ", m: 46, b: 0.5 }, { t: "ほ", m: 46, b: 0.5 }, { t: "ほ", m: 46, b: 0.5 }, { rest: 0.75 },
+            { t: "へー", m: 53, b: 1.5 }, { rest: 0.25 },
+            { t: "ほ", m: 46, b: 0.5 },
+            { t: "へ", m: 47, b: 0.5 }, { t: "へ", m: 47, b: 0.5 }, { t: "へ", m: 47, b: 0.5 }, { rest: 0.5 },
+            { t: "びー", m: 53, b: 1.5 }, { rest: 0.5 },
+            { t: "ば", m: 46, b: 0.35, grace: true },
+            { t: "ばー", m: 48, b: 1.65 },
+            { t: "でー", m: 50, b: 0.5 }, { t: "でー", m: 50, b: 0.5 }, { t: "でー", m: 50, b: 0.5 }, { rest: 0.5 },
+            { t: "ぼっ", m: 55, b: 1 }, { rest: 1.25 },
+            { t: "ほ", m: 48, b: 1 }
+          ]
+        },
+        /* Twinkle, twinkle（きらきらぼし）：本家 repo（jamesondh/chimera-vocal-synth）
+           crates/chimera/src/phonetics/songs.rs の DEMO_SONGS に実在する楽譜データを
+           そのまま転記したもの。推定・補完は一切なし。
+           本家データ：name "Twinkle, twinkle"（traditional / public domain）、
+           bpm 100.0、lyrics "Twinkle twinkle little star, how I wonder what you are."、
+           notes は [MIDIノート, 拍] の列（成人女性の音域で記載）、
+           octave は話者ごとのオクターブずらし（male -1.0 / female 0.0 / child 0.0）。
+           beat は bpm から 60/100 = 0.6 秒。14音・全16拍。
+           歌詞は2方式を切り替えられる：
+           ・英語（本家）：本家の英語音節（Twin-kle twin-kle lit-tle star / how I won-der
+             what you are = 14音節）を1音ずつ対応させ、日本語モーラに置き換えて歌う
+             （このシンセは日本語モーラで発音するため、音節の音価は近似になる。
+             音高と拍は本家データどおり）。
+           ・日本語：唱歌「きらきらぼし」1番の歌い出し「きらきらひかる おそらのほしよ」
+             （14モーラ）が同じ14音に1モーラずつ対応する。
+           なお本家の octave 指定（男声 −1）は、この実装の歌モードが全曲共通で
+           「旋律は楽譜の記載音高のまま保持し、話者差は声道側にだけ効かせる」設計の
+           ため適用せず、音高は本家データの記載どおりに歌う。 */
+        twinkle: {
+          title: "きらきらぼし（Twinkle, twinkle）", beat: 0.6,
+          repoNotes: [
+            [60, 1], [60, 1], [67, 1], [67, 1], [69, 1], [69, 1], [67, 2],
+            [65, 1], [65, 1], [64, 1], [64, 1], [62, 1], [62, 1], [60, 2]
+          ],
+          variants: {
+            en: {
+              file: "twinkle-twinkle",
+              lyrics: "とぅいん くる とぅいん くる りと る すたー はう あい わん だー わっと ゆー あー",
+              syll: ["とぅいん", "くる", "とぅいん", "くる", "りと", "る", "すたー",
+                     "はう", "あい", "わん", "だー", "わっと", "ゆー", "あー"]
+            },
+            jp: {
+              file: "kirakira-boshi",
+              lyrics: "きらきらひかる おそらのほしよ",
+              syll: ["き", "ら", "き", "ら", "ひ", "か", "る",
+                     "お", "そ", "ら", "の", "ほ", "し", "よ"]
+            }
+          },
+          desc: "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在するデモ曲『Twinkle, twinkle』の楽譜データをそのまま転記（bpm 100、[MIDI・拍] の列、14音・全16拍）。推定や補完はしていません。英語詞は本家の歌詞「Twinkle twinkle little star, how I wonder what you are.」の14音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。日本語詞は唱歌「きらきらぼし」1番の歌い出しに切り替えられます。本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。"
+        },
+        /* Made of air：Twinkle, twinkle と同じく本家 repo の DEMO_SONGS に実在する
+           楽譜データをそのまま転記したもの（推定・補完なし）。これで本家の
+           デモ曲2曲が揃う。本家データ：name "Made of air"、bpm 84.0、
+           lyrics "Breathe in, breathe out, I am made of air. Tongue and lips and
+           throat, singing anywhere."、notes は [MIDIノート, 拍] の列（成人女性の
+           音域で記載）、octave は male -1.0 / female 0.0 / child 0.0。
+           beat は bpm から 60/84 秒。19音・全16拍で、英語19音節と1音ずつ対応する。
+           歌詞は英語のみ（日本語詞は本家に存在しない）で、各音節を日本語モーラに
+           置き換えて歌う（音節の音価は近似、音高と拍は本家データどおり）。
+           本家の octave 指定（男声 −1）は Twinkle と同方針で適用せず、
+           音高は本家データの記載どおりに歌う。 */
+        madeofair: {
+          title: "Made of air（本家オリジナル）", beat: 60 / 84,
+          repoNotes: [
+            [64, 1], [60, 1], [62, 1], [57, 1],
+            [57, 0.5], [60, 0.5], [64, 1], [62, 0.5], [60, 1.5],
+            [65, 1], [64, 0.5], [62, 0.5], [60, 0.5], [62, 1.5],
+            [64, 0.5], [62, 0.5], [60, 0.5], [59, 0.5], [57, 2]
+          ],
+          file: "made-of-air",
+          lyrics: "ぶりず いん ぶりず あうと あい あむ めいど おぶ えあー たん あんど りぷす あんど すろーと しん ぐ え に うえあ",
+          syll: ["ぶりず", "いん", "ぶりず", "あうと", "あい", "あむ", "めいど", "おぶ", "えあー",
+                 "たん", "あんど", "りぷす", "あんど", "すろーと", "しん", "ぐ", "え", "に", "うえあ"],
+          desc: "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在する、本家オリジナルのデモ曲『Made of air』をそのまま転記（bpm 84、[MIDI・拍] の列、19音・全16拍）。推定や補完はしていません。歌詞「Breathe in, breathe out, I am made of air. Tongue and lips and throat, singing anywhere.」の19音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。sing-ing／an-y-where は音節ごとに音が分かれている本家データの割り当てそのままです。本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。これで本家 DEMO_SONGS の2曲（Made of air／Twinkle, twinkle）が揃いました。"
+        }
+      };
+      var currentSong = null;
+      /* 歌詞バリアントを持つ曲（twinkle）の選択中バリアント。"jp" | "en" */
+      var songVariant = { twinkle: "jp" };
+
+      /* ---------- speech score builder ----------
+         seg: { dur, type, mora(gi or -1), phase, pose, f:[F1,F2,F3], fFrom, gains, f0a, f0b, flow, burstF } */
+      function buildScore(items, isPhrase) {
+        var segs = [];
+        function push(s) { segs.push(s); }
+        push({ dur: 0.06, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: neutralF(), gains: null, f0a: CUR.f0Base, f0b: CUR.f0Base, flow: 0.03 });
+        var total = items.length;
+        items.forEach(function (it, idx) {
+          var last = idx === total - 1;
+          var p = total <= 1 ? 0 : idx / (total - 1);
+          var f0base = CUR.f0Base * (1 - 0.09 * p) + (it.wordStart ? CUR.f0Base * 0.04 : 0);
+          if (it.vowelOnly) {
+            var vp = VPOSE[it.vowelOnly];
+            push({ dur: 0.52, type: "vowel", mora: -1, phase: "vowel", vowel: it.vowelOnly, pose: vp,
+                   f: vowelF(it.vowelOnly), fFrom: neutralF(), gains: { v: 0.85, g: [1, 0.5, 0.22], nas: 0.015, noise: 0 },
+                   f0a: CUR.f0Base * 0.97, f0b: CUR.f0Base * 0.88, flow: 1 });
+          } else if (it.cons === "N") {
+            push({ dur: 0.105, type: "nasal", mora: it.gi, phase: "cons", cons: "N",
+                   pose: Object.assign({}, NEUTRAL, { vel: 0, jaw: 0.30 }),
+                   f: scaleArr([250, 1000, 2150]), gains: { v: 0.5, g: [0.55, 0.12, 0.04], nas: 0.9, noise: 0 },
+                   f0a: f0base, f0b: f0base, flow: 0.55 });
+          } else if (it.cons === "Q") {
+            var nxIt = items[idx + 1];
+            var qPose = (nxIt && nxIt.cons && nxIt.cons !== "N" && nxIt.cons !== "L" && nxIt.cons !== "Q")
+              ? consPose(nxIt.cons, nxIt.vowel) : Object.assign({}, NEUTRAL);
+            push({ dur: 0.095, type: "closure", mora: it.gi, phase: "cons", cons: "Q", pose: qPose,
+                   f: closureF(), gains: { v: 0.02, g: [0.2, 0.02, 0.01], nas: 0, noise: 0 },
+                   f0a: f0base, f0b: f0base, flow: 0.02 });
+          } else if (it.cons === "L") {
+            push({ dur: 0.17, type: "vowel", mora: it.gi, phase: "vowel", vowel: it.vowel,
+                   pose: VPOSE[it.vowel], f: vowelF(it.vowel), fFrom: vowelF(it.vowel),
+                   gains: { v: 0.8, g: [0.95, 0.47, 0.2], nas: 0.015, noise: 0 },
+                   f0a: f0base, f0b: f0base - 2, flow: 1 });
+          } else {
+            var c = it.cons;
+            var cp = consPose(it.cons, it.vowel);
+            if (it.yoon) { /* 拗音：子音の構え自体を硬口蓋化する（舌体を高く・前に寄せる） */
+              cp.bx += (366 - cp.bx) * 0.55;
+              cp.by += (306 - cp.by) * 0.55;
+            }
+            var vpose = VPOSE[it.vowel];
+            if (c === "n" || c === "m") {
+              push({ dur: 0.088, type: "nasal", mora: it.gi, phase: "cons", cons: it.cons, pose: cp,
+                     f: murmurF(it.cons), gains: { v: 0.5, g: [0.55, 0.12, 0.04], nas: 0.9, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: 0.55 });
+            } else if (STOP_C[c]) {
+              var voicedStop = !!VOICED_C[c];
+              push({ dur: voicedStop ? 0.06 : 0.074, type: "closure", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: closureF(), gains: voicedStop ? { v: 0.13, g: [0.5, 0.04, 0.02], nas: 0.01, noise: 0 }
+                                                      : { v: 0, g: [0, 0, 0], nas: 0, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: voicedStop ? 0.1 : 0.02 });
+              push({ dur: 0.02, type: "burst", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: closureF(), gains: { v: 0, g: [0, 0, 0], nas: 0, noise: voicedStop ? 0.3 : 0.52 },
+                     burstF: BURST_F[c], f0a: f0base, f0b: f0base, flow: 1.5 });
+              if (!voicedStop) {
+                push({ dur: 0.03, type: "burst", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                       f: closureF(), gains: { v: 0, g: [0, 0, 0], nas: 0, noise: 0.15 },
+                       burstF: 1500, f0a: f0base, f0b: f0base, flow: 1.1 });
+              }
+            } else if (FRIC_C[c]) {
+              var fd = FRIC_C[c];
+              push({ dur: fd.dur, type: "fric", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: fd.f ? scaleArr(fd.f) : vowelF(it.vowel), gains: { v: fd.v, g: fd.g, nas: 0.01, noise: fd.noise },
+                     burstF: fd.nf, f0a: f0base, f0b: f0base, flow: 1.15 });
+            } else if (AFFR_C[c]) {
+              var af = AFFR_C[c];
+              push({ dur: 0.045, type: "closure", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: closureF(), gains: af.v > 0 ? { v: 0.12, g: [0.5, 0.04, 0.02], nas: 0.01, noise: 0 }
+                                                    : { v: 0, g: [0, 0, 0], nas: 0, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: 0.05 });
+              push({ dur: 0.072, type: "fric", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: scaleArr(c === "ts" ? [560, 1500, 2700] : [520, 1600, 2600]),
+                     gains: { v: af.v, g: [0.35, 0.15, 0.05], nas: 0.01, noise: af.noise },
+                     burstF: af.nf, f0a: f0base, f0b: f0base, flow: 1.25 });
+            } else if (c === "r") {
+              push({ dur: 0.032, type: "flap", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: scaleArr([380, 1150, 2400]), fFrom: neutralF(),
+                     gains: { v: 0.55, g: [0.7, 0.25, 0.1], nas: 0, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: 0.8 });
+            } else if (c === "y" || c === "w") {
+              var gf = scaleArr(c === "y" ? [280, 2250, 2950] : [310, 880, 2150]);
+              push({ dur: 0.055, type: "glide", mora: it.gi, phase: "cons", cons: c, pose: cp,
+                     f: gf, fFrom: neutralF(),
+                     gains: { v: 0.7, g: [0.8, 0.45, 0.2], nas: 0.01, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: 0.9 });
+            }
+            if (it.yoon) {
+              /* 拗音の /j/ グライド区間：子音の開放後、「い」型の硬口蓋構え
+                 （F2 が高い位置）を経由してから母音へ滑らせる */
+              push({ dur: 0.06, type: "glide", mora: it.gi, phase: "cons", cons: "y", pose: consPose("y", it.vowel),
+                     f: palatalF(), fFrom: locusFor(c, it.vowel),
+                     gains: { v: 0.72, g: [0.85, 0.5, 0.22], nas: 0.01, noise: 0 },
+                     f0a: f0base, f0b: f0base, flow: 0.9 });
+            }
+            var locus = it.yoon ? palatalF() : locusFor(c, it.vowel);
+            push({ dur: last && isPhrase ? 0.21 : 0.128, type: "vowel", mora: it.gi, phase: "vowel", vowel: it.vowel,
+                   pose: vpose, f: vowelF(it.vowel), fFrom: locus,
+                   gains: { v: 0.85, g: [1, 0.5, 0.22], nas: 0.015, noise: 0 },
+                   f0a: f0base + 3, f0b: f0base - 3, flow: 1 });
+          }
+          if (it.wordEnd && !last) {
+            push({ dur: 0.095, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: neutralF(), gains: null, f0a: f0base - 4, f0b: f0base - 4, flow: 0.04 });
+          }
+        });
+        push({ dur: 0.24, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: neutralF(), gains: null, f0a: CUR.f0Base * 0.85, f0b: CUR.f0Base * 0.82, flow: 0.02 });
+        return segs;
+      }
+      function itemsFromMorae(list) {
+        return list.map(function (m, i) {
+          return { gi: m.gi, cons: m.cons, vowel: m.vowel, yoon: m.yoon,
+                   wordStart: i === 0 || list[i - 1].word !== m.word,
+                   wordEnd: i === list.length - 1 || list[i + 1].word !== m.word };
+        });
+      }
+      function phraseItems() { return itemsFromMorae(SEQ); }
+      function wordItems(wi) {
+        var list = SEQ.filter(function (m) { return m.word === wi; });
+        return list.map(function (m, i) {
+          return { gi: m.gi, cons: m.cons, vowel: m.vowel, yoon: m.yoon, wordStart: i === 0, wordEnd: i === list.length - 1 };
+        });
+      }
+      function moraItem(gi) {
+        var m = SEQ[gi];
+        return [{ gi: m.gi, cons: m.cons, vowel: m.vowel, yoon: m.yoon, wordStart: true, wordEnd: true }];
+      }
+
+      /* ---------- 歌モード：スコア構築 ----------
+         歌詞をモーラ分解し、各音（ノート）にモーラ番号を対応づける。
+         子音は短く、母音は拍いっぱいに伸ばす。音と音の間にポーズは入れずレガートでつなぎ、
+         母音が 0.55 秒以上の音には軽いビブラート（5.6Hz・±0.7%）を付ける。 */
+      function buildSongData(key, variant) {
+        var def = SONGS[key];
+        if (def.variants) {
+          /* バリアント曲（twinkle）：本家データの [MIDI, 拍] 列（repoNotes）は共通で、
+             歌詞（音節列）だけをバリアントごとに差し替えて notes 形式へ展開する。
+             音高・拍はどのバリアントでも repoNotes の記載どおりになる。 */
+          var vk = variant || songVariant[key] || "jp";
+          var vv = def.variants[vk];
+          def = Object.assign({}, def, {
+            lyrics: vv.lyrics,
+            file: vv.file,
+            notes: def.repoNotes.map(function (rn, i) { return { t: vv.syll[i], m: rn[0], b: rn[1] }; })
+          });
+        }
+        if (!def.notes && def.repoNotes && def.syll) {
+          /* 単一歌詞の repo 転記曲（Made of air）：repoNotes と音節列（syll）から
+             notes 形式へ展開する。音高・拍は repoNotes の記載どおり。 */
+          def = Object.assign({}, def, {
+            notes: def.repoNotes.map(function (rn, i) { return { t: def.syll[i], m: rn[0], b: rn[1] }; })
+          });
+        }
+        if (def.verses && def.melody) {
+          /* ふるさと型：番ごとの歌詞（各40モーラ）に共通旋律を展開する。
+             番の間には2拍のブレスを入れる。 */
+          var morae = [], notes = [], gisByNote = [];
+          def.verses.forEach(function (v, vi) {
+            var pm = parseKana(v).morae;
+            pm.forEach(function (mm) { mm.gi = morae.length; mm.word = mm.word + vi * 100; morae.push(mm); });
+            def.melody.forEach(function (e) {
+              if (e.rest) { notes.push({ rest: e.rest }); gisByNote.push([]); }
+              else { notes.push({ m: e.m, b: e.b }); gisByNote.push([vi * 40 + e.g]); }
+            });
+            if (vi < def.verses.length - 1) { notes.push({ rest: 2 }); gisByNote.push([]); }
+          });
+          var expDef = Object.assign({}, def, { notes: notes });
+          return { key: key, def: expDef, morae: morae, gisByNote: gisByNote };
+        }
+        var parsed = parseKana(def.lyrics);
+        var gisByNote = [], cursor = 0;
+        def.notes.forEach(function (n, ni) {
+          if (n.rest) { gisByNote[ni] = []; return; }
+          if (n.grace) { /* 助走音：次の音のモーラを借りて子音だけ先に鳴らす（モーラは消費しない）。
+                            直後の本命音は buildSongScore 側でメリスマ扱いになり、子音を付け直さず音程だけ移る */
+            gisByNote[ni] = cursor < parsed.morae.length ? [cursor] : []; return; }
+          var cnt = parseKana(n.t).morae.length, gis = [];
+          for (var k = 0; k < cnt && cursor + k < parsed.morae.length; k++) gis.push(cursor + k);
+          cursor += cnt;
+          gisByNote[ni] = gis;
+        });
+        return { key: key, def: def, morae: parsed.morae, gisByNote: gisByNote };
+      }
+      function songConsSegs(it, f0, budget, pose, name) {
+        var segs = [], c = it.cons;
+        function mk(dur, type, f, gains, extra) {
+          var s = { dur: dur, type: type, mora: it.gi, phase: "cons", cons: c, pose: pose, f: f,
+                    gains: gains, f0a: f0, f0b: f0, flow: type === "burst" ? 1.5 : 0.7,
+                    noteName: name, noteFreq: f0 };
+          if (extra) Object.assign(s, extra);
+          return s;
+        }
+        if (!c || budget <= 0) return segs;
+        if (c === "n" || c === "m") {
+          segs.push(mk(budget, "nasal", murmurF(c), { v: 0.5, g: [0.55, 0.12, 0.04], nas: 0.9, noise: 0 }));
+        } else if (STOP_C[c]) {
+          var vd = !!VOICED_C[c];
+          segs.push(mk(Math.max(0.03, budget - 0.02), "closure", closureF(),
+            vd ? { v: 0.13, g: [0.5, 0.04, 0.02], nas: 0.01, noise: 0 } : { v: 0, g: [0, 0, 0], nas: 0, noise: 0 }));
+          segs.push(mk(0.02, "burst", closureF(), { v: 0, g: [0, 0, 0], nas: 0, noise: vd ? 0.3 : 0.5 }, { burstF: BURST_F[c] }));
+        } else if (FRIC_C[c]) {
+          var fd = FRIC_C[c];
+          segs.push(mk(budget, "fric", fd.f ? scaleArr(fd.f) : vowelF(it.vowel), { v: fd.v, g: fd.g, nas: 0.01, noise: fd.noise }, { burstF: fd.nf }));
+        } else if (AFFR_C[c]) {
+          var af = AFFR_C[c];
+          segs.push(mk(0.04, "closure", closureF(),
+            af.v > 0 ? { v: 0.12, g: [0.5, 0.04, 0.02], nas: 0.01, noise: 0 } : { v: 0, g: [0, 0, 0], nas: 0, noise: 0 }));
+          segs.push(mk(Math.max(0.03, budget - 0.04), "fric", scaleArr(c === "ts" ? [560, 1500, 2700] : [520, 1600, 2600]),
+            { v: af.v, g: [0.35, 0.15, 0.05], nas: 0.01, noise: af.noise }, { burstF: af.nf }));
+        } else if (c === "r") {
+          segs.push(mk(0.032, "flap", scaleArr([380, 1150, 2400]), { v: 0.55, g: [0.7, 0.25, 0.1], nas: 0, noise: 0 }, { fFrom: neutralF() }));
+        } else if (c === "y" || c === "w") {
+          segs.push(mk(Math.min(0.055, budget), "glide", scaleArr(c === "y" ? [280, 2250, 2950] : [310, 880, 2150]),
+            { v: 0.7, g: [0.8, 0.45, 0.2], nas: 0.01, noise: 0 }, { fFrom: neutralF() }));
+        }
+        return segs;
+      }
+      function buildSongScore(song) {
+        var def = song.def, beat = def.beat, segs = [];
+        var firstNote = null;
+        def.notes.forEach(function (n) { if (!n.rest && !firstNote) firstNote = n; });
+        var lastF = neutralF(), lastF0 = midiFreq(firstNote.m);
+        segs.push({ dur: 0.05, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0, flow: 0.03 });
+        var prevGi = -1;
+        def.notes.forEach(function (n, ni) {
+          if (n.rest) {
+            segs.push({ dur: n.rest * beat, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0, flow: 0.04 });
+            prevGi = -1;
+            return;
+          }
+          var f0 = midiFreq(n.m), name = midiName(n.m);
+          var gis = song.gisByNote[ni];
+          var first = song.morae[gis[0]];
+          /* メリスマ：直前と同じモーラの続きの音は子音を付け直さず、母音のまま音程だけ移る */
+          var melisma = gis.length > 0 && gis[0] === prevGi;
+          prevGi = gis[0];
+          var total = n.b * beat;
+          var cp = consPose(first.cons, first.vowel);
+          if (first.yoon) { cp.bx += (366 - cp.bx) * 0.55; cp.by += (306 - cp.by) * 0.55; }
+          var budget = melisma ? 0 : (first.cons ? Math.min(first.yoon ? 0.17 : 0.12, total * 0.32) : 0);
+          var consSegs = melisma ? [] : songConsSegs(first, f0, budget, cp, name);
+          var used = consSegs.reduce(function (a, s) { return a + s.dur; }, 0);
+          if (first.yoon && !melisma) {
+            consSegs.push({ dur: 0.055, type: "glide", mora: first.gi, phase: "cons", cons: "y",
+              pose: consPose("y", first.vowel), f: palatalF(), fFrom: locusFor(first.cons, first.vowel),
+              gains: { v: 0.72, g: [0.85, 0.5, 0.22], nas: 0.01, noise: 0 },
+              f0a: f0, f0b: f0, flow: 0.9, noteName: name, noteFreq: f0 });
+            used += 0.055;
+          }
+          segs = segs.concat(consSegs);
+          var vdur = Math.max(0.08, total - used);
+          var vp = Object.assign({}, VPOSE[first.vowel]);
+          vp.jaw = Math.min(1, vp.jaw * 1.12 + 0.04); /* 歌唱らしく少し大きく開ける */
+          var vibOn = vdur >= 0.55;
+          function vseg(gi, dur, ff, vibDelay, mv) {
+            /* mv を渡した場合はそのモーラ自身の母音・ポーズで歌う（1音に複数モーラが
+               対応する曲用）。省略時は従来どおり音頭モーラ（first）の母音・ポーズ。 */
+            var vow = mv ? mv.vowel : first.vowel;
+            var pp = vp;
+            if (mv) { pp = Object.assign({}, VPOSE[vow]); pp.jaw = Math.min(1, pp.jaw * 1.12 + 0.04); }
+            return { dur: dur, type: "vowel", mora: gi, phase: "vowel", vowel: vow, pose: pp,
+                     f: vowelF(vow), fFrom: ff,
+                     gains: { v: 0.88, g: [1, 0.5, 0.22], nas: 0.015, noise: 0 },
+                     f0a: f0, f0b: f0, flow: 1, legato: true, noteName: name, noteFreq: f0,
+                     vib: vibOn ? { rate: 5.6, depth: 0.007, delay: vibDelay } : null };
+          }
+          if (gis.length > 1) {
+            /* 1音に複数モーラが対応する場合：音の長さをモーラ数で分け、各モーラを
+               自身の母音でレガートにつなぐ。2モーラのときは従来どおり先頭 55%
+               （「しゅー」「ぼっ」等の継続モーラと同じ配分）。継続モーラ（ー／っ／ん）の
+               母音はパーサが先行モーラと同一に設定するため、従来の曲のスコアは不変。 */
+            var w0 = gis.length === 2 ? 0.55 : 0.34;
+            var wrest = (1 - w0) / (gis.length - 1);
+            var acc2 = 0, ff2 = lastF;
+            gis.forEach(function (gi2, k) {
+              var mm2 = song.morae[gi2];
+              var dd = k === gis.length - 1 ? vdur - acc2 : vdur * (k === 0 ? w0 : wrest);
+              segs.push(vseg(gi2, dd, ff2, k === 0 ? Math.min(0.3, vdur * 0.35) : 0, k === 0 ? null : mm2));
+              acc2 += dd;
+              ff2 = vowelF(mm2.vowel);
+            });
+            lastF = vowelF(song.morae[gis[gis.length - 1]].vowel);
+          } else {
+            segs.push(vseg(gis[0], vdur, lastF, Math.min(0.3, vdur * 0.35)));
+            lastF = vowelF(first.vowel);
+          }
+          lastF0 = f0;
+        });
+        segs.push({ dur: 0.18, type: "pause", mora: -1, phase: "pause", pose: NEUTRAL, f: lastF, gains: null, f0a: lastF0, f0b: lastF0 - 4, flow: 0.02 });
+        return segs;
+      }
+
+      /* ---------- audio engine (formant synthesis) ----------
+         グラフ構築はライブ再生／WAV書き出し（OfflineAudioContext）で共用する。 */
+      var AC = null, N = null, N2 = null;
+      function buildGraph(ctx, analyser) {
+        var master = ctx.createGain(); master.gain.value = 0;
+        var comp = ctx.createDynamicsCompressor();
+        comp.threshold.value = -18; comp.ratio.value = 6;
+        master.connect(comp);
+        if (analyser) { comp.connect(analyser); analyser.connect(ctx.destination); }
+        else comp.connect(ctx.destination);
+
+        var osc = ctx.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 112;
+        var oscGain = ctx.createGain(); oscGain.gain.value = 0;
+        var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1250; lp.Q.value = 0.4;
+        osc.connect(oscGain); oscGain.connect(lp);
+
+        function bp(freq, bw) {
+          var f = ctx.createBiquadFilter(); f.type = "bandpass";
+          f.frequency.value = freq; f.Q.value = Math.max(0.6, freq / bw);
+          var g = ctx.createGain(); g.gain.value = 0;
+          lp.connect(f); f.connect(g); g.connect(master);
+          return { f: f, g: g };
+        }
+        var f1 = bp(700, 80), f2 = bp(1200, 95), f3 = bp(2500, 130);
+        var nasF = ctx.createBiquadFilter(); nasF.type = "bandpass"; nasF.frequency.value = 260; nasF.Q.value = 1.1;
+        var nasG = ctx.createGain(); nasG.gain.value = 0;
+        lp.connect(nasF); nasF.connect(nasG); nasG.connect(master);
+
+        var nlen = ctx.sampleRate * 1.2, nbuf = ctx.createBuffer(1, nlen, ctx.sampleRate), nd = nbuf.getChannelData(0);
+        for (var i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
+        var noise = ctx.createBufferSource(); noise.buffer = nbuf; noise.loop = true;
+        var noiseBP = ctx.createBiquadFilter(); noiseBP.type = "bandpass"; noiseBP.frequency.value = 4000; noiseBP.Q.value = 0.7;
+        var noiseG = ctx.createGain(); noiseG.gain.value = 0;
+        noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
+
+        osc.start(); noise.start();
+        return { master: master, osc: osc, oscGain: oscGain,
+                 f1: f1, f2: f2, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
+      }
+      function ensureCtx() {
+        if (AC) { if (AC.state === "suspended") AC.resume(); return; }
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        AC = new Ctx();
+        var analyser = AC.createAnalyser(); analyser.fftSize = 2048;
+        N = buildGraph(AC, analyser);
+        N.analyser = analyser;
+      }
+      function silenceGraph(G, now) {
+        [G.oscGain.gain, G.f1.g.gain, G.f2.g.gain, G.f3.g.gain, G.nasG.gain, G.noiseG.gain].forEach(function (pr) {
+          pr.cancelScheduledValues(now); pr.setTargetAtTime(0, now, 0.03);
+        });
+        G.master.gain.cancelScheduledValues(now); G.master.gain.setTargetAtTime(0, now, 0.03);
+        G.osc.frequency.cancelScheduledValues(now);
+        [G.f1.f.frequency, G.f2.f.frequency, G.f3.f.frequency].forEach(function (pr) { pr.cancelScheduledValues(now); });
+      }
+      function silenceParams(now) {
+        silenceGraph(N, now);
+        if (N2) silenceGraph(N2, now);
+      }
+      function scheduleSegG(G, seg, t) {
+        var g = seg.gains || { v: 0, g: [0, 0, 0], nas: 0, noise: 0 };
+        var tc = seg.legato ? 0.03 : 0.008;
+        if (seg.type === "burst") {
+          G.noiseBP.frequency.setValueAtTime(seg.burstF, t);
+          G.noiseG.gain.setValueAtTime(0, t);
+          G.noiseG.gain.linearRampToValueAtTime(g.noise, t + 0.004);
+          G.noiseG.gain.exponentialRampToValueAtTime(0.001, t + seg.dur + 0.03);
+          G.oscGain.gain.setTargetAtTime(0, t, tc);
+          return;
+        }
+        var fStart = seg.fFrom || seg.f;
+        if (seg.burstF) G.noiseBP.frequency.setValueAtTime(seg.burstF, t);
+        G.f1.f.frequency.setValueAtTime(fStart[0], t);
+        G.f2.f.frequency.setValueAtTime(fStart[1], t);
+        G.f3.f.frequency.setValueAtTime(fStart[2], t);
+        var tau = seg.type === "vowel" ? (seg.legato ? 0.05 : 0.02) : 0.012;
+        G.f1.f.frequency.setTargetAtTime(seg.f[0], t, tau);
+        G.f2.f.frequency.setTargetAtTime(seg.f[1], t, tau);
+        G.f3.f.frequency.setTargetAtTime(seg.f[2], t, tau);
+        G.oscGain.gain.setTargetAtTime(g.v, t, tc);
+        G.f1.g.gain.setTargetAtTime(g.g[0] * 0.9, t, tc);
+        G.f2.g.gain.setTargetAtTime(g.g[1] * 0.9, t, tc);
+        G.f3.g.gain.setTargetAtTime(g.g[2] * 0.9, t, tc);
+        G.nasG.gain.setTargetAtTime(g.nas * 0.8, t, tc);
+        G.noiseG.gain.setTargetAtTime(g.noise || 0, t, tc);
+        G.osc.frequency.setTargetAtTime(seg.f0a, t, 0.012);
+        if (seg.vib) {
+          /* ビブラート：入りは遅らせ、半周期ごとに目標周波数を往復させる */
+          var f0 = seg.f0a, half = 1 / (seg.vib.rate * 2);
+          var tt = t + seg.vib.delay, sgn = 1;
+          G.osc.frequency.setValueAtTime(f0, tt);
+          while (tt + half < t + seg.dur - 0.02) {
+            tt += half;
+            G.osc.frequency.linearRampToValueAtTime(f0 * (1 + sgn * seg.vib.depth), tt);
+            sgn = -sgn;
+          }
+          G.osc.frequency.linearRampToValueAtTime(f0, t + seg.dur);
+        } else if (seg.type === "vowel") {
+          G.osc.frequency.setTargetAtTime(seg.f0b, t + seg.dur * 0.45, seg.dur * 0.3);
+        }
+      }
+      function scheduleSeg(seg, t) { scheduleSegG(N, seg, t); }
+
+      /* ---------- playback state ---------- */
+      var speed = 1, playing = false, anim = null, loopOn = false, playMode = "phrase";
+      var duetKey = null; /* デュエットの相手プリセット（null = なし）。第2声は N2 グラフで独立合成 */
+      function startPlayback(raw, mode, items, song, raw2) {
+        ensureCtx();
+        if (manOn) manUiOff();
+        var now = AC.currentTime;
+        silenceParams(now);
+        function scaled(r) { return r.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / speed; return c; }); }
+        var segs = scaled(raw);
+        var segs2 = raw2 ? scaled(raw2) : null;
+        var total = segs.reduce(function (a, s) { return a + s.dur; }, 0);
+        var t0 = now + 0.09;
+        var peak = segs2 ? 0.72 : 0.9;
+        N.master.gain.cancelScheduledValues(now);
+        N.master.gain.setValueAtTime(0, now);
+        N.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
+        var t = t0;
+        segs.forEach(function (s) { scheduleSegG(N, s, t); t += s.dur; });
+        if (segs2) {
+          /* 第2声：別の声道パラメータで構築したスコアを、独立した合成グラフ N2 で同時再生 */
+          if (!N2) N2 = buildGraph(AC, null);
+          N2.master.gain.cancelScheduledValues(now);
+          N2.master.gain.setValueAtTime(0, now);
+          N2.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
+          var t2 = t0;
+          segs2.forEach(function (s) { scheduleSegG(N2, s, t2); t2 += s.dur; });
+        }
+        var acc = 0;
+        segs.forEach(function (s) { s.start = acc; acc += s.dur; });
+        anim = { segs: segs, total: total, startCtx: t0, mode: mode, items: items, song: song || null, duetKey: duetKey };
+        playing = true;
+        document.getElementById("liveInd").classList.add("on");
+        document.getElementById("liveTxt").textContent = mode === "song" ? "SINGING" : "SPEAKING";
+      }
+      function play(items, mode) {
+        var isp = mode === "phrase" || mode === "free";
+        var raw2 = duetKey ? buildScoreAs(items, isp, ANAT.speakers[duetKey]) : null;
+        startPlayback(buildScore(items, isp), mode, items, null, raw2);
+      }
+      function playSong() {
+        if (!currentSong) setSong("furusato");
+        var raw2 = duetKey ? buildSongScoreAs(currentSong, ANAT.speakers[duetKey]) : null;
+        startPlayback(buildSongScore(currentSong), "song", null, currentSong, raw2);
+      }
+      function stop() {
+        if (manOn) manUiOff();
+        if (AC && N) silenceParams(AC.currentTime);
+        playing = false; anim = null;
+        document.getElementById("liveInd").classList.remove("on");
+        document.getElementById("liveTxt").textContent = "STANDBY";
+        clearTiles();
+      }
+      function finishUtterance() {
+        var mode = anim ? anim.mode : "phrase";
+        var lastItems = anim ? anim.items : null;
+        var lastSong = anim ? anim.song : null;
+        var lastDuet = anim ? anim.duetKey : null;
+        playing = false; anim = null;
+        if (AC && N) silenceParams(AC.currentTime);
+        document.getElementById("liveInd").classList.remove("on");
+        document.getElementById("liveTxt").textContent = "STANDBY";
+        clearTiles();
+        if (loopOn && lastSong) {
+          setTimeout(function () {
+            if (loopOn && !playing) {
+              var r2 = lastDuet ? buildSongScoreAs(lastSong, ANAT.speakers[lastDuet]) : null;
+              startPlayback(buildSongScore(lastSong), "song", null, lastSong, r2);
+            }
+          }, 380);
+        } else if (loopOn && lastItems && (mode === "phrase" || mode === "free")) {
+          setTimeout(function () { if (loopOn && !playing) play(lastItems, mode); }, 380);
+        }
+      }
+
+      /* ---------- phrase tiles ---------- */
+      var tileEls = [];
+      function rebuildTiles() {
+        var host = document.getElementById("phrase");
+        host.innerHTML = "";
+        tileEls = [];
+        var grp = null, curWord = null;
+        SEQ.forEach(function (m) {
+          if (!grp || m.word !== curWord) {
+            grp = document.createElement("div"); grp.className = "word-group";
+            host.appendChild(grp); curWord = m.word;
+          }
+          var b = document.createElement("button");
+          b.className = "mora"; b.type = "button";
+          b.setAttribute("aria-label", m.kana + "（" + m.roma + "）だけ発音");
+          b.innerHTML = '<span class="k">' + m.kana + '</span><span class="r">' + m.roma + "</span>";
+          b.addEventListener("click", function () { play(moraItem(m.gi), "mora"); });
+          grp.appendChild(b);
+          tileEls.push(b);
+        });
+      }
+      rebuildTiles();
+      function clearTiles() { tileEls.forEach(function (el) { el.classList.remove("active", "done"); }); }
+      function markTiles(gi) {
+        tileEls.forEach(function (el, i) {
+          el.classList.toggle("active", i === gi);
+          el.classList.toggle("done", gi >= 0 && i < gi);
+        });
+      }
+
+      /* ---------- controls ---------- */
+      document.getElementById("playBtn").addEventListener("click", function () {
+        if (appMode === "manual") { setManSound(!manOn); return; }
+        if (appMode === "song") playSong();
+        else if (appMode === "free") { if (applyFreeText()) play(phraseItems(), "free"); }
+        else play(phraseItems(), "phrase");
+      });
+      document.getElementById("stopBtn").addEventListener("click", stop);
+      document.querySelectorAll(".word-btn").forEach(function (b) {
+        b.addEventListener("click", function () { play(wordItems(+b.dataset.word), "word"); });
+      });
+      document.querySelectorAll(".vowel-btn").forEach(function (b) {
+        b.addEventListener("click", function () { play([{ vowelOnly: b.dataset.vowel }], "vowel"); });
+      });
+      document.querySelectorAll("#speedCtl button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          speed = +b.dataset.speed;
+          document.querySelectorAll("#speedCtl button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        });
+      });
+      document.getElementById("loopChk").addEventListener("change", function (e) { loopOn = e.target.checked; });
+
+      /* ---------- 話者プリセット（解剖パラメータ層の切り替え） ----------
+         声道長・F0基準・声帯長・口腔／咽頭比をまとめて差し替える。
+         フォルマントは全モード（フレーズ／自由入力／歌／WAV）が
+         vowelF()/neutralF() 経由でこの層を参照するため、切替は即座に全体へ効く。
+         歌モードの音程（旋律）は楽譜どおり絶対音高のままにし、
+         話者差は声道（フォルマント＝声の質）にだけ効かせる（音源―フィルタ理論）。 */
+      function updateAnatPanel() {
+        var nf = neutralF();
+        var oc = CUR.vtl * CUR.oralFrac, ph = pharynxCm();
+        document.getElementById("an-spk").textContent = CUR.label + "（" + CUR.note + "）";
+        document.getElementById("an-vtl").textContent = CUR.vtl.toFixed(1) + " cm（参考：欧米男性の代表値 約17cm）";
+        document.getElementById("an-neutral").textContent = "F1 " + nf[0] + " / F2 " + nf[1] + " / F3 " + nf[2] + " Hz ＝ (2n-1)·c/(4L), c=350m/s";
+        document.getElementById("an-ratio").textContent = oc.toFixed(1) + " cm / " + ph.toFixed(1) + " cm（口腔比 " + CUR.oralFrac.toFixed(2) + "）";
+        document.getElementById("an-fold").textContent = CUR.foldLen.toFixed(1) + " mm（" + CUR.foldMemb.toFixed(1) + " mm）";
+        document.getElementById("an-f0").textContent = CUR.f0Base + " Hz（" + CUR.f0Range + "）";
+        var rows = "";
+        ["a", "i", "u", "e", "o"].forEach(function (v) {
+          var f = vowelF(v);
+          rows += "<tr><td class='k'>" + VKANA[v] + " /" + v + "/</td><td>" + f[0] + "</td><td>" + f[1] + "</td><td>" + f[2] + "</td></tr>";
+        });
+        var nf2 = neutralF();
+        rows += "<tr><td class='k'>中立（シュワー）</td><td>" + nf2[0] + "</td><td>" + nf2[1] + "</td><td>" + nf2[2] + "</td></tr>";
+        document.getElementById("an-ftab").innerHTML = rows;
+        document.getElementById("an-note").innerHTML =
+          "<b>根拠：</b>声道長は日本人成人の公表平均の範囲（男 15.5〜16cm／女 13.5〜14cm）に基づく代表値。" +
+          "母音表は基準話者（成人男性）での日本語話者の実測平均に寄せ、他話者は一様スケーリング F×(15.8/VTL) で換算（近似）。" +
+          "中立管共鳴は一様管モデル Fn=(2n-1)c/(4L) による推定。声帯長は日本人成人の手術時実測の公表値（子どものみ近似）。" +
+          "口腔／咽頭比は発達解剖・性差の知見に基づく近似。" +
+          "声道長スライダーでプリセット間の長さにした場合は、F0基準・声帯長・口腔比を3プリセットのアンカー間で線形補間した推定値を使います。" +
+          "摩擦音・破裂音のノイズ中心周波数は前腔の長さに依存するため話者スケーリングの対象外（固定の近似）。" +
+          "<b>これらは公表されている日本人の平均データに基づく近似であり、個人の骨格そのものではありません。</b>";
+        document.getElementById("speakerInfo").innerHTML =
+          "声道長 <b>" + CUR.vtl.toFixed(1) + "cm</b> ／ 中立共鳴 F1 <b>" + nf[0] + "Hz</b> ／ F0基準 <b>" + CUR.f0Base + "Hz</b>";
+        document.getElementById("faceSub").textContent = "日本人・" + CUR.label + " / 正中矢状断面  VTL " + CUR.vtl.toFixed(1) + "cm";
+      }
+      /* 声道長スライダー用：3プリセット（子ども10.8／女性13.8／男性15.8cm）をアンカーに、
+         F0基準・声帯長・口腔比を VTL で線形補間した推定話者を作る（区間外は端の区間で外挿し、
+         生理学的にあり得る範囲でクランプ）。フォルマントと中立共鳴は従来どおり
+         スケーリング則と一様管モデルで VTL から決まる。 */
+      function speakerForVtl(v) {
+        var A = [ANAT.speakers.child, ANAT.speakers.female, ANAT.speakers.male];
+        function interp(key) {
+          var i = v < A[1].vtl ? 0 : 1;
+          var a = A[i], b = A[i + 1];
+          return a[key] + (b[key] - a[key]) * ((v - a.vtl) / (b.vtl - a.vtl));
+        }
+        function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+        return {
+          label: "カスタム", vtl: v, note: "声道長スライダー（アンカー間補間）",
+          f0Base: Math.round(clamp(interp("f0Base"), 90, 320)),
+          f0Range: "アンカー間補間による推定",
+          foldLen: +clamp(interp("foldLen"), 5, 18).toFixed(1),
+          foldMemb: +clamp(interp("foldMemb"), 4, 14).toFixed(1),
+          oralFrac: clamp(interp("oralFrac"), 0.44, 0.68),
+          custom: true
+        };
+      }
+      function applySpeaker(sp, key) {
+        speakerKey = key; CUR = sp;
+        stop();
+        document.querySelectorAll("#speakerCtl button").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.dataset.speaker === key ? "true" : "false");
+        });
+        var sl = document.getElementById("vtlSlider");
+        if (sl) { sl.value = sp.vtl; document.getElementById("vtlVal").textContent = sp.vtl.toFixed(1) + " cm"; }
+        manF0 = Math.round(sp.f0Base);
+        var mf = document.getElementById("manF0");
+        if (mf) { mf.value = manF0; document.getElementById("manF0V").textContent = manF0 + " Hz"; }
+        dispF = neutralF();
+        updateAnatPanel();
+        dispKey = "__speaker__"; setReadout(null);
+      }
+      function setSpeaker(key) {
+        if (!ANAT.speakers[key]) return;
+        applySpeaker(ANAT.speakers[key], key);
+      }
+      document.querySelectorAll("#speakerCtl button").forEach(function (b) {
+        b.addEventListener("click", function () { setSpeaker(b.dataset.speaker); });
+      });
+      updateAnatPanel();
+
+      /* ---------- 声道長スライダー ----------
+         10〜18cm を連続可変。プリセットの声道長に一致したらそのプリセット自体を、
+         それ以外はアンカー補間のカスタム話者を適用する。計測タブの理論共鳴値・
+         母音表は updateAnatPanel 経由で即時に追随する。 */
+      document.getElementById("vtlSlider").addEventListener("input", function (e) {
+        var v = Math.round(+e.target.value * 10) / 10;
+        var match = null;
+        Object.keys(ANAT.speakers).forEach(function (k) { if (Math.abs(ANAT.speakers[k].vtl - v) < 0.051) match = k; });
+        if (match) applySpeaker(ANAT.speakers[match], match);
+        else applySpeaker(speakerForVtl(v), "custom");
+      });
+
+      /* ---------- デュエット（第2声道） ---------- */
+      document.querySelectorAll("#duetCtl button").forEach(function (b) {
+        b.addEventListener("click", function () {
+          duetKey = b.dataset.duet || null;
+          document.querySelectorAll("#duetCtl button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+          var info = document.getElementById("duetInfo");
+          if (!duetKey) { info.textContent = ""; return; }
+          var sp = ANAT.speakers[duetKey];
+          info.innerHTML = "第2声：" + sp.label + "（VTL <b>" + sp.vtl.toFixed(1) + "cm</b>）の声道で独立合成" +
+            (duetKey === speakerKey ? " ※主話者と同じ声道＝ユニゾン" : "");
+        });
+      });
+
+      /* ---------- 自由入力：かな → モーラ分解 ----------
+         対応：清音・濁点・半濁点・拗音（ゃゅょ／しぇ等）・促音っ・撥音ん・長音ー・小書き母音。
+         カタカナはひらがなに読み替える。空白と読点は語の区切り（ポーズ）になる。 */
+      var SINGLE_KANA = {
+        "あ": ["", "a", "A"], "い": ["", "i", "I"], "う": ["", "u", "U"], "え": ["", "e", "E"], "お": ["", "o", "O"],
+        "か": ["k", "a", "KA"], "き": ["k", "i", "KI"], "く": ["k", "u", "KU"], "け": ["k", "e", "KE"], "こ": ["k", "o", "KO"],
+        "さ": ["s", "a", "SA"], "し": ["sh", "i", "SHI"], "す": ["s", "u", "SU"], "せ": ["s", "e", "SE"], "そ": ["s", "o", "SO"],
+        "た": ["t", "a", "TA"], "ち": ["ch", "i", "CHI"], "つ": ["ts", "u", "TSU"], "て": ["t", "e", "TE"], "と": ["t", "o", "TO"],
+        "な": ["n", "a", "NA"], "に": ["n", "i", "NI"], "ぬ": ["n", "u", "NU"], "ね": ["n", "e", "NE"], "の": ["n", "o", "NO"],
+        "は": ["h", "a", "HA"], "ひ": ["h", "i", "HI"], "ふ": ["f", "u", "FU"], "へ": ["h", "e", "HE"], "ほ": ["h", "o", "HO"],
+        "ま": ["m", "a", "MA"], "み": ["m", "i", "MI"], "む": ["m", "u", "MU"], "め": ["m", "e", "ME"], "も": ["m", "o", "MO"],
+        "や": ["y", "a", "YA"], "ゆ": ["y", "u", "YU"], "よ": ["y", "o", "YO"],
+        "ら": ["r", "a", "RA"], "り": ["r", "i", "RI"], "る": ["r", "u", "RU"], "れ": ["r", "e", "RE"], "ろ": ["r", "o", "RO"],
+        "わ": ["w", "a", "WA"], "ゐ": ["", "i", "I"], "ゑ": ["", "e", "E"], "を": ["", "o", "O"],
+        "が": ["g", "a", "GA"], "ぎ": ["g", "i", "GI"], "ぐ": ["g", "u", "GU"], "げ": ["g", "e", "GE"], "ご": ["g", "o", "GO"],
+        "ざ": ["z", "a", "ZA"], "じ": ["j", "i", "JI"], "ず": ["z", "u", "ZU"], "ぜ": ["z", "e", "ZE"], "ぞ": ["z", "o", "ZO"],
+        "だ": ["d", "a", "DA"], "ぢ": ["j", "i", "JI"], "づ": ["z", "u", "ZU"], "で": ["d", "e", "DE"], "ど": ["d", "o", "DO"],
+        "ば": ["b", "a", "BA"], "び": ["b", "i", "BI"], "ぶ": ["b", "u", "BU"], "べ": ["b", "e", "BE"], "ぼ": ["b", "o", "BO"],
+        "ぱ": ["p", "a", "PA"], "ぴ": ["p", "i", "PI"], "ぷ": ["p", "u", "PU"], "ぺ": ["p", "e", "PE"], "ぽ": ["p", "o", "PO"]
+      };
+      var SMALL_VOWEL = { "ぁ": "a", "ぃ": "i", "ぅ": "u", "ぇ": "e", "ぉ": "o" };
+      var SMALL_Y = { "ゃ": "a", "ゅ": "u", "ょ": "o" };
+      var YOON_BASE = {
+        "き": ["k", "KYA"], "し": ["sh", "SHA"], "ち": ["ch", "CHA"], "に": ["n", "NYA"],
+        "ひ": ["h", "HYA"], "み": ["m", "MYA"], "り": ["r", "RYA"], "ぎ": ["g", "GYA"],
+        "じ": ["j", "JA"], "ぢ": ["j", "JA"], "び": ["b", "BYA"], "ぴ": ["p", "PYA"]
+      };
+      function parseKana(text) {
+        var s = String(text || "").replace(/[ァ-ヶ]/g, function (ch) {
+          return String.fromCharCode(ch.charCodeAt(0) - 0x60);
+        });
+        var morae = [], errors = [], word = 0, boundary = false, prevVowel = null;
+        function pushM(kana, cons, vowel, roma, yoon) {
+          if (boundary && morae.length) word++;
+          boundary = false;
+          morae.push({ kana: kana, roma: roma, cons: cons, vowel: vowel, word: word, gi: morae.length, yoon: !!yoon });
+          if (vowel) prevVowel = vowel;
+        }
+        for (var i = 0; i < s.length; i++) {
+          var ch = s[i];
+          if (ch === " " || ch === "　" || ch === "\n" || ch === "\t" || ch === "、" || ch === "。" || ch === "・" || ch === "," || ch === "!" || ch === "?" || ch === "！" || ch === "？") { boundary = true; continue; }
+          if (ch === "っ") { pushM("っ", "Q", prevVowel || "a", ""); continue; }
+          if (ch === "ー") { if (prevVowel) pushM("ー", "L", prevVowel, "ー"); continue; }
+          if (ch === "ん") { pushM("ん", "N", prevVowel || "a", "N"); continue; }
+          var sv = SINGLE_KANA[ch];
+          if (sv) {
+            var nx = s[i + 1];
+            if (YOON_BASE[ch] && SMALL_Y[nx]) {
+              var yv = SMALL_Y[nx];
+              /* 拗音は「子音＋/j/＋母音」として登録する（yoon フラグでグライド区間を挿入） */
+              pushM(ch + nx, YOON_BASE[ch][0], yv, YOON_BASE[ch][1].slice(0, -1) + yv.toUpperCase(), true);
+              i++; continue;
+            }
+            if (nx === "ぇ" && (ch === "し" || ch === "ち" || ch === "じ")) {
+              pushM(ch + "ぇ", sv[0], "e", ch === "し" ? "SHE" : (ch === "ち" ? "CHE" : "JE"));
+              i++; continue;
+            }
+            pushM(ch, sv[0], sv[1], sv[2]);
+            continue;
+          }
+          if (SMALL_VOWEL[ch]) { pushM(ch, "", SMALL_VOWEL[ch], SMALL_VOWEL[ch].toUpperCase()); continue; }
+          if (SMALL_Y[ch]) { pushM(ch, "", SMALL_Y[ch], SMALL_Y[ch].toUpperCase()); continue; }
+          if (errors.indexOf(ch) < 0) errors.push(ch);
+        }
+        if (morae.length > 120) morae.length = 120;
+        return { morae: morae, errors: errors };
+      }
+      function applyFreeText() {
+        var res = parseKana(document.getElementById("freeInput").value);
+        SEQ = res.morae;
+        rebuildTiles();
+        var note = document.getElementById("parseNote");
+        var errTxt = res.errors.join(" ").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        if (res.morae.length) {
+          var html = "<b>" + res.morae.length + " モーラ</b>に分解しました";
+          if (res.errors.length) html += ' <span class="warn">／ 読み飛ばした文字：' + errTxt + "</span>";
+          note.innerHTML = html;
+        } else {
+          note.innerHTML = res.errors.length
+            ? '<span class="warn">読み取れる仮名がありません（読み飛ばし：' + errTxt + "）</span>"
+            : "ひらがなを入力すると、モーラに分解してタイルに並びます。";
+        }
+        return res.morae.length > 0;
+      }
+      function setMode(m) {
+        appMode = m;
+        stop();
+        document.getElementById("modePhrase").setAttribute("aria-pressed", m === "phrase" ? "true" : "false");
+        document.getElementById("modeFree").setAttribute("aria-pressed", m === "free" ? "true" : "false");
+        document.getElementById("modeSong").setAttribute("aria-pressed", m === "song" ? "true" : "false");
+        document.getElementById("modeManual").setAttribute("aria-pressed", m === "manual" ? "true" : "false");
+        document.getElementById("freePanel").hidden = m !== "free";
+        document.getElementById("songPanel").hidden = m !== "song";
+        document.getElementById("manualPanel").hidden = m !== "manual";
+        document.getElementById("wordRow").style.display = m === "phrase" ? "" : "none";
+        if (m === "free") applyFreeText();
+        else if (m === "song") { if (!currentSong) setSong("furusato"); SEQ = currentSong.morae; rebuildTiles(); }
+        else { SEQ = MORAE; rebuildTiles(); }
+        dispKey = "__mode__"; setReadout(null);
+      }
+      document.getElementById("modePhrase").addEventListener("click", function () { setMode("phrase"); });
+      document.getElementById("modeFree").addEventListener("click", function () { setMode("free"); });
+      document.getElementById("modeSong").addEventListener("click", function () { setMode("song"); });
+      document.getElementById("modeManual").addEventListener("click", function () { setMode("manual"); });
+
+      /* ---------- 歌モード：曲の選択 ---------- */
+      function setSong(key) {
+        currentSong = buildSongData(key);
+        document.querySelectorAll(".song-chip").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.dataset.song === key ? "true" : "false");
+        });
+        document.getElementById("songNote").textContent = currentSong.def.desc;
+        var twRow = document.getElementById("twinkleVariantRow");
+        if (twRow) {
+          twRow.hidden = key !== "twinkle";
+          twRow.querySelectorAll("[data-tvariant]").forEach(function (b) {
+            b.setAttribute("aria-pressed", (songVariant.twinkle || "jp") === b.dataset.tvariant ? "true" : "false");
+          });
+        }
+        if (appMode === "song") {
+          stop();
+          SEQ = currentSong.morae;
+          rebuildTiles();
+          dispKey = "__song__"; setReadout(null);
+        }
+      }
+      document.querySelectorAll(".song-chip").forEach(function (b) {
+        b.addEventListener("click", function () { setSong(b.dataset.song); });
+      });
+      document.querySelectorAll("[data-tvariant]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          songVariant.twinkle = b.dataset.tvariant;
+          setSong("twinkle");
+        });
+      });
+      setSong("furusato");
+      document.getElementById("freeInput").addEventListener("input", function () { if (appMode === "free") applyFreeText(); });
+      document.querySelectorAll("#freePanel .preset-chip").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (appMode !== "free") setMode("free");
+          document.getElementById("freeInput").value = b.dataset.text;
+          if (applyFreeText()) play(phraseItems(), "free");
+        });
+      });
+
+      /* ---------- WAV 書き出し（オフライン・レンダリング） ----------
+         今選んでいるフレーズ／歌を OfflineAudioContext で描き、
+         44.1kHz・16bit・モノラルの WAV にしてダウンロードする。
+         先頭・末尾の無音は最小限（頭 20ms ＋ 末尾フェード）に詰める。 */
+      function encodeWav(buffer) {
+        var sr = buffer.sampleRate, len = buffer.length;
+        var data = buffer.getChannelData(0);
+        var out = new DataView(new ArrayBuffer(44 + len * 2));
+        function wstr(off, s) { for (var i = 0; i < s.length; i++) out.setUint8(off + i, s.charCodeAt(i)); }
+        wstr(0, "RIFF"); out.setUint32(4, 36 + len * 2, true); wstr(8, "WAVE");
+        wstr(12, "fmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
+        out.setUint32(24, sr, true); out.setUint32(28, sr * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true);
+        wstr(36, "data"); out.setUint32(40, len * 2, true);
+        for (var i = 0; i < len; i++) {
+          var v = Math.max(-1, Math.min(1, data[i]));
+          out.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+        }
+        return new Blob([out.buffer], { type: "audio/wav" });
+      }
+      function stampNow() {
+        var d = new Date();
+        function p(n) { return (n < 10 ? "0" : "") + n; }
+        return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+      }
+      /* スコアをオフラインで描いて WAV ダウンロードする（単体・一括で共用）。
+         ファイル名は「フレーズ名_日時.wav」。Promise を返す。 */
+      function renderAndDownload(raw, nameBase, raw2) {
+        return new Promise(function (resolve) {
+          try {
+            var segs = raw.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / speed; return c; });
+            var segs2 = raw2 ? raw2.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / speed; return c; }) : null;
+            var peak = segs2 ? 0.72 : 0.9;
+            var totalAll = segs.reduce(function (a, s) { return a + s.dur; }, 0);
+            var lead = segs.length && segs[0].type === "pause" ? segs[0].dur : 0;
+            var lastSeg = segs[segs.length - 1];
+            var trail = lastSeg && lastSeg.type === "pause" ? Math.max(0, lastSeg.dur - 0.05) : 0;
+            var dur = Math.max(0.2, totalAll - lead - trail + 0.03);
+            var sr = 44100;
+            var off = new OfflineAudioContext(1, Math.ceil(dur * sr), sr);
+            function prepGraph() {
+              var G = buildGraph(off, null);
+              G.master.gain.setValueAtTime(0, 0);
+              G.master.gain.linearRampToValueAtTime(peak, 0.025);
+              G.master.gain.setValueAtTime(peak, Math.max(0.03, dur - 0.07));
+              G.master.gain.linearRampToValueAtTime(0, dur);
+              return G;
+            }
+            function schedAll(G, list) {
+              var acc = 0;
+              list.forEach(function (s) {
+                if (acc + s.dur > lead && acc - lead < dur) scheduleSegG(G, s, Math.max(0.001, acc - lead + 0.01));
+                acc += s.dur;
+              });
+            }
+            schedAll(prepGraph(), segs);
+            if (segs2) schedAll(prepGraph(), segs2); /* 第2声も同じオフライン描画へ混ぜる */
+            off.startRendering().then(function (buffer) {
+              var url = URL.createObjectURL(encodeWav(buffer));
+              var a = document.createElement("a");
+              a.href = url; a.download = nameBase + "_" + stampNow() + ".wav";
+              document.body.appendChild(a); a.click(); a.remove();
+              setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+              resolve(true);
+            }, function () { resolve(false); });
+          } catch (e) { resolve(false); }
+        });
+      }
+      function renderWav() {
+        var raw, nameBase, raw2 = null;
+        var sp2 = duetKey ? ANAT.speakers[duetKey] : null;
+        if (appMode === "song") {
+          if (!currentSong) setSong("furusato");
+          raw = buildSongScore(currentSong);
+          if (sp2) raw2 = buildSongScoreAs(currentSong, sp2);
+          nameBase = currentSong.def.file;
+        } else if (appMode === "manual") {
+          /* 手動調音：今のポーズを約1.2秒の持続音として書き出す（デュエット対象外） */
+          var ef = estimateF(manualPose);
+          raw = [{ dur: 1.2, type: "vowel", mora: -1, phase: "vowel", vowel: nearestVowel(manualPose), pose: manualPose,
+                   f: ef, fFrom: ef, gains: { v: 0.85, g: [1, 0.5, 0.22], nas: (1 - manualPose.vel) * 0.7, noise: 0 },
+                   f0a: manF0, f0b: manF0, flow: 1 }];
+          nameBase = "manual_" + nearestVowel(manualPose);
+        } else if (appMode === "free") {
+          if (!applyFreeText()) return;
+          raw = buildScore(phraseItems(), true);
+          if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
+          var t = document.getElementById("freeInput").value.replace(/[\s　、。（）「」\/\\:*?"<>|]/g, "").slice(0, 10);
+          nameBase = t || "free";
+        } else {
+          raw = buildScore(phraseItems(), true);
+          if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
+          nameBase = "namamugi";
+        }
+        if (raw2) nameBase += "_duet";
+        var btn = document.getElementById("wavBtn");
+        btn.disabled = true; btn.textContent = "書き出し中…";
+        renderAndDownload(raw, nameBase, raw2).then(function () {
+          btn.disabled = false; btn.textContent = "WAV 書き出し";
+        });
+      }
+      document.getElementById("wavBtn").addEventListener("click", renderWav);
+
+      /* ---------- WAV 一括書き出し ----------
+         プリセット（なまむぎ／早口言葉×5／歌×6）を1つずつレンダリングして
+         順番にダウンロードする。DAW 用のボーカル素材集め用。
+         ファイル名は「フレーズ名_日時.wav」。 */
+      function batchTargets() {
+        var sp2 = duetKey ? ANAT.speakers[duetKey] : null;
+        function add(label, raw, raw2) { return { label: label, raw: raw, raw2: raw2 || null }; }
+        var namItems = itemsFromMorae(MORAE);
+        var list = [add("なまむぎ", buildScore(namItems, true), sp2 ? buildScoreAs(namItems, true, sp2) : null)];
+        document.querySelectorAll("#freePanel .preset-chip").forEach(function (chip) {
+          var parsed = parseKana(chip.dataset.text);
+          if (parsed.morae.length) {
+            var items = itemsFromMorae(parsed.morae);
+            list.push(add(chip.textContent.trim(), buildScore(items, true), sp2 ? buildScoreAs(items, true, sp2) : null));
+          }
+        });
+        [["ふるさと", "furusato", null], ["SHOO BEE DOO", "shoo", null], ["本家デモ", "honke", null],
+         ["Twinkle（英語詞）", "twinkle", "en"], ["きらきらぼし", "twinkle", "jp"],
+         ["Made of air", "madeofair", null]].forEach(function (pair) {
+          var sd = buildSongData(pair[1], pair[2] || undefined);
+          list.push(add(pair[0], buildSongScore(sd), sp2 ? buildSongScoreAs(sd, sp2) : null));
+        });
+        return list;
+      }
+      function renderBatchWav() {
+        var btn = document.getElementById("wavBatchBtn");
+        var single = document.getElementById("wavBtn");
+        var list = batchTargets();
+        var i = 0;
+        btn.disabled = true; single.disabled = true;
+        function finish() {
+          btn.disabled = false; single.disabled = false;
+          btn.textContent = "WAV 一括書き出し（全" + list.length + "件）";
+        }
+        function next() {
+          if (i >= list.length) { btn.textContent = "一括書き出し完了（" + list.length + "件）"; setTimeout(finish, 1600); return; }
+          var item = list[i];
+          btn.textContent = "一括書き出し中… " + (i + 1) + "/" + list.length + " " + item.label;
+          var safe = item.label.replace(/[\s\/\\:*?"<>|]/g, "_");
+          renderAndDownload(item.raw, safe + (item.raw2 ? "_duet" : ""), item.raw2).then(function () {
+            i++;
+            setTimeout(next, 450);
+          });
+        }
+        next();
+      }
+      document.getElementById("wavBatchBtn").addEventListener("click", renderBatchWav);
+
+      /* ---------- 手動調音モード ----------
+         調音ポーズ（tx/ty/bx/by/jaw/lip/pro/vel）は再生スコアと同一の物理量。
+         F1/F2/F3 の推定は、日本語5母音の実測アンカー（現在の声道長でスケーリング済み）の
+         間を、舌体位置（bx,by）と顎開きの正規化距離による逆距離加重で補間する
+         （実測ではなくモデルの近似。声道長スライダーを動かすとアンカーごと動く）。 */
+      var manualPose = Object.assign({}, NEUTRAL);
+      var manF0 = 118, manOn = false;
+      function estimateF(pose) {
+        var num = [0, 0, 0], den = 0;
+        ["a", "i", "u", "e", "o"].forEach(function (k) {
+          var p = VPOSE[k];
+          var dx = (pose.bx - p.bx) / 42, dy = (pose.by - p.by) / 42, dj = (pose.jaw - p.jaw) / 0.45;
+          var w = 1 / (dx * dx + dy * dy + dj * dj + 0.03);
+          var f = vowelF(k);
+          for (var j = 0; j < 3; j++) num[j] += w * f[j];
+          den += w;
+        });
+        return [Math.round(num[0] / den), Math.round(num[1] / den), Math.round(num[2] / den)];
+      }
+      function nearestVowel(pose) {
+        var best = "a", bd = 1e9;
+        ["a", "i", "u", "e", "o"].forEach(function (k) {
+          var p = VPOSE[k];
+          var dx = (pose.bx - p.bx) / 42, dy = (pose.by - p.by) / 42, dj = (pose.jaw - p.jaw) / 0.45;
+          var d = dx * dx + dy * dy + dj * dj;
+          if (d < bd) { bd = d; best = k; }
+        });
+        return best;
+      }
+      var MAN_SLIDERS = [
+        ["manTx", "tx"], ["manTy", "ty"], ["manBx", "bx"], ["manBy", "by"],
+        ["manJaw", "jaw"], ["manLip", "lip"], ["manPro", "pro"], ["manVel", "vel"]
+      ];
+      function manFmt(key, v) {
+        return (key === "jaw" || key === "lip" || key === "pro" || key === "vel") ? (+v).toFixed(2) : String(Math.round(v));
+      }
+      function manSyncSliders() {
+        MAN_SLIDERS.forEach(function (cfg) {
+          var el = document.getElementById(cfg[0]);
+          if (!el) return;
+          el.value = manualPose[cfg[1]];
+          document.getElementById(cfg[0] + "V").textContent = manFmt(cfg[1], manualPose[cfg[1]]);
+        });
+        var mf = document.getElementById("manF0");
+        if (mf) { mf.value = manF0; document.getElementById("manF0V").textContent = manF0 + " Hz"; }
+      }
+      MAN_SLIDERS.forEach(function (cfg) {
+        document.getElementById(cfg[0]).addEventListener("input", function (e) {
+          manualPose[cfg[1]] = +e.target.value;
+          document.getElementById(cfg[0] + "V").textContent = manFmt(cfg[1], manualPose[cfg[1]]);
+        });
+      });
+      document.getElementById("manF0").addEventListener("input", function (e) {
+        manF0 = +e.target.value;
+        document.getElementById("manF0V").textContent = manF0 + " Hz";
+      });
+      document.querySelectorAll(".man-vowel").forEach(function (b) {
+        b.addEventListener("click", function () {
+          manualPose = Object.assign({}, b.dataset.v === "n" ? NEUTRAL : VPOSE[b.dataset.v]);
+          manSyncSliders();
+        });
+      });
+      function manUiOff() {
+        manOn = false;
+        var b = document.getElementById("manSoundBtn");
+        if (b) { b.setAttribute("aria-pressed", "false"); b.textContent = "声を出す"; }
+        document.getElementById("liveInd").classList.remove("on");
+        document.getElementById("liveTxt").textContent = "STANDBY";
+      }
+      function setManSound(on) {
+        if (on) {
+          stop();
+          ensureCtx();
+          var now = AC.currentTime;
+          silenceParams(now);
+          manOn = true;
+          N.master.gain.cancelScheduledValues(now);
+          N.master.gain.setTargetAtTime(0.85, now, 0.05);
+          var b = document.getElementById("manSoundBtn");
+          b.setAttribute("aria-pressed", "true"); b.textContent = "声を止める";
+          document.getElementById("liveInd").classList.add("on");
+          document.getElementById("liveTxt").textContent = "MANUAL";
+        } else {
+          manUiOff();
+          if (AC && N) silenceParams(AC.currentTime);
+        }
+      }
+      document.getElementById("manSoundBtn").addEventListener("click", function () { setManSound(!manOn); });
+      /* 発声中は毎フレーム、平滑化された現在ポーズから推定フォルマントを合成グラフへ流す */
+      function manApply() {
+        if (!manOn || !N || playing) return;
+        var now = AC.currentTime, tc = 0.03;
+        var f = estimateF(poseCur);
+        N.osc.frequency.setTargetAtTime(manF0, now, tc);
+        N.f1.f.frequency.setTargetAtTime(f[0], now, tc);
+        N.f2.f.frequency.setTargetAtTime(f[1], now, tc);
+        N.f3.f.frequency.setTargetAtTime(f[2], now, tc);
+        var open = Math.min(1, Math.max(0.08, poseCur.jaw * 0.62 + poseCur.lip * 0.42 - poseCur.lipClose));
+        N.oscGain.gain.setTargetAtTime(0.8, now, tc);
+        N.f1.g.gain.setTargetAtTime(0.9 * open, now, tc);
+        N.f2.g.gain.setTargetAtTime(0.45 * open, now, tc);
+        N.f3.g.gain.setTargetAtTime(0.2 * open, now, tc);
+        N.nasG.gain.setTargetAtTime((1 - poseCur.vel) * 0.75, now, tc);
+        N.noiseG.gain.setTargetAtTime(0, now, tc);
+      }
+      var manDispKey = "";
+      function updateManReadout() {
+        var nv = nearestVowel(poseCur);
+        var f = estimateF(poseCur);
+        var key = "man:" + nv + ":" + Math.round(f[0] / 8) + ":" + Math.round(f[1] / 20);
+        if (key === manDispKey) return;
+        manDispKey = key;
+        nowKana.textContent = VKANA[nv];
+        nowRoma.textContent = nv.toUpperCase() + " 〜";
+        nowKind.textContent = "手動調音 — 最も近い母音 /" + nv + "/";
+        nowMemo.textContent = "推定フォルマント F1 " + f[0] + " Hz／F2 " + f[1] + " Hz／F3 " + f[2] + " Hz（5母音アンカー間の補間推定）。軟口蓋を下げると鼻腔共鳴が混ざり、鼻音寄りの音になります。";
+        nowNext.innerHTML = "NEXT <b>—</b>";
+      }
+      manSyncSliders();
+
+      /* ---------- tabs / scope ---------- */
+      var tabMode = "pressure";
+      var scopeTitle = document.getElementById("scopeTitle");
+      var scopeRight = document.getElementById("scopeRight");
+      var scopeCanvas = document.getElementById("scopeCanvas");
+      var measureBox = document.getElementById("measureBox");
+      function setTab(mode) {
+        tabMode = mode;
+        ["pressure", "airflow", "measure"].forEach(function (m) {
+          document.getElementById("tab-" + m).setAttribute("aria-pressed", m === mode ? "true" : "false");
+        });
+        scopeCanvas.style.display = mode === "measure" ? "none" : "block";
+        measureBox.classList.toggle("show", mode === "measure");
+        if (mode === "pressure") { scopeTitle.textContent = "音圧波形 — SOUND PRESSURE"; scopeRight.textContent = "CH-1 · LIPS"; }
+        if (mode === "airflow") { scopeTitle.textContent = "気流 — AIRFLOW (口腔・鼻腔)"; scopeRight.textContent = "ml/s · MODEL"; }
+        if (mode === "measure") { scopeTitle.textContent = "計測値 — MEASUREMENTS"; scopeRight.textContent = "ARTICULATORS"; }
+      }
+      ["pressure", "airflow", "measure"].forEach(function (m) {
+        document.getElementById("tab-" + m).addEventListener("click", function () { setTab(m); });
+      });
+
+      /* ---------- SVG articulation rendering ---------- */
+      var $ = function (id) { return document.getElementById(id); };
+      var tonguePath = $("tonguePath"), fanG = $("fanG"), reticle = $("reticle"),
+          jawG = $("jawG"), lowerLipG = $("lowerLipG"), upperLipG = $("upperLipG"),
+          velumPath = $("velumPath"), folds = $("folds"), particlesG = $("particles");
+      var NS = "http://www.w3.org/2000/svg";
+      var FAN_LINES = [];
+      for (var fi = 0; fi < 9; fi++) {
+        var ln = document.createElementNS(NS, "line");
+        fanG.appendChild(ln); FAN_LINES.push(ln);
+      }
+      function smoothPath(pts) {
+        var d = "M " + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
+        for (var i = 0; i < pts.length; i++) {
+          var p0 = pts[(i - 1 + pts.length) % pts.length], p1 = pts[i],
+              p2 = pts[(i + 1) % pts.length], p3 = pts[(i + 2) % pts.length];
+          var c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+          var c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+          d += " C " + c1x.toFixed(1) + " " + c1y.toFixed(1) + ", " + c2x.toFixed(1) + " " + c2y.toFixed(1) + ", " + p2[0].toFixed(1) + " " + p2[1].toFixed(1);
+        }
+        return d + " Z";
+      }
+      function renderTract(p) {
+        var pdy = pharynxDy(); /* 咽頭長に応じた喉頭高さ（短い咽頭＝高位喉頭） */
+        var rootY = 428 + p.jaw * 7 + pdy;
+        var surf = [
+          [p.tx, p.ty], [p.tx - 2, p.ty + 22], [p.bx + 58, p.by + 6], [p.bx, p.by], [p.bx - 52, p.by + 14], [288, 352 + pdy * 0.8]
+        ];
+        var under = [[284, rootY], [336, rootY + 9], [p.tx - 20, p.ty + 34]];
+        var all = surf.concat(under);
+        tonguePath.setAttribute("d", smoothPath(all));
+        var cx = p.bx + 2, cy = p.by + 46 + pdy * 0.4;
+        surf.forEach(function (pt, i) {
+          var l = FAN_LINES[i * 2] || FAN_LINES[i];
+          if (l) { l.setAttribute("x1", cx); l.setAttribute("y1", cy); l.setAttribute("x2", pt[0]); l.setAttribute("y2", pt[1]); }
+        });
+        FAN_LINES.forEach(function (l, i) {
+          var pt = all[Math.min(i, all.length - 1)];
+          l.setAttribute("x1", cx); l.setAttribute("y1", cy); l.setAttribute("x2", pt[0]); l.setAttribute("y2", pt[1]);
+        });
+        reticle.setAttribute("transform", "translate(" + cx + " " + cy + ")");
+        jawG.setAttribute("transform", "rotate(" + (p.jaw * 6.5 * jawScale()).toFixed(2) + " 268 318) translate(0 " + (p.jaw * 2).toFixed(1) + ")");
+        lowerLipG.setAttribute("transform", "translate(" + (p.pro * 4).toFixed(1) + " " + (-p.lipClose * 11).toFixed(1) + ")");
+        upperLipG.setAttribute("transform", "translate(" + (p.pro * 5).toFixed(1) + " 0)");
+        /* velum: tip travels between lowered (300,334) and raised (334,270) */
+        var vx = 300 + (334 - 300) * p.vel, vy = 334 + (270 - 334) * p.vel;
+        var vmx = ((338 + vx) / 2 - 8).toFixed(1), vmy = ((254 + vy) / 2 + 2).toFixed(1);
+        velumPath.setAttribute("d", "M 338 254 Q " + vmx + " " + vmy + ", " + vx.toFixed(1) + " " + vy.toFixed(1));
+        var uv = document.getElementById("uvula");
+        uv.setAttribute("cx", vx.toFixed(1)); uv.setAttribute("cy", vy.toFixed(1));
+      }
+
+      /* ---------- airflow particles ---------- */
+      var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var ORAL_PATH = [[248, 486], [245, 418], [256, 350], [298, 316], [360, 304], [424, 310], [474, 316]];
+      var NASAL_PATH = [[248, 486], [243, 398], [252, 328], [284, 272], [328, 234], [392, 214], [448, 238], [488, 268]];
+      var particles = [];
+      for (var pi = 0; pi < 34; pi++) {
+        var c = document.createElementNS(NS, "circle");
+        c.setAttribute("r", "2.4"); c.setAttribute("fill", "#5ee7ff"); c.setAttribute("opacity", "0");
+        particlesG.appendChild(c);
+        particles.push({ el: c, t: -1, path: ORAL_PATH, speed: 0 });
+      }
+      function pathPoint(path, t) {
+        var segLens = [], totalL = 0;
+        for (var i = 0; i < path.length - 1; i++) {
+          var dx = path[i + 1][0] - path[i][0], dy = path[i + 1][1] - path[i][1];
+          var L = Math.sqrt(dx * dx + dy * dy); segLens.push(L); totalL += L;
+        }
+        var d = t * totalL;
+        for (var j = 0; j < segLens.length; j++) {
+          if (d <= segLens[j]) {
+            var r = segLens[j] === 0 ? 0 : d / segLens[j];
+            return [path[j][0] + (path[j + 1][0] - path[j][0]) * r, path[j][1] + (path[j + 1][1] - path[j][1]) * r];
+          }
+          d -= segLens[j];
+        }
+        return path[path.length - 1];
+      }
+      function updateParticles(p, dt, active) {
+        particles.forEach(function (pt) {
+          if (pt.t < 0) {
+            if (active && !reduced && Math.random() < 0.35) {
+              pt.t = 0;
+              pt.path = (p.vel < 0.4 && Math.random() < 0.75) ? NASAL_PATH : ORAL_PATH;
+              pt.speed = 0.55 + Math.random() * 0.5;
+            } else { pt.el.setAttribute("opacity", "0"); return; }
+          }
+          pt.t += dt * pt.speed * (0.35 + p.flowCur * 0.75);
+          if (pt.t >= 1) { pt.t = -1; pt.el.setAttribute("opacity", "0"); return; }
+          var xy = pathPoint(pt.path, pt.t);
+          pt.el.setAttribute("cx", xy[0].toFixed(1)); pt.el.setAttribute("cy", xy[1].toFixed(1));
+          pt.el.setAttribute("opacity", (0.25 + 0.65 * Math.sin(pt.t * Math.PI)).toFixed(2));
+        });
+      }
+
+      /* ---------- readouts ---------- */
+      var f1v = $("f1v"), f2v = $("f2v"), f3v = $("f3v"), f0v = $("f0v"), f0note = $("f0note");
+      var nowKana = $("nowKana"), nowRoma = $("nowRoma"), nowKind = $("nowKind"),
+          nowMemo = $("nowMemo"), nowNext = $("nowNext");
+      var dispKey = "";
+      function setReadout(seg) {
+        var key = "idle";
+        if (seg && seg.mora >= 0) key = seg.mora + ":" + seg.phase;
+        else if (seg && seg.vowel) key = "v:" + seg.vowel;
+        else if (seg) key = "pause";
+        if (key === dispKey) return;
+        dispKey = key;
+        if (!seg || seg.phase === "pause" || seg.mora < 0 && !seg.vowel) {
+          if (!seg) {
+            var first = SEQ[0];
+            nowKana.textContent = first ? first.kana : "—";
+            nowRoma.textContent = first ? (first.roma || "—") : "—";
+            nowKind.textContent = "待機中";
+            nowMemo.textContent = appMode === "song"
+              ? "選んだ曲を1モーラずつ歌います。音程（F0）が旋律どおりに動き、長い音にはビブラートがかかります。舌・顎・唇・軟口蓋の動きも歌に連動します。上の F0 表示には今の音名も出ます。"
+              : appMode === "free"
+              ? "入力した文章を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。速度を ×2.5 まで上げると早口チャレンジになります。"
+              : "再生すると「なまむぎ なまごめ なまたまご」を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。";
+            nowNext.innerHTML = "NEXT <b>—</b>";
+          }
+          return;
+        }
+        if (seg.vowel && seg.mora < 0) {
+          nowKana.textContent = VKANA[seg.vowel]; nowRoma.textContent = seg.vowel.toUpperCase();
+          nowKind.textContent = "母音 /" + seg.vowel + "/";
+          nowMemo.textContent = VOWEL_MEMO[seg.vowel];
+          nowNext.innerHTML = "NEXT <b>—</b>";
+          return;
+        }
+        var m = SEQ[seg.mora];
+        markTiles(seg.mora);
+        nowKana.textContent = m.kana; nowRoma.textContent = m.roma;
+        if (seg.phase === "cons") {
+          var ck = seg.type === "glide" ? "y" : m.cons;
+          nowKind.textContent = (seg.type === "glide" && m.yoon ? "拗音グライド — " : "子音 — ") + CONS_NAME[ck];
+          nowMemo.textContent = CONS_MEMO[ck];
+        } else {
+          nowKind.textContent = "母音 /" + m.vowel + "/ — " + m.kana;
+          nowMemo.textContent = VOWEL_MEMO[m.vowel];
+        }
+        if (seg.noteName) nowKind.textContent += " ♪ " + seg.noteName + " " + Math.round(seg.noteFreq) + " Hz";
+        var nx = SEQ[seg.mora + 1];
+        nowNext.innerHTML = nx ? "NEXT <b>→ " + nx.kana + " " + nx.roma + "</b>" : "NEXT <b>— おわり</b>";
+      }
+      function fmt(n) { return (n >= 0 ? "+" : "") + n.toFixed(2); }
+      function updateMeters(p) {
+        var th = Math.min(1, Math.max(0, (348 - p.by) / 66));       /* tongue height 0..1 */
+        var tx = Math.min(1, Math.max(0, (p.bx - 314) / 62));       /* tongue front-back 0..1 */
+        var lipOpen = Math.min(1, Math.max(0, p.jaw * 0.62 + p.lip * 0.42 - p.lipClose));
+        $("mb-th").style.width = (th * 100).toFixed(0) + "%"; $("mv-th").textContent = th.toFixed(2);
+        $("mb-tx").style.width = (tx * 100).toFixed(0) + "%"; $("mv-tx").textContent = fmt((p.bx - 350) / 58);
+        $("mb-jaw").style.width = (p.jaw * 100).toFixed(0) + "%"; $("mv-jaw").textContent = p.jaw.toFixed(2);
+        $("mb-lip").style.width = (lipOpen * 100).toFixed(0) + "%"; $("mv-lip").textContent = lipOpen.toFixed(2);
+        $("mb-nas").style.width = ((1 - p.vel) * 100).toFixed(0) + "%"; $("mv-nas").textContent = (1 - p.vel).toFixed(2);
+        $("lgTx").textContent = fmt((p.bx - 350) / 58);
+        $("lgTy").textContent = fmt((344 - p.by) / 62);
+        $("lgLip").textContent = p.lipClose > 0.5 ? "閉鎖" : (lipOpen > 0.55 ? "開放" : "狭い");
+        var ef = estimateF(p);
+        $("mb-ef1").style.width = Math.max(0, Math.min(100, (ef[0] - 150) / 8.5)).toFixed(0) + "%"; $("mv-ef1").textContent = ef[0] + " Hz";
+        $("mb-ef2").style.width = Math.max(0, Math.min(100, (ef[1] - 400) / 22)).toFixed(0) + "%"; $("mv-ef2").textContent = ef[1] + " Hz";
+      }
+
+      /* ---------- scope drawing ---------- */
+      var sctx = scopeCanvas.getContext("2d");
+      var waveData = new Uint8Array(2048);
+      function drawScope(p, elapsed) {
+        var W = scopeCanvas.width, H = scopeCanvas.height;
+        sctx.clearRect(0, 0, W, H);
+        sctx.strokeStyle = "rgba(34,121,143,0.35)"; sctx.lineWidth = 1;
+        sctx.beginPath(); sctx.moveTo(0, H / 2); sctx.lineTo(W, H / 2); sctx.stroke();
+        if (tabMode === "pressure") {
+          sctx.strokeStyle = "#3dff8e"; sctx.lineWidth = 1.6;
+          sctx.shadowColor = "rgba(61,255,142,0.5)"; sctx.shadowBlur = 5;
+          sctx.beginPath();
+          if (N && playing) {
+            N.analyser.getByteTimeDomainData(waveData);
+            var step = Math.floor(waveData.length / W);
+            for (var x = 0; x < W; x++) {
+              var v = waveData[x * step] / 255;
+              var y = H * 0.08 + v * H * 0.84;
+              if (x === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
+            }
+          } else {
+            for (var x2 = 0; x2 < W; x2++) {
+              var y2 = H / 2 + Math.sin(x2 * 0.05) * 1.2;
+              if (x2 === 0) sctx.moveTo(x2, y2); else sctx.lineTo(x2, y2);
+            }
+          }
+          sctx.stroke(); sctx.shadowBlur = 0;
+        } else if (tabMode === "airflow") {
+          sctx.strokeStyle = "#5ee7ff"; sctx.lineWidth = 1.6;
+          sctx.shadowColor = "rgba(94,231,255,0.5)"; sctx.shadowBlur = 5;
+          sctx.beginPath();
+          if (anim) {
+            var px = 0;
+            anim.segs.forEach(function (s) {
+              var x0 = (s.start / anim.total) * W, x1 = ((s.start + s.dur) / anim.total) * W;
+              var y = H - 8 - Math.min(1.6, s.flow) / 1.6 * (H - 18);
+              if (px === 0) sctx.moveTo(x0, y);
+              sctx.lineTo(x0, y); sctx.lineTo(x1, y); px = x1;
+            });
+          } else {
+            sctx.moveTo(0, H - 10); sctx.lineTo(W, H - 10);
+          }
+          sctx.stroke(); sctx.shadowBlur = 0;
+          if (anim && playing) {
+            var hx = (elapsed / anim.total) * W;
+            sctx.strokeStyle = "#ffb454"; sctx.beginPath(); sctx.moveTo(hx, 4); sctx.lineTo(hx, H - 4); sctx.stroke();
+          }
+        }
+      }
+
+      /* ---------- main loop ---------- */
+      var poseCur = Object.assign({}, NEUTRAL);
+      poseCur.flowCur = 0;
+      var dispF = neutralF(), dispF0 = 0;
+      var lastT = performance.now();
+      function frame(nowMs) {
+        var dt = Math.min(0.05, (nowMs - lastT) / 1000); lastT = nowMs;
+        var target = NEUTRAL, seg = null, elapsed = 0, tau = 0.055;
+        if (playing && anim && AC) {
+          elapsed = AC.currentTime - anim.startCtx;
+          if (elapsed >= anim.total) { finishUtterance(); }
+          else if (elapsed >= 0) {
+            for (var i = 0; i < anim.segs.length; i++) {
+              var s = anim.segs[i];
+              if (elapsed >= s.start && elapsed < s.start + s.dur) { seg = s; break; }
+            }
+            if (seg) {
+              target = seg.pose;
+              if (seg.type === "burst" || seg.type === "closure") tau = 0.03;
+            }
+          }
+        }
+        if (appMode === "manual" && !playing) target = manualPose;
+        var k = 1 - Math.exp(-dt / tau);
+        ["tx", "ty", "bx", "by", "jaw", "lip", "lipClose", "pro", "vel"].forEach(function (key) {
+          poseCur[key] += (target[key] - poseCur[key]) * k;
+        });
+        var flowT = seg ? seg.flow : (manOn ? 0.85 : 0.03);
+        poseCur.flowCur += (flowT - poseCur.flowCur) * (1 - Math.exp(-dt / 0.08));
+        renderTract(poseCur);
+        /* vocal folds shimmer while voicing */
+        var voicing = (seg && seg.gains && seg.gains.v > 0.05) || manOn;
+        if (voicing) {
+          var sc = 1 + 0.16 * Math.sin(nowMs * 0.09);
+          folds.setAttribute("transform", "translate(250 483) scale(1 " + sc.toFixed(3) + ") translate(-250 -483)");
+          folds.setAttribute("opacity", "1");
+        } else folds.setAttribute("opacity", "0.45");
+        updateParticles(poseCur, dt, !!(seg && seg.flow > 0.15) || manOn);
+        /* formant readouts (smoothed toward the active segment target) */
+        var fT = seg ? seg.f : (appMode === "manual" ? estimateF(poseCur) : neutralF());
+        var kf = 1 - Math.exp(-dt / 0.05);
+        for (var j = 0; j < 3; j++) dispF[j] += (fT[j] - dispF[j]) * kf;
+        var f0T = seg && playing ? (seg.f0a + seg.f0b) / 2 : (manOn ? manF0 : 0);
+        dispF0 += (f0T - dispF0) * kf;
+        if (playing || manOn) {
+          f1v.textContent = Math.round(dispF[0]); f2v.textContent = Math.round(dispF[1]); f3v.textContent = Math.round(dispF[2]);
+          f0v.textContent = dispF0 > 20 ? Math.round(dispF0) : "---";
+        } else {
+          f1v.textContent = "---"; f2v.textContent = "---"; f3v.textContent = "---"; f0v.textContent = "---";
+        }
+        /* 音名表示（F0 ヘッダー＋計測タブ） */
+        if ((playing || manOn) && dispF0 > 20) {
+          var nm = freqName(dispF0);
+          f0note.textContent = nm;
+          var mf = 69 + 12 * log2(dispF0 / 440);
+          var pct = Math.max(0, Math.min(100, (mf - 52) / (84 - 52) * 100));
+          $("mv-note").textContent = nm;
+          $("mv-f0").textContent = Math.round(dispF0) + " Hz";
+          $("mb-note").style.width = pct.toFixed(0) + "%";
+          $("mb-f0").style.width = pct.toFixed(0) + "%";
+        } else {
+          f0note.textContent = "";
+          $("mv-note").textContent = "—";
+          $("mv-f0").textContent = "— Hz";
+          $("mb-note").style.width = "0%";
+          $("mb-f0").style.width = "0%";
+        }
+        if (appMode === "manual" && !playing) updateManReadout();
+        else {
+          setReadout(seg);
+          if (!seg && !playing && dispKey !== "idle") { dispKey = "idle"; setReadout(null); }
+        }
+        manApply();
+        updateMeters(poseCur);
+        if (tabMode !== "measure") drawScope(poseCur, elapsed);
+        requestAnimationFrame(frame);
+      }
+      renderTract(poseCur);
+      requestAnimationFrame(frame);
+    </script>
+  </body>
+</html>
