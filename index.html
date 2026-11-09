@@ -114,6 +114,8 @@
       }
       .tract-wrap { position: relative; }
       svg.tract { width: 100%; height: auto; display: block; }
+      #view3d { width: 100%; height: auto; display: block; background: #020c10; cursor: grab; touch-action: none; }
+      #view3d[hidden] { display: none; }
       .now-readout { padding: 10px 4px 0 6px; }
       .now-kana {
         font-size: 92px; line-height: 1.02; font-weight: 700; color: var(--green);
@@ -307,6 +309,7 @@
           <button class="tab" id="tab-pressure" aria-pressed="true"><span class="jp">音圧</span>SOUND PRESSURE</button>
           <button class="tab" id="tab-airflow" aria-pressed="false"><span class="jp">気流</span>AIRFLOW</button>
           <button class="tab" id="tab-measure" aria-pressed="false"><span class="jp">計測</span>MEASUREMENTS</button>
+          <button class="tab" id="tab-3d" aria-pressed="false"><span class="jp">立体</span>3D WIREFRAME</button>
         </div>
 
         <div class="formants" aria-label="フォルマント周波数">
@@ -318,6 +321,8 @@
 
         <div class="device-main">
           <div class="tract-wrap">
+            <canvas id="view3d" width="1280" height="760" hidden aria-label="声道の3Dワイヤーフレーム。ドラッグで回転。"></canvas>
+            <p class="parse-note" id="note3d" hidden>3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした<b>近似</b>です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。</p>
             <svg class="tract" viewBox="0 0 640 600" role="img" aria-label="声道の正中矢状断面図。舌、顎、唇、軟口蓋が発音に合わせて動きます。">
               <defs>
                 <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -338,7 +343,7 @@
 
               <!-- skull / face profile -->
               <g stroke="#5ee7ff" fill="none" stroke-width="2" filter="url(#softGlow)">
-                <path d="M 118 596 C 100 470, 95 330, 107 220 C 115 130, 178 60, 278 50 C 374 40, 450 84, 471 170 C 479 202, 475 216, 481 240 C 490 264, 494 278, 485 288 C 478 296, 469 298, 463 302 L 465 308" />
+                <path id="g3Skull" d="M 118 596 C 100 470, 95 330, 107 220 C 115 130, 178 60, 278 50 C 374 40, 450 84, 471 170 C 479 202, 475 216, 481 240 C 490 264, 494 278, 485 288 C 478 296, 469 298, 463 302 L 465 308" />
               </g>
               <path d="M 133 596 C 117 472, 112 338, 123 228 C 130 144, 188 78, 280 67 C 366 57, 434 97, 453 173 C 460 200, 457 214, 462 236"
                     stroke="#22798f" fill="none" stroke-width="1.3" />
@@ -353,13 +358,13 @@
               </g>
 
               <!-- pharynx back wall + esophagus -->
-              <path d="M 218 252 C 211 332, 211 420, 226 488" stroke="#5ee7ff" fill="none" stroke-width="1.8" />
+              <path id="g3Phar" d="M 218 252 C 211 332, 211 420, 226 488" stroke="#5ee7ff" fill="none" stroke-width="1.8" />
               <path d="M 233 258 C 228 336, 228 416, 240 480" stroke="#22798f" fill="none" stroke-width="1.2" />
               <path d="M 206 492 L 206 596" stroke="#22798f" fill="none" stroke-width="1.2" stroke-dasharray="4 5" />
 
               <!-- hard palate + upper teeth -->
               <g stroke="#5ee7ff" fill="none" stroke-width="2">
-                <path d="M 444 296 C 414 276, 368 263, 333 259" />
+                <path id="g3Pal" d="M 444 296 C 414 276, 368 263, 333 259" />
               </g>
               <path d="M 444 303 C 415 284, 370 271, 337 267" stroke="#22798f" fill="none" stroke-width="1.2" />
               <g stroke="#5ee7ff" fill="none" stroke-width="1.6">
@@ -396,7 +401,7 @@
               <!-- jaw group (rotated by JS) -->
               <g id="jawG">
                 <g stroke="#ff6a5e" fill="none" stroke-width="2" filter="url(#softGlow)">
-                  <path d="M 276 330 C 292 356, 300 388, 308 414 C 318 446, 352 462, 392 456 C 424 452, 446 430, 450 398 C 451 388, 450 379, 447 371 C 449 361, 447 349, 443 339" />
+                  <path id="g3Jaw" d="M 276 330 C 292 356, 300 388, 308 414 C 318 446, 352 462, 392 456 C 424 452, 446 430, 450 398 C 451 388, 450 379, 447 371 C 449 361, 447 349, 443 339" />
                 </g>
                 <path d="M 293 350 C 305 374, 311 399, 319 421 C 329 443, 357 453, 389 449" stroke="#a83a32" fill="none" stroke-width="1.3" />
                 <g stroke="#ff6a5e" fill="none" stroke-width="1.6">
@@ -2166,7 +2171,195 @@
         velumPath.setAttribute("d", "M 338 254 Q " + vmx + " " + vmy + ", " + vx.toFixed(1) + " " + vy.toFixed(1));
         var uv = document.getElementById("uvula");
         uv.setAttribute("cx", vx.toFixed(1)); uv.setAttribute("cy", vy.toFixed(1));
+        if (view3dOn) render3D(p);
       }
+
+      /* ---------- 3D ワイヤーフレーム（Canvas・外部ライブラリなし） ----------
+         既存の正中矢状断面（頭の輪郭・咽頭壁・口蓋・顎・舌・軟口蓋・唇）の形を立体に起こした近似。
+         声道の断面は、中心線から上下の壁（咽頭壁・口蓋・軟口蓋・舌・顎）までの矢状径を光線で測り、
+         左右幅を矢状径の 1.35 倍と仮定した楕円で描く。MRI 実測の断面積ではなく、舌や顎が動くと
+         断面が変わることを見せるための推定表示。音の計算（フォルマント）には使っていない。 */
+      var view3dOn = false;
+      var V3 = { yaw: 0.75, pitch: 0.16, ready: false, drag: null, last: null };
+      function g3Samp(id, n) {
+        var el = document.getElementById(id), L = el.getTotalLength(), a = [];
+        for (var i = 0; i <= n; i++) { var q = el.getPointAtLength(L * i / n); a.push([q.x, q.y]); }
+        return a;
+      }
+      function g3Init() {
+        V3.skull = g3Samp("g3Skull", 72); V3.phar = g3Samp("g3Phar", 24);
+        V3.pal = g3Samp("g3Pal", 16); V3.jaw = g3Samp("g3Jaw", 30);
+        V3.ready = true;
+      }
+      function crSpline(pts, closed, per) {
+        var out = [], n = pts.length, m = closed ? n : n - 1;
+        for (var i = 0; i < m; i++) {
+          var p0 = closed ? pts[(i - 1 + n) % n] : pts[Math.max(0, i - 1)], p1 = pts[i],
+              p2 = pts[(i + 1) % n], p3 = closed ? pts[(i + 2) % n] : pts[Math.min(n - 1, i + 2)];
+          for (var j = 0; j < per; j++) {
+            var t = j / per, t2 = t * t, t3 = t2 * t;
+            out.push([0, 1].map(function (k) {
+              return 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3);
+            }));
+          }
+        }
+        if (!closed) out.push(pts[n - 1].slice());
+        return out;
+      }
+      function g3Tongue(p) {
+        var pdy = pharynxDy(), rootY = 428 + p.jaw * 7 + pdy;
+        var surf = [[p.tx, p.ty], [p.tx - 2, p.ty + 22], [p.bx + 58, p.by + 6], [p.bx, p.by], [p.bx - 52, p.by + 14], [288, 352 + pdy * 0.8]];
+        var under = [[284, rootY], [336, rootY + 9], [p.tx - 20, p.ty + 34]];
+        return crSpline(surf.concat(under), true, 5);
+      }
+      function g3JawPts(p) {
+        var a = p.jaw * 6.5 * jawScale() * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), dy = p.jaw * 2;
+        return V3.jaw.map(function (q) { var x = q[0] - 268, y = q[1] - 318; return [268 + x * c - y * s, 318 + x * s + y * c + dy]; });
+      }
+      /* 光線 o + t·d（t>0）と折れ線群の最短交点距離。無ければ null */
+      function g3Ray(o, d, polys) {
+        var best = null;
+        polys.forEach(function (pl) {
+          for (var i = 0; i < pl.length - 1; i++) {
+            var a = pl[i], b = pl[i + 1], ex = b[0] - a[0], ey = b[1] - a[1];
+            var den = d[0] * ey - d[1] * ex; if (Math.abs(den) < 1e-9) continue;
+            var ax = a[0] - o[0], ay = a[1] - o[1];
+            var t = (ax * ey - ay * ex) / den, u = (ax * d[1] - ay * d[0]) / den;
+            if (t > 0.5 && u >= 0 && u <= 1 && (best === null || t < best)) best = t;
+          }
+        });
+        return best;
+      }
+      function g3Proj(x, y, z, vp) {
+        var X = x - 330, Y = 310 - y, Z = z, cy = Math.cos(vp.yaw), sy = Math.sin(vp.yaw);
+        var X1 = X * cy + Z * sy, Z1 = -X * sy + Z * cy, cp = Math.cos(vp.pitch), sp = Math.sin(vp.pitch);
+        var Y2 = Y * cp - Z1 * sp, Z2 = Y * sp + Z1 * cp, s = 900 / (900 + Z2);
+        return [vp.cx + X1 * s * vp.zoom, vp.cy - Y2 * s * vp.zoom];
+      }
+      function g3Line(ctx, vp, pts, col, w, close) {
+        ctx.beginPath();
+        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
+        if (close) ctx.closePath();
+        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+      }
+      function g3Scene(ctx, vp, p) {
+        var H = "rgba(34,121,143,0.75)", HB = "rgba(94,231,255,0.9)";
+        /* 頭：矢状の輪郭を左右へ並べ（楕円体風に縮める）、水平の輪郭リングを重ねる */
+        var xc = 292, yc = 190;
+        [0, 0.38, 0.68, 0.9].forEach(function (q) {
+          [1, -1].forEach(function (sg) {
+            if (q === 0 && sg === -1) return;
+            var c = Math.sqrt(1 - q * q);
+            g3Line(ctx, vp, V3.skull.map(function (s) { return [xc + (s[0] - xc) * c, yc + (s[1] - yc) * (s[1] < 300 ? c : 1), sg * q * 100]; }), q === 0 ? HB : H, q === 0 ? 1.6 : 1);
+          });
+        });
+        for (var y = 80; y <= 296; y += 27) {
+          var xs = [];
+          for (var i = 0; i < V3.skull.length - 1; i++) {
+            var a = V3.skull[i], b = V3.skull[i + 1];
+            if ((a[1] - y) * (b[1] - y) <= 0 && a[1] !== b[1]) xs.push(a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]));
+          }
+          if (xs.length < 2) continue;
+          var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), cxr = (x0 + x1) / 2, rx = (x1 - x0) / 2, rz = Math.min(100, rx * 0.85), pts = [];
+          for (var k = 0; k < 36; k++) { var th = k / 36 * Math.PI * 2; pts.push([cxr + rx * Math.cos(th), y, rz * Math.sin(th)]); }
+          g3Line(ctx, vp, pts, "rgba(34,121,143,0.5)", 1, true);
+        }
+        /* 咽頭壁（後壁）と口蓋：奥行き方向のアーチ */
+        g3Line(ctx, vp, V3.phar.map(function (s) { return [s[0], s[1], 0]; }), HB, 1.4);
+        [-1, 1].forEach(function (sg) { g3Line(ctx, vp, V3.phar.map(function (s) { return [s[0] + 6, s[1], sg * 20]; }), H, 1); });
+        V3.pal.forEach(function (s, i) {
+          if (i % 2) return;
+          var arc = []; for (var k = -6; k <= 6; k++) { var z = k * 5; arc.push([s[0], s[1] + 13 * (z / 30) * (z / 30), z]); }
+          g3Line(ctx, vp, arc, "rgba(94,231,255,0.6)", 1);
+        });
+        g3Line(ctx, vp, V3.pal.map(function (s) { return [s[0], s[1], 0]; }), HB, 1.6);
+        /* 顎（下顎の弓）*/
+        var jaw = g3JawPts(p);
+        [0, 0.45, 0.8].forEach(function (q) {
+          [1, -1].forEach(function (sg) {
+            if (q === 0 && sg === -1) return;
+            var c = Math.sqrt(1 - q * q);
+            g3Line(ctx, vp, jaw.map(function (s) { return [360 + (s[0] - 360) * c, s[1], sg * q * 46]; }), q === 0 ? "rgba(255,106,94,0.95)" : "rgba(255,106,94,0.5)", q === 0 ? 1.6 : 1);
+          });
+        });
+        /* 舌：輪郭を幅方向に重ね、背面に横断のアーチ */
+        var tg = g3Tongue(p), tcx = 0, tcy = 0;
+        tg.forEach(function (s) { tcx += s[0]; tcy += s[1]; }); tcx /= tg.length; tcy /= tg.length;
+        [0, 0.45, 0.8].forEach(function (q) {
+          [1, -1].forEach(function (sg) {
+            if (q === 0 && sg === -1) return;
+            var c = Math.sqrt(1 - q * q);
+            g3Line(ctx, vp, tg.map(function (s) { return [tcx + (s[0] - tcx) * (0.55 + 0.45 * c), tcy + (s[1] - tcy) * (0.5 + 0.5 * c), sg * q * 30]; }), q === 0 ? "rgba(61,255,142,0.95)" : "rgba(61,255,142,0.5)", q === 0 ? 1.8 : 1, true);
+          });
+        });
+        for (var ti = 0; ti < 30; ti += 3) {
+          var s0 = tg[ti], arc2 = [];
+          for (var kk = -5; kk <= 5; kk++) { var zz = kk * 6; arc2.push([s0[0], s0[1] + 6 * (zz / 30) * (zz / 30), zz]); }
+          g3Line(ctx, vp, arc2, "rgba(61,255,142,0.4)", 1);
+        }
+        /* 軟口蓋 */
+        var vx = 300 + 34 * p.vel, vy = 334 - 64 * p.vel;
+        [-14, -7, 0, 7, 14].forEach(function (z) { g3Line(ctx, vp, [[338, 254, z], [(338 + vx) / 2 - 8, ((254 + vy) / 2) + 2, z], [vx, vy, z]], "rgba(238,250,255,0.75)", 1.2); });
+        /* 声道の管：中心線から壁までの矢状径で断面楕円を作る */
+        var polys = [V3.phar, V3.pal, [[338, 254], [vx, vy]], tg.concat([tg[0]]), jaw];
+        var cl = crSpline(ORAL_PATH, false, 4), rings = [];
+        for (var ci = 0; ci < cl.length; ci++) {
+          var c0 = cl[Math.max(0, ci - 1)], c1 = cl[Math.min(cl.length - 1, ci + 1)];
+          var tx = c1[0] - c0[0], ty = c1[1] - c0[1], tl = Math.sqrt(tx * tx + ty * ty) || 1, nx = -ty / tl, ny = tx / tl;
+          var hu = g3Ray(cl[ci], [nx, ny], polys), hl = g3Ray(cl[ci], [-nx, -ny], polys);
+          hu = hu === null ? 14 : Math.min(hu, 40); hl = hl === null ? 14 : Math.min(hl, 40);
+          var a2 = Math.max(1.4, Math.min(40, (hu + hl) / 2)), sh = (hu - hl) / 2, b2 = Math.max(3, Math.min(48, a2 * 1.35 + 2)), ring = [];
+          for (var kr = 0; kr < 16; kr++) {
+            var th2 = kr / 16 * Math.PI * 2, u = sh + a2 * Math.cos(th2);
+            ring.push([cl[ci][0] + nx * u, cl[ci][1] + ny * u, b2 * Math.sin(th2)]);
+          }
+          rings.push(ring);
+          g3Line(ctx, vp, ring, "rgba(94,231,255," + (0.5 + 0.45 * ci / cl.length).toFixed(2) + ")", 1.4, true);
+        }
+        for (var kl = 0; kl < 16; kl += 2) g3Line(ctx, vp, rings.map(function (r) { return r[kl]; }), "rgba(94,231,255,0.28)", 1);
+        /* 声帯・唇・鼻腔 */
+        [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[250, 486, 0], [250 + sg * 0, 486, 0]], HB, 1); });
+        g3Line(ctx, vp, [[240, 486, -9], [262, 486, -3], [262, 486, 3], [240, 486, 9]], HB, 1.6);
+        var lh = Math.max(1.5, (3 + p.lip * 15) * (1 - p.lipClose * 0.92)), lw = 16 + (1 - p.lip) * 3, lp = [];
+        for (var kq = 0; kq < 24; kq++) { var tq = kq / 24 * Math.PI * 2; lp.push([474 + p.pro * 9, 318 - lh * 0.0 + lh * Math.sin(tq) * 0.5 - lh * 0.5 + 6, lw * Math.cos(tq)]); }
+        g3Line(ctx, vp, lp, "rgba(255,138,226,0.95)", 2, true);
+        var nas = []; for (var kn = 0; kn < 28; kn++) { var tn = kn / 28 * Math.PI * 2; nas.push([352 + 27 * Math.cos(tn), 210 + 5 * Math.sin(tn), 15 * Math.sin(tn)]); }
+        g3Line(ctx, vp, nas, "rgba(94,231,255,0.35)", 1, true);
+      }
+      function render3D(p) {
+        if (!V3.ready) g3Init();
+        V3.last = p;
+        var cv = document.getElementById("view3d"), ctx = cv.getContext("2d");
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.globalCompositeOperation = "lighter"; ctx.lineJoin = "round"; ctx.lineCap = "round";
+        var W = cv.width / 2;
+        [{ cx: W * 0.5 + 40, cy: 395, zoom: 1.2, yaw: V3.yaw, pitch: V3.pitch, label: "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: 395, zoom: 1.2, yaw: 0, pitch: 0, label: "VIEW  SIDE" }].forEach(function (vp, i) {
+          ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
+          g3Scene(ctx, vp, p); ctx.restore();
+          ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
+          ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(94,231,255,0.7)"; ctx.font = "16px 'Share Tech Mono', monospace";
+          ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
+        });
+        ctx.globalCompositeOperation = "source-over";
+      }
+      (function () {
+        var cv = document.getElementById("view3d"), tab = document.getElementById("tab-3d");
+        tab.addEventListener("click", function () {
+          view3dOn = !view3dOn;
+          tab.setAttribute("aria-pressed", view3dOn ? "true" : "false");
+          cv.hidden = !view3dOn; document.getElementById("note3d").hidden = !view3dOn;
+          document.querySelector("svg.tract").style.display = view3dOn ? "none" : "";
+          if (view3dOn) render3D(poseCur);
+        });
+        cv.addEventListener("pointerdown", function (e) { V3.drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; });
+        cv.addEventListener("pointermove", function (e) {
+          if (!V3.drag) return;
+          V3.yaw += (e.clientX - V3.drag[0]) * 0.01; V3.pitch = Math.max(-0.6, Math.min(0.9, V3.pitch + (e.clientY - V3.drag[1]) * 0.006));
+          V3.drag = [e.clientX, e.clientY]; if (V3.last) render3D(V3.last);
+        });
+        cv.addEventListener("pointerup", function () { V3.drag = null; cv.style.cursor = "grab"; });
+      })();
 
       /* ---------- airflow particles ---------- */
       var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
