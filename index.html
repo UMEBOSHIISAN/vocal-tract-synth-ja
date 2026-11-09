@@ -467,7 +467,7 @@
                 <tbody id="an-ftab"></tbody>
               </table>
               <p class="anat-note" id="an-note"></p>
-              <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2/F3 を一致させる。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 90／F2 35／F3 70 Hz）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。聴感は未確認です。</p>
+              <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2 を一致させる（先行研究は F2・F3 の両方を同じ倍音の近くに寄せる“二重フォルマント”を報告。ここでは F2 の1本に簡略化した近似）。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 90／F2 35／F3 70 Hz）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。聴感は未確認です。</p>
             </div>
           </div>
         </div>
@@ -710,11 +710,12 @@
              という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
            lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
            ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [90, 35, 70], gains: [1, 2.6, 1.1], lpf: 5200 }
+        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200 }
       };
-      /* 倍音唱法：F2/F3 を最も近い高調波 k·F0 に吸着（F1 は母音のまま） */
+      /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
+         F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
       function otSnap(f, f0) {
-        return [f[0], Math.max(1, Math.round(f[1] / f0)) * Math.round(f0), Math.max(1, Math.round(f[2] / f0)) * Math.round(f0)];
+        return [f[0], Math.max(1, Math.round(f[1] / f0)) * Math.round(f0), f[2]];
       }
       var speakerKey = "male";
       var CUR = ANAT.speakers.male;
@@ -1143,7 +1144,7 @@
         SONGS.hannya = {
           title: "般若心経（倍音ボイス）", file: "hannya-shingyo-overtone", beat: 0.6, overtone: true,
           lyrics: ph.map(function (p) { return p.join(""); }).join(" "),
-          desc: "般若心経の冒頭（観自在菩薩〜空即是色）を、低い一定音（G2・約98Hz）で読経します。母音ごとに F2/F3 を最も近い高調波（F0の整数倍）に吸着させ、帯域幅を狭めて、その倍音を浮かび上がらせる倍音唱法の近似です（音響理論に基づく。F2が母音に沿って動くため、倍音が旋律のように移ります）。※日本の僧侶の読経のF0・帯域幅の公表データは用意できておらず、F0は成人男性の下端付近の近似、帯域幅も理論上の近似値です。聴感は未確認です。",
+          desc: "般若心経の冒頭（観自在菩薩〜空即是色）を、低い一定音（G2・約98Hz）で読経します。母音ごとに F2 を最も近い高調波（F0の整数倍）に吸着させ、帯域幅を狭めて、その倍音を浮かび上がらせる倍音唱法の近似です（音響理論に基づく。F2が母音に沿って動くため、倍音が旋律のように移ります）。※日本の僧侶の読経のF0・帯域幅の公表データは用意できておらず、F0は成人男性の下端付近の近似、帯域幅も理論上の近似値です。聴感は未確認です。",
           notes: notes
         };
       })();
@@ -1337,7 +1338,7 @@
           lp.connect(f); f.connect(g); g.connect(master);
           return { f: f, g: g };
         }
-        var f1 = bp(700, 80), f2 = bp(1200, 95), f3 = bp(2500, 130);
+        var f1 = bp(700, 80), f2 = bp(1200, 95), f3 = bp(2500, 130), f2b = bp(1200, 95);
         var nasF = ctx.createBiquadFilter(); nasF.type = "bandpass"; nasF.frequency.value = 260; nasF.Q.value = 1.1;
         var nasG = ctx.createGain(); nasG.gain.value = 0;
         lp.connect(nasF); nasF.connect(nasG); nasG.connect(master);
@@ -1350,8 +1351,8 @@
         noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
 
         osc.start(); noise.start();
-        return { master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false,
-                 f1: f1, f2: f2, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
+        return { master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
+                 f1: f1, f2: f2, f2b: f2b, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
       }
       function ensureCtx() {
         if (AC) { if (AC.state === "suspended") AC.resume(); return; }
@@ -1362,7 +1363,7 @@
         N.analyser = analyser;
       }
       function silenceGraph(G, now) {
-        [G.oscGain.gain, G.f1.g.gain, G.f2.g.gain, G.f3.g.gain, G.nasG.gain, G.noiseG.gain].forEach(function (pr) {
+        [G.oscGain.gain, G.f1.g.gain, G.f2.g.gain, G.f2b.g.gain, G.f3.g.gain, G.nasG.gain, G.noiseG.gain].forEach(function (pr) {
           pr.cancelScheduledValues(now); pr.setTargetAtTime(0, now, 0.03);
         });
         G.master.gain.cancelScheduledValues(now); G.master.gain.setTargetAtTime(0, now, 0.03);
@@ -1384,27 +1385,46 @@
           G.oscGain.gain.setTargetAtTime(0, t, tc);
           return;
         }
-        /* 倍音唱法の帯域幅・音源ローパス。通常のスコアでは otOn が偽のまま何もしない。
-           倍音スコアの後に通常スコアが来たら既定値（元の Q と 1250Hz）へ戻す。 */
-        if (seg.bw || G.otOn) {
-          [G.f1, G.f2, G.f3].forEach(function (b, i) {
-            b.f.Q.setTargetAtTime(seg.bw ? Math.max(0.6, seg.f[i] / seg.bw[i]) : G.defQ[i], t, 0.02);
-          });
-          G.lp.frequency.setTargetAtTime(seg.bw ? seg.lpf : 1250, t, 0.02);
-          G.otOn = !!seg.bw;
+        /* 倍音唱法：帯域幅・音源ローパス・F2 の高調波ホップ。通常のスコアでは otOn が偽のまま何もしない。
+           F2 は共鳴器を2本（f2 / f2b）交互に使い、休んでいる側を次の高調波に合わせてから短くクロスフェードする
+           （1本を高調波の間でなめらかに滑らせると途中の高調波が次々に鳴り、キシキシした掃引音になるため）。
+           倍音スコアの後に通常スコアが来たら既定値へ戻す。 */
+        var ot2 = !!seg.bw;
+        if (ot2 || G.otOn) {
+          G.f1.f.Q.setTargetAtTime(ot2 ? Math.max(0.6, seg.f[0] / seg.bw[0]) : G.defQ[0], t, 0.02);
+          G.f3.f.Q.setTargetAtTime(ot2 ? Math.max(0.6, seg.f[2] / seg.bw[2]) : G.defQ[2], t, 0.02);
+          G.lp.frequency.setTargetAtTime(ot2 ? seg.lpf : 1250, t, 0.02);
+          if (ot2) {
+            var tgt = seg.f[1], gA = g.g[1] * 0.9, hop = 0.008;
+            if (G.otF2 !== tgt) {
+              var nb = G.otBus ? G.f2 : G.f2b, ob = G.otBus ? G.f2b : G.f2;
+              nb.f.frequency.cancelScheduledValues(t); nb.f.frequency.setValueAtTime(tgt, t);
+              nb.f.Q.cancelScheduledValues(t); nb.f.Q.setValueAtTime(Math.max(0.6, tgt / seg.bw[1]), t);
+              nb.g.gain.cancelScheduledValues(t); nb.g.gain.setTargetAtTime(gA, t, hop);
+              ob.g.gain.cancelScheduledValues(t); ob.g.gain.setTargetAtTime(0, t, hop);
+              G.otBus = !G.otBus; G.otF2 = tgt;
+            } else {
+              var ab = G.otBus ? G.f2b : G.f2;
+              ab.g.gain.cancelScheduledValues(t); ab.g.gain.setTargetAtTime(gA, t, tc);
+            }
+          } else {
+            G.f2.f.Q.setValueAtTime(G.defQ[1], t); G.f2b.g.gain.setTargetAtTime(0, t, 0.01);
+            G.otF2 = null;
+          }
+          G.otOn = ot2;
         }
         var fStart = seg.fFrom || seg.f;
         if (seg.burstF) G.noiseBP.frequency.setValueAtTime(seg.burstF, t);
         G.f1.f.frequency.setValueAtTime(fStart[0], t);
-        G.f2.f.frequency.setValueAtTime(fStart[1], t);
+        if (!ot2) G.f2.f.frequency.setValueAtTime(fStart[1], t);
         G.f3.f.frequency.setValueAtTime(fStart[2], t);
         var tau = seg.type === "vowel" ? (seg.legato ? 0.05 : 0.02) : 0.012;
         G.f1.f.frequency.setTargetAtTime(seg.f[0], t, tau);
-        G.f2.f.frequency.setTargetAtTime(seg.f[1], t, tau);
+        if (!ot2) G.f2.f.frequency.setTargetAtTime(seg.f[1], t, tau);
         G.f3.f.frequency.setTargetAtTime(seg.f[2], t, tau);
         G.oscGain.gain.setTargetAtTime(g.v, t, tc);
         G.f1.g.gain.setTargetAtTime(g.g[0] * 0.9, t, tc);
-        G.f2.g.gain.setTargetAtTime(g.g[1] * 0.9, t, tc);
+        if (!ot2) G.f2.g.gain.setTargetAtTime(g.g[1] * 0.9, t, tc);
         G.f3.g.gain.setTargetAtTime(g.g[2] * 0.9, t, tc);
         G.nasG.gain.setTargetAtTime(g.nas * 0.8, t, tc);
         G.noiseG.gain.setTargetAtTime(g.noise || 0, t, tc);
