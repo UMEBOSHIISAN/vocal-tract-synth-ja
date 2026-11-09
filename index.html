@@ -114,6 +114,10 @@
       }
       .tract-wrap { position: relative; }
       svg.tract { width: 100%; height: auto; display: block; }
+      .ot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 6px 22px; margin: 8px 0; }
+      .ot-row { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); }
+      .ot-row input { width: 100%; }
+      .ot-row .v { font-family: var(--mono); text-align: right; color: var(--ink); }
       #view3d { width: 100%; height: auto; display: block; background: #020c10; cursor: grab; touch-action: none; }
       #view3d[hidden] { display: none; }
       .now-readout { padding: 10px 4px 0 6px; }
@@ -559,6 +563,11 @@
             <button class="preset-chip" data-tvariant="en" aria-pressed="false">英語（本家の歌詞）</button>
           </div>
           <p class="parse-note" id="songNote"></p>
+          <div id="otCtl" hidden>
+            <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
+            <div class="ot-grid" id="otGrid"></div>
+            <div class="preset-row"><button class="preset-chip" id="otReset" type="button">初期値に戻す</button><span class="parse-note" id="otVals"></span></div>
+          </div>
         </div>
 
         <div class="free-panel" id="manualPanel" hidden>
@@ -715,7 +724,7 @@
              という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
            lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
            ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.2 }
+        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.2, hop: 0.008 }
       };
       /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
@@ -1407,7 +1416,7 @@
           if (ot2) {
             /* 子音（閉鎖・破裂・摩擦…）の短い区間ごとにホップすると、数十ms内に連続して跳んで
                キシッと鳴る（か・ど・し・じで報告）。ホップは母音の区間だけにし、子音の間は直前の高調波に留める */
-            var tgt = (seg.type === "vowel" || G.otF2 === null) ? seg.f[1] : G.otF2, gA = g.g[1] * 0.9, hop = 0.008;
+            var tgt = (seg.type === "vowel" || G.otF2 === null) ? seg.f[1] : G.otF2, gA = g.g[1] * 0.9, hop = ANAT.overtone.hop;
             if (G.otF2 !== tgt) {
               var nb = G.otBus ? G.f2 : G.f2b, ob = G.otBus ? G.f2b : G.f2;
               nb.f.frequency.cancelScheduledValues(t); nb.f.frequency.setValueAtTime(tgt, t);
@@ -1796,6 +1805,38 @@
       document.getElementById("modeSong").addEventListener("click", function () { setMode("song"); });
       document.getElementById("modeManual").addEventListener("click", function () { setMode("manual"); });
 
+      /* ---------- 倍音ボイスの調整つまみ（ANAT.overtone を直接動かす） ---------- */
+      var OT_DEFAULT = JSON.parse(JSON.stringify(ANAT.overtone));
+      var OT_CTL = [
+        { k: "f2bw", lab: "F2 帯域幅 (Hz)", min: 10, max: 150, step: 5, get: function (o) { return o.bw[1]; }, set: function (o, v) { o.bw[1] = v; } },
+        { k: "f2g", lab: "F2 音量", min: 0.5, max: 6, step: 0.1, get: function (o) { return o.gains[1]; }, set: function (o, v) { o.gains[1] = v; } },
+        { k: "f1g", lab: "F1 音量", min: 0, max: 2, step: 0.05, get: function (o) { return o.gains[0]; }, set: function (o, v) { o.gains[0] = v; } },
+        { k: "f3g", lab: "F3 音量", min: 0, max: 2, step: 0.05, get: function (o) { return o.gains[2]; }, set: function (o, v) { o.gains[2] = v; } },
+        { k: "noise", lab: "子音の雑音 ×", min: 0, max: 1, step: 0.05, get: function (o) { return o.noise; }, set: function (o, v) { o.noise = v; } },
+        { k: "hop", lab: "F2 ホップ速さ (s)", min: 0.004, max: 0.08, step: 0.002, get: function (o) { return o.hop; }, set: function (o, v) { o.hop = v; } },
+        { k: "lpf", lab: "音源の高域上限 (Hz)", min: 1500, max: 8000, step: 100, get: function (o) { return o.lpf; }, set: function (o, v) { o.lpf = v; } }
+      ];
+      (function () {
+        var grid = document.getElementById("otGrid");
+        function show() {
+          document.getElementById("otVals").textContent = "現在: " + OT_CTL.map(function (c) { return c.k + "=" + c.get(ANAT.overtone); }).join(" / ");
+        }
+        OT_CTL.forEach(function (c) {
+          var row = document.createElement("label"); row.className = "ot-row";
+          row.innerHTML = '<span>' + c.lab + '</span><input type="range" min="' + c.min + '" max="' + c.max + '" step="' + c.step + '" value="' + c.get(ANAT.overtone) + '"><span class="v"></span>';
+          var inp = row.querySelector("input"), vv = row.querySelector(".v");
+          vv.textContent = inp.value;
+          inp.addEventListener("input", function () { c.set(ANAT.overtone, parseFloat(inp.value)); vv.textContent = inp.value; show(); });
+          row._reset = function () { inp.value = c.get(ANAT.overtone); vv.textContent = inp.value; };
+          grid.appendChild(row);
+        });
+        document.getElementById("otReset").addEventListener("click", function () {
+          Object.keys(OT_DEFAULT).forEach(function (k) { ANAT.overtone[k] = JSON.parse(JSON.stringify(OT_DEFAULT[k])); });
+          Array.prototype.forEach.call(grid.children, function (r) { r._reset(); }); show();
+        });
+        show();
+      })();
+
       /* ---------- 歌モード：曲の選択 ---------- */
       function setSong(key) {
         currentSong = buildSongData(key);
@@ -1804,6 +1845,7 @@
         });
         document.getElementById("songNote").textContent = currentSong.def.desc;
         document.getElementById("an-overtone").hidden = !currentSong.def.overtone;
+        document.getElementById("otCtl").hidden = !currentSong.def.overtone;
         var twRow = document.getElementById("twinkleVariantRow");
         if (twRow) {
           twRow.hidden = key !== "twinkle";
