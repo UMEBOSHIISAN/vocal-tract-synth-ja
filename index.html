@@ -326,7 +326,7 @@
         <div class="device-main">
           <div class="tract-wrap">
             <canvas id="view3d" width="1280" height="760" hidden aria-label="声道の3Dワイヤーフレーム。ドラッグで回転。"></canvas>
-            <p class="parse-note" id="note3d" hidden>3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした<b>近似</b>です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。</p>
+            <p class="parse-note" id="note3d" hidden>3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした<b>近似</b>です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。遠い線ほど淡く描き、触っていない間はゆっくり左右に振って奥行きを見せます。顔と首には眼窩・鼻翼・耳介・頸椎（C1〜C7）を足しています（位置と大きさは解剖図を参考にした手置きの近似）。左の全体図には胸（肋骨・肺・横隔膜・気管支）を描き、声を出すあいだ横隔膜が上がり、息継ぎで下がって腹が前へ出ます（腹式呼吸の模式図。形と動きの量は実測ではありません）。舌には動きの残像が付き、読経モードでは息継ぎで肩が上がります。声帯の開閉と唇から広がる波面は、見えるように遅くした<b>表示上の演出</b>で、実際の振動数・波長ではありません。右下の「いま鳴っている音の成分」は出力を実際に周波数分析した値です。</p>
             <svg class="tract" viewBox="0 0 640 600" role="img" aria-label="声道の正中矢状断面図。舌、顎、唇、軟口蓋が発音に合わせて動きます。">
               <defs>
                 <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -476,7 +476,7 @@
                 <tbody id="an-ftab"></tbody>
               </table>
               <p class="anat-note" id="an-note"></p>
-              <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2 を一致させる（先行研究は F2・F3 の両方を同じ倍音の近くに寄せる“二重フォルマント”を報告。ここでは F2 の1本に簡略化した近似）。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 90／F2 35／F3 70 Hz）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>発声：</b>読経経験者の助言（声帯は途切れさせず、口腔の形の変化だけで響かせる。腹式で圧を一定に保つ）に従い、子音の破裂・摩擦の雑音は鳴らさず、声を出したまま子音の構えへ滑る区間に置き換え、声源の強さは全区間で一定にしています（「かんじーざいぼー」→「あーんいーあいおー」のような聞こえ方）。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。倍音の聞こえ方は 2026-11-10 にオーナー確認済み。</p>
+              <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2 を一致させる（先行研究は F2・F3 の両方を同じ倍音の近くに寄せる“二重フォルマント”を報告。ここでは F2 の1本に簡略化した近似）。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 150／F2 25／F3 220 Hz。倍音を1本だけ分けるのは F2）と、狙った倍音の強調（音量比 F1/F2/F3 = 0.8/4.2/0.35。先行研究の“二重フォルマント”を並列共鳴器の音量比で近似）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>発声：</b>読経経験者の助言（声帯は途切れさせず、口腔の形の変化だけで響かせる。腹式で圧を一定に保つ）に従い、子音の破裂・摩擦の雑音は鳴らさず、声を出したまま子音の構えへ滑る区間に置き換え、声源の強さは全区間で一定にしています（「かんじーざいぼー」→「あーんいーあいおー」のような聞こえ方）。<b>経文：</b>出典：『般若波羅蜜多心経』唐・玄奘訳（大正新脩大蔵経 第8冊 No.251、848頁下段3〜8行）。冒頭「観自在菩薩」〜「空即是色」を CBETA 電子仏典の本文と照合済み（2026-11-10）。表示は新字体（原文は「觀」「舍」）、読みは日本の読経で一般的な呉音読みで、宗派・寺院による読みの違いは反映していません。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。倍音の聞こえ方は 2026-11-10 にオーナー確認済み（その後「もっと」の要望で F2 を強めた値も 2026-11-10 にオーナーが「いい感じ」と確認）。<b>3D の胸：</b>肋骨・肺・横隔膜・気管支の形と大きさ、呼吸の動きの量は模式図で、実測値ではありません（音の計算には不使用）。</p>
             </div>
           </div>
         </div>
@@ -723,8 +723,11 @@
            帯域幅（f2bw/f3bw/f1bw）：倍音1本を分離するには F0 間隔（約98Hz）より十分狭い必要がある、
              という理論上の条件に基づく近似値。実在の僧侶の計測値ではない。
            lpf：音源ローパス。倍音唱法で使う 700〜2500Hz 帯を通すため既定(1250Hz)より上げる近似値。
-           ※聴感は未確認。数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 35, 220], gains: [1, 2.8, 0.5], lpf: 5200, noise: 0.2, hop: 0.008 }
+           2026-11-10 強調：オーナーの「倍音をもっと」を受け、F2 帯域幅 35→25Hz、音量比 F1/F2/F3 = 1/2.8/0.5 → 0.8/4.2/0.35。
+             狙った倍音だけを強め、土台（F1）と F3 を少し下げて浮き上がらせる。先行研究の“二重フォルマント”
+             （F2・F3 を同じ倍音へ寄せて1本を強める）を、並列共鳴器の音量比で近似したもの。
+           ※数値は近似で、個人・流派の実測ではない。 */
+        overtone: { f0Midi: 43, bw: [150, 25, 220], gains: [0.8, 4.2, 0.35], lpf: 5200, noise: 0.2, hop: 0.008 }
       };
       /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
@@ -1136,7 +1139,9 @@
         return [{ gi: m.gi, cons: m.cons, vowel: m.vowel, yoon: m.yoon, wordStart: true, wordEnd: true }];
       }
 
-      /* 般若心経（冒頭）の読経・倍音ボイス。経文は公有。読みは一般的な漢音でなく呉音の読経読み。
+      /* 般若心経（冒頭）の読経・倍音ボイス。経文は公有。
+         出典：般若波羅蜜多心經 唐三藏法師玄奘譯（大正新脩大藏經 第8冊 No.251, T08n0251_p0848c03-c08）。
+         冒頭〜「空即是色」を CBETA（cbdata.dila.edu.tw）の本文と 2026-11-10 に照合。読みは一般的な漢音でなく呉音の読経読み。
          旋律は無く、低い一定音（ANAT.overtone.f0Midi）で各音節を等拍に読む。 */
       (function () {
         var ph = [
@@ -1150,15 +1155,29 @@
           ["しき", "そく", "ぜ", "くー"],
           ["くー", "そく", "ぜ", "しき"]
         ];
+        /* 経文の漢字（読みの1区切りごとに対応。「不異」は「ふい」と続けて読む1区切り） */
+        var kj = [
+          ["観", "自", "在", "菩", "薩"],
+          ["行", "深", "般", "若", "波", "羅", "蜜", "多", "時"],
+          ["照", "見", "五", "蘊", "皆", "空"],
+          ["度", "一", "切", "苦", "厄"],
+          ["舎", "利", "子"],
+          ["色", "不異", "空"],
+          ["空", "不異", "色"],
+          ["色", "即", "是", "空"],
+          ["空", "即", "是", "色"]
+        ];
+        var kyo = [];
+        ph.forEach(function (p, i) { p.forEach(function (t, j) { kyo.push({ k: kj[i][j], r: t.replace(/ー/g, "ー"), ph: i }); }); });
         var notes = [];
         ph.forEach(function (p, i) {
           p.forEach(function (t) { notes.push({ t: t, m: ANAT.overtone.f0Midi, b: 1 }); });
           if (i < ph.length - 1) notes.push({ rest: 1 });
         });
         SONGS.hannya = {
-          title: "般若心経（倍音ボイス）", file: "hannya-shingyo-overtone", beat: 0.6, overtone: true,
+          title: "般若心経（倍音ボイス）", file: "hannya-shingyo-overtone", beat: 0.6, overtone: true, kyo: kyo,
           lyrics: ph.map(function (p) { return p.join(""); }).join(" "),
-          desc: "般若心経の冒頭（観自在菩薩〜空即是色）を、低い一定音（G2・約98Hz）で読経します。母音ごとに F2 を最も近い高調波（F0の整数倍）に吸着させ、帯域幅を狭めて、その倍音を浮かび上がらせる倍音唱法の近似です（音響理論に基づく。F2が母音に沿って動くため、倍音が旋律のように移ります）。※日本の僧侶の読経のF0・帯域幅の公表データは用意できておらず、F0は成人男性の下端付近の近似、帯域幅も理論上の近似値です。聴感は未確認です。",
+          desc: "般若心経の冒頭（観自在菩薩〜空即是色）を、低い一定音（G2・約98Hz）で読経します。母音ごとに F2 を最も近い高調波（F0の整数倍）に吸着させ、帯域幅を狭めて、その倍音を浮かび上がらせる倍音唱法の近似です（音響理論に基づく。F2が母音に沿って動くため、倍音が旋律のように移ります）。※日本の僧侶の読経のF0・帯域幅の公表データは用意できておらず、F0は成人男性の下端付近の近似、帯域幅も理論上の近似値です。倍音の強さは 2026-11-10 に強めた値で、オーナーが聴いて「いい感じ」と確認済みです。出典：『般若波羅蜜多心経』唐・玄奘訳（大正新脩大蔵経 第8冊 No.251、848頁下段3〜8行）。冒頭「観自在菩薩」〜「空即是色」を CBETA 電子仏典の本文と照合済み（2026-11-10）。表示は新字体（原文は「觀」「舍」）、読みは日本の読経で一般的な呉音読みで、宗派・寺院による読みの違いは反映していません。",
           notes: notes
         };
       })();
@@ -2293,18 +2312,25 @@
         var X = x - 330, Y = 310 - y, Z = z, cy = Math.cos(vp.yaw), sy = Math.sin(vp.yaw);
         var X1 = X * cy + Z * sy, Z1 = -X * sy + Z * cy, cp = Math.cos(vp.pitch), sp = Math.sin(vp.pitch);
         var Y2 = Y * cp - Z1 * sp, Z2 = Y * sp + Z1 * cp, s = 900 / (900 + Z2);
-        return [vp.cx + X1 * s * vp.zoom, vp.cy - Y2 * s * vp.zoom];
+        return [vp.cx + X1 * s * vp.zoom, vp.cy - Y2 * s * vp.zoom, Z2];
       }
+      /* 奥行きの手がかり：視点から遠い線ほど淡く細く、近い線ほど明るく太く描く（空気遠近。表示だけの演出） */
+      function g3Fog(d) { return Math.max(0.28, Math.min(1, 0.9 - d / 200 * 0.55)); }
       function g3Line(ctx, vp, pts, col, w, close) {
+        var dz = 0;
         ctx.beginPath();
-        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
+        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
         if (close) ctx.closePath();
-        ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
+        dz /= pts.length || 1;
+        ctx.globalAlpha = g3Fog(dz);
+        ctx.strokeStyle = col; ctx.lineWidth = w * Math.max(0.7, Math.min(1.35, 1 - dz / 500)); ctx.stroke();
+        ctx.globalAlpha = 1;
       }
       function g3Fill(ctx, vp, pts, col) {
+        var dz = 0;
         ctx.beginPath();
-        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
-        ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
+        ctx.closePath(); ctx.globalAlpha = g3Fog(dz / (pts.length || 1)); ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
       }
       function fillBand(ctx, vp, r0, r1, col) {
         for (var k = 0; k < r0.length; k++) { var k2 = (k + 1) % r0.length; g3Fill(ctx, vp, [r0[k], r0[k2], r1[k2], r1[k]], col); }
@@ -2315,18 +2341,57 @@
         ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; ctx.fillText(txt, dx < 0 ? s[0] + dx - 8 - ctx.measureText(txt).width : s[0] + dx + 4, s[1] + dy + 4);
       }
       var cvH3 = 760;
+      /* 胸（胸郭・肺・横隔膜・気管〜気管支）：声の動力源を見せる模式図。形と大きさは実測ではなく近似で、音の計算には使っていない。
+         lung（0〜1）＝肺の空気の量の表示値。発声中はゆっくり減り、息継ぎで戻る。腹式呼吸として、吸うと横隔膜が下がって腹が前へ出て、
+         声を出すあいだ横隔膜がゆっくり上がる動きを描く（読経経験者の助言「腹式で圧を一定に」の図示。動きの量は表示上の演出） */
+      function g3Chest(ctx, vp) {
+        var lung = V3.lung === undefined ? 0.5 : V3.lung, ex = 1 + 0.035 * lung, D = 792 + 34 * lung;
+        var RB = "rgba(170,205,225,", LG = "rgba(255,150,170,", DI = "rgba(255,176,60,", BD = "rgba(94,231,255,";
+        /* 気管 → 気管分岐 → 左右の気管支 */
+        for (var kt = 0; kt < 6; kt++) { var ty = 550 + kt * 15, tr = []; for (var a = 0; a < 16; a++) { var t = a / 16 * Math.PI * 2; tr.push([252 + kt * 2 + 11 * Math.cos(t), ty, 11 * Math.sin(t)]); } g3Line(ctx, vp, tr, BD + "0.3)", 1, true); }
+        [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[262, 632, 0], [264, 652, sg * 14], [266, 676, sg * 36], [266, 700, sg * 50]], BD + "0.8)", 2); });
+        /* 肋骨：前下がりに傾いた輪（吸うとわずかに広がる）と、背骨・胸骨 */
+        for (var kr = 0; kr < 8; kr++) {
+          var ry0 = 616 + kr * 27, rx = (50 + 26 * Math.sin((kr + 1) / 8 * Math.PI * 0.62)) * ex, rz = (86 + 44 * Math.sin((kr + 1) / 8 * Math.PI * 0.6)) * ex, rib = [];
+          for (var a2 = 0; a2 <= 30; a2++) { var t2 = (a2 / 30) * Math.PI * 2 * 0.86 + Math.PI * 0.14 + Math.PI; var cxr = Math.cos(t2), szr = Math.sin(t2); rib.push([272 + rx * cxr, ry0 + 20 * cxr, rz * szr]); }
+          g3Line(ctx, vp, rib, RB + "0.5)", 1.3);
+        }
+        g3Line(ctx, vp, [[214, 520, 0], [208, 620, 0], [206, 740, 0], [214, 880, 0]], RB + "0.8)", 2.2);            /* 背骨 */
+        g3Line(ctx, vp, [[322 * 1, 606, 0], [338 + 3 * lung, 690, 0], [344 + 4 * lung, 770, 0]], RB + "0.8)", 2); /* 胸骨 */
+        /* 肺（左右）：下端は横隔膜に乗る */
+        [-1, 1].forEach(function (sg) {
+          var top = 610, bot = D - 6, cyl = (top + bot) / 2, hy = (bot - top) / 2, l1 = [], l2 = [], l3 = [];
+          for (var a3 = 0; a3 < 28; a3++) { var t3 = a3 / 28 * Math.PI * 2; l1.push([270 + 44 * ex * Math.cos(t3), cyl + hy * Math.sin(t3), sg * 54]); l2.push([270, cyl + hy * Math.sin(t3), sg * (54 + 36 * ex * Math.cos(t3))]); l3.push([270 + 40 * ex * Math.cos(t3), cyl + hy * 0.25, sg * (54 + 34 * ex * Math.sin(t3))]); }
+          g3Fill(ctx, vp, l1, LG + (0.05 + 0.07 * lung).toFixed(2) + ")");
+          g3Line(ctx, vp, l1, LG + "0.75)", 1.4, true); g3Line(ctx, vp, l2, LG + "0.5)", 1.1, true); g3Line(ctx, vp, l3, LG + "0.35)", 1, true);
+        });
+        /* 横隔膜：ドーム。吸うと下がり、声を出すあいだ上がっていく */
+        function dia(x, z) { var u = (x - 274) / 78, w = z / 128; return D - 34 * Math.max(0, 1 - u * u - w * w); }
+        [-96, -48, 0, 48, 96].forEach(function (z) { var ln = []; for (var x = 204; x <= 346; x += 10) ln.push([x, dia(x, z), z]); g3Line(ctx, vp, ln, DI + (z === 0 ? "0.95)" : "0.5)"), z === 0 ? 2.2 : 1.2); });
+        [220, 274, 328].forEach(function (x) { var ln = []; for (var z = -124; z <= 124; z += 12) ln.push([x, dia(x, z), z]); g3Line(ctx, vp, ln, DI + "0.5)", 1.2); });
+        /* 体の輪郭：首〜肩〜脇、腹（吸うと前へ出る）と背中 */
+        [-1, 1].forEach(function (sg) {
+          g3Line(ctx, vp, [[286, 500, sg * 44], [280, 560, sg * 54], [250, 588, sg * 118], [226, 612, sg * 168], [232, 700, sg * 150], [246, 820, sg * 138], [252, 930, sg * 140]], BD + "0.45)", 1.3);
+        });
+        g3Line(ctx, vp, [[318, 596, 0], [350 + 4 * lung, 700, 0], [356 + 6 * lung, 790, 0], [362 + 20 * lung, 860, 0], [352 + 12 * lung, 930, 0]], BD + "0.8)", 1.8);
+        g3Line(ctx, vp, [[226, 500, 0], [196, 600, 0], [190, 740, 0], [200, 930, 0]], BD + "0.45)", 1.3);
+        g3Label(ctx, vp, 270, 660, 54, "肺", 70, -30);
+        g3Label(ctx, vp, 300, dia(300, 0), 0, "横隔膜（" + (V3.voiced ? "声で上がる" : "吸って下がる") + "）", 70, 30);
+        g3Label(ctx, vp, 262, 632, 0, "気管分岐", -86, -6);
+      }
       function g3Scene(ctx, vp, p) {
+        if (vp.chest) g3Chest(ctx, vp);
         var H = "rgba(34,121,143,0.75)", HB = "rgba(94,231,255,0.9)";
         /* 頭：矢状の輪郭を左右へ並べ（楕円体風に縮める）、水平の輪郭リングを重ねる */
         var xc = 292, yc = 190;
-        [0, 0.38, 0.68, 0.9].forEach(function (q) {
+        [0, 0.2, 0.38, 0.54, 0.68, 0.8, 0.9, 0.97].forEach(function (q) {
           [1, -1].forEach(function (sg) {
             if (q === 0 && sg === -1) return;
             var c = Math.sqrt(1 - q * q);
-            g3Line(ctx, vp, V3.skull.map(function (s) { return [xc + (s[0] - xc) * c, yc + (s[1] - yc) * (s[1] < 300 ? c : 1), sg * q * 100]; }), q === 0 ? HB : H, q === 0 ? 1.6 : 1);
+            g3Line(ctx, vp, V3.skull.map(function (s) { return [xc + (s[0] - xc) * c, yc + (s[1] - yc) * (s[1] < 300 ? c : 1), sg * q * 100]; }), q === 0 ? HB : "rgba(34,121,143,0.55)", q === 0 ? 1.6 : 0.9);
           });
         });
-        for (var y = 80; y <= 296; y += 27) {
+        for (var y = 80; y <= 296; y += 18) {
           var xs = [];
           for (var i = 0; i < V3.skull.length - 1; i++) {
             var a = V3.skull[i], b = V3.skull[i + 1];
@@ -2335,8 +2400,31 @@
           if (xs.length < 2) continue;
           var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), cxr = (x0 + x1) / 2, rx = (x1 - x0) / 2, rz = Math.min(100, rx * 0.85), pts = [];
           for (var k = 0; k < 36; k++) { var th = k / 36 * Math.PI * 2; pts.push([cxr + rx * Math.cos(th), y, rz * Math.sin(th)]); }
-          g3Line(ctx, vp, pts, "rgba(34,121,143,0.5)", 1, true);
+          g3Line(ctx, vp, pts, "rgba(34,121,143,0.42)", 0.9, true);
         }
+        /* 顔と首の骨格（位置と大きさは解剖図を参考にした手置きの近似。音の計算には不使用）：
+           眼窩・眼球、鼻翼、耳介、頸椎 C1〜C7（椎体の輪・棘突起・横突起。前弯のゆるいカーブ） */
+        var monk0 = appMode === "song" && currentSong && currentSong.def.overtone, BN = "rgba(190,222,240,";
+        [-1, 1].forEach(function (sg) {
+          var orb = [], eye = [];
+          for (var ke0 = 0; ke0 < 20; ke0++) { var t0 = ke0 / 20 * Math.PI * 2; orb.push([446 - 5 * Math.abs(Math.cos(t0)), 226 + 14 * Math.sin(t0), sg * (32 + 16 * Math.cos(t0))]); eye.push([450, 227 + 6 * Math.sin(t0), sg * (32 + 8 * Math.cos(t0))]); }
+          g3Line(ctx, vp, orb, BN + "0.45)", 1, true);
+          if (!monk0) g3Line(ctx, vp, eye, "rgba(94,231,255,0.8)", 1.2, true);
+          g3Line(ctx, vp, [[474, 232, sg * 4], [484, 262, sg * 13], [472, 274, sg * 12], [462, 268, sg * 6]], "rgba(94,231,255,0.55)", 1); /* 鼻翼 */
+          if (!monk0) {
+            var ear0 = [], ear1 = [];
+            for (var ke1 = 0; ke1 <= 16; ke1++) { var t1 = ke1 / 16 * Math.PI * 2; ear0.push([338 + 13 * Math.cos(t1) - 3 * Math.sin(t1), 240 + 24 * Math.sin(t1), sg * (97 + 5 * Math.cos(t1))]); ear1.push([340 + 7 * Math.cos(t1), 238 + 14 * Math.sin(t1), sg * 99]); }
+            g3Line(ctx, vp, ear0, "rgba(94,231,255,0.7)", 1.2); g3Line(ctx, vp, ear1, "rgba(94,231,255,0.4)", 1);
+          }
+        });
+        for (var kv = 0; kv < 7; kv++) {
+          var vx0 = 216 + 9 * Math.sin(kv / 6 * Math.PI), vy0 = 338 + kv * 25, vr = 12 + kv * 0.5;
+          [0, 13].forEach(function (dy) { var vb = []; for (var a0 = 0; a0 < 16; a0++) { var tv = a0 / 16 * Math.PI * 2; vb.push([vx0 + vr * Math.cos(tv), vy0 + dy, (vr + 3) * Math.sin(tv)]); } g3Line(ctx, vp, vb, BN + "0.5)", 1, true); });
+          [0, 4, 8, 12].forEach(function (a0) { var tv = a0 / 16 * Math.PI * 2; g3Line(ctx, vp, [[vx0 + vr * Math.cos(tv), vy0, (vr + 3) * Math.sin(tv)], [vx0 + vr * Math.cos(tv), vy0 + 13, (vr + 3) * Math.sin(tv)]], BN + "0.4)", 1); });
+          g3Line(ctx, vp, [[vx0 - vr, vy0 + 6, 0], [vx0 - vr - 20 - kv * 1.5, vy0 + 15, 0]], BN + "0.7)", 1.4);                       /* 棘突起 */
+          [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[vx0 - 4, vy0 + 6, sg * (vr + 3)], [vx0 - 10, vy0 + 8, sg * (vr + 15)]], BN + "0.5)", 1.1); }); /* 横突起 */
+        }
+        if (vp.labels) g3Label(ctx, vp, 216 - 14, 338 + 3 * 25 + 6, 0, "頸椎", -46, 30);
         /* 咽頭壁（後壁）と口蓋：奥行き方向のアーチ */
         g3Line(ctx, vp, V3.phar.map(function (s) { return [s[0], s[1], 0]; }), HB, 1.4);
         [-1, 1].forEach(function (sg) { g3Line(ctx, vp, V3.phar.map(function (s) { return [s[0] + 6, s[1], sg * 20]; }), H, 1); });
@@ -2359,6 +2447,11 @@
         var tg = g3Tongue(p), tcx = 0, tcy = 0;
         g3Fill(ctx, vp, g3Tongue(p).map(function (q) { return [q[0], q[1], 0]; }), "rgba(61,255,142,0.10)");
         tg.forEach(function (s) { tcx += s[0]; tcy += s[1]; }); tcx /= tg.length; tcy /= tg.length;
+        /* 動きの残像：直前までの舌の輪郭を淡く残し、どちらへどれだけ速く動いたかを見せる（止まっている間は描かない） */
+        (V3.trail || []).forEach(function (tr, i) {
+          var mv = 0; for (var q = 0; q < tr.length && q < tg.length; q += 3) mv = Math.max(mv, Math.abs(tr[q][0] - tg[q][0]) + Math.abs(tr[q][1] - tg[q][1]));
+          if (mv > 2.5) g3Line(ctx, vp, tr.map(function (s) { return [s[0], s[1], 0]; }), "rgba(61,255,142," + (0.10 + 0.07 * i).toFixed(2) + ")", 1.1, true);
+        });
         [0, 0.45, 0.8].forEach(function (q) {
           [1, -1].forEach(function (sg) {
             if (q === 0 && sg === -1) return;
@@ -2413,11 +2506,23 @@
         V3.areas = areas;
         for (var kl = 0; kl < 16; kl += 2) g3Line(ctx, vp, rings.map(function (r) { return r[kl]; }), "rgba(94,231,255,0.28)", 1);
         /* 声帯・唇・鼻腔 */
-        [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[250, 486, 0], [250 + sg * 0, 486, 0]], HB, 1); });
-        g3Line(ctx, vp, [[240, 486, -9], [262, 486, -3], [262, 486, 3], [240, 486, 9]], HB, 1.6);
+        /* 声帯：前交連（前側）で左右がつながり、後ろ側が開く。発声中は閉じ気味で細かく開閉、無声・息継ぎでは開く。
+           開閉の速さは見えるように遅くした表示で、実際の振動数（F0）ではない */
+        var monkM = appMode === "song" && currentSong && currentSong.def.overtone;
+        var vo = !!V3.voiced, gap = vo ? 0.8 + 3.4 * Math.abs(Math.sin(Date.now() * 0.03)) : 7, FC = vo ? "rgba(255,240,200,0.95)" : HB;
+        [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[262, 486, sg * 0.6], [251, 486, sg * gap], [240, 486, sg * (gap + 2)]], FC, vo ? 2.2 : 1.4); });
         var lh = Math.max(1.5, (3 + p.lip * 15) * (1 - p.lipClose * 0.92)), lw = 16 + (1 - p.lip) * 3, lp = [];
         for (var kq = 0; kq < 24; kq++) { var tq = kq / 24 * Math.PI * 2; lp.push([474 + p.pro * 9, 318 - lh * 0.0 + lh * Math.sin(tq) * 0.5 - lh * 0.5 + 6, lw * Math.cos(tq)]); }
         g3Line(ctx, vp, lp, "rgba(255,138,226,0.95)", 2, true);
+        /* 唇から広がる音の波面（発声中で口が開いているときだけ。広がりの速さ・間隔は表示用で、実際の波長ではない） */
+        if (vo && lh > 2.5) {
+          var lx = 478 + p.pro * 9, ly = 324 - lh * 0.5, WC = monkM ? "255,214,140" : "94,231,255";
+          for (var kw = 0; kw < 4; kw++) {
+            var fr = ((Date.now() / 1300) + kw / 4) % 1, rr = 12 + fr * 110, al = ((1 - fr) * 0.6).toFixed(2), w1 = [], w2 = [];
+            for (var ka2 = -8; ka2 <= 8; ka2++) { var an = ka2 / 8 * 1.05; w1.push([lx + rr * Math.cos(an), ly + rr * Math.sin(an), 0]); w2.push([lx + rr * Math.cos(an), ly, rr * Math.sin(an)]); }
+            g3Line(ctx, vp, w1, "rgba(" + WC + "," + al + ")", 1.4); g3Line(ctx, vp, w2, "rgba(" + WC + "," + al + ")", 1.4);
+          }
+        }
         var nas = []; for (var kn = 0; kn < 28; kn++) { var tn = kn / 28 * Math.PI * 2; nas.push([352 + 27 * Math.cos(tn), 210 + 5 * Math.sin(tn), 15 * Math.sin(tn)]); }
         g3Line(ctx, vp, nas, "rgba(94,231,255,0.35)", 1, true);
         /* 喉頭まわり：舌骨（馬蹄形）・甲状軟骨（左右の板）・喉頭蓋（舌根の後ろに立つ葉）・気管の輪 */
@@ -2441,13 +2546,13 @@
         }
         /* 僧侶モード（般若心経・倍音）：剃髪の頭に、閉じた目・眉・鼻・耳・首・肩・衣の襟・袈裟・数珠を線で足す（演出。音には無関係） */
         if (appMode === "song" && currentSong && currentSong.def.overtone) {
-          var MK = "rgba(255,230,170,0.95)", MK2 = "rgba(255,230,170,0.6)";
+          var MK = "rgba(255,230,170,0.95)", MK2 = "rgba(255,230,170,0.6)", br = reduced ? 0 : (V3.breath || 0); /* br：息継ぎで肩が上がる量（表示上の演出） */
           [-1, 1].forEach(function (sg) {
             g3Line(ctx, vp, [[436, 230, sg * 22], [446, 225, sg * 32], [454, 228, sg * 42]], MK, 2.4);           /* 閉じた目 */
             g3Line(ctx, vp, [[432, 208, sg * 18], [446, 201, sg * 32], [458, 208, sg * 46]], MK2, 1.8);          /* 眉 */
             var ear = []; for (var ke = 0; ke < 14; ke++) { var te = ke / 13 * Math.PI; ear.push([340 + 9 * Math.sin(te), 228 + 22 * Math.cos(te) + 10, sg * (96 + 6 * Math.sin(te))]); }
             g3Line(ctx, vp, ear, MK2, 1.2);                                                                           /* 耳 */
-            g3Line(ctx, vp, [[286, 500, sg * 44], [280, 560, sg * 54], [250, 586, sg * 118], [200, 604, sg * 170]], MK, 1.4); /* 首〜肩 */
+            g3Line(ctx, vp, [[286, 500, sg * 44], [280, 560 - 2 * br, sg * 54], [250, 586 - 6 * br, sg * 118], [200, 604 - 8 * br, sg * 170]], MK, 1.4); /* 首〜肩 */
             g3Line(ctx, vp, [[300, 586, sg * 10], [252, 574, sg * 48], [222, 592, sg * 92]], MK2, 1.2);            /* 衣の襟 V */
           });
           g3Line(ctx, vp, [[478, 236, 0], [486, 266, 0], [478, 280, 0]], MK, 1.4);                                   /* 鼻 */
@@ -2477,13 +2582,26 @@
         ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height);
         ctx.globalCompositeOperation = "lighter"; ctx.lineJoin = "round"; ctx.lineCap = "round";
         var W = cv.width / 2, monk = appMode === "song" && currentSong && currentSong.def.overtone, zz = monk ? 0.92 : 1.2, cyy = monk ? 300 : 395;
-        [{ cx: W * 0.5 + 40, cy: cyy, zoom: zz, yaw: V3.yaw, pitch: V3.pitch, label: monk ? "VIEW  3/4  読経" : "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
+        var nowT = Date.now();
+        if (!V3.trail) V3.trail = [];
+        if (!reduced && (!V3.trailT || nowT - V3.trailT > 60)) { V3.trail.push(g3Tongue(p)); if (V3.trail.length > 5) V3.trail.shift(); V3.trailT = nowT; }
+        V3.breath = (V3.breath || 0) + ((V3.voiced ? 0 : 1) - (V3.breath || 0)) * 0.06; /* 息継ぎ（声が止まっている間）に 1 へ近づく */
+        var sway = (V3.drag || reduced) ? 0 : 0.13 * Math.sin(Date.now() / 2400); /* 触っていない間はゆっくり左右に振って奥行きを見せる */
+        /* 肺の空気の量（表示値）：発声中は約12秒で使い切る速さで減り、声が止まると戻る。再生していない間は静かな呼吸 */
+        var dtR = Math.min(0.1, (nowT - (V3.tPrev || nowT)) / 1000); V3.tPrev = nowT;
+        if (V3.lung === undefined) V3.lung = 0.6;
+        if (reduced) V3.lung = 0.6;
+        else if (playing || manOn) V3.lung = V3.voiced ? Math.max(0.08, V3.lung - dtR / 12) : V3.lung + (1 - V3.lung) * Math.min(1, dtR * 5);
+        else V3.lung += ((0.5 + 0.22 * Math.sin(nowT / 1900)) - V3.lung) * Math.min(1, dtR * 4);
+        [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           g3Scene(ctx, vp, p); ctx.restore();
           ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
           ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(94,231,255,0.7)"; ctx.font = "16px 'Share Tech Mono', monospace";
           ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
         });
+        /* 発光のにじみ：描いた線画をぼかして重ねる（対応していないブラウザでは何も起きない） */
+        if (!reduced && "filter" in ctx) { ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = 0.55; ctx.filter = "blur(6px)"; ctx.drawImage(cv, 0, 0); ctx.restore(); }
         ctx.globalCompositeOperation = "source-over";
         /* 断面積関数（声門→唇）：推定断面（矢状径×1.35倍の楕円）の面積。狭窄は橙で示す */
         if (V3.areas && V3.areas.length) {
@@ -2498,6 +2616,54 @@
           ctx.fillStyle = "#ffb03c"; ctx.beginPath(); ctx.arc(gx + gw * mi / (A.length - 1), gy + gh - gh * A[mi] / mx, 4, 0, 7); ctx.fill();
           ctx.fillText("最狭部", gx + gw * mi / (A.length - 1) + 8, gy + gh - gh * A[mi] / mx - 4);
         }
+        /* 経文：いま読んでいる句を漢字とふりがなで出し、読んでいる字を金色にする（読経モードのみ） */
+        if (monk && currentSong.def.kyo) {
+          var KY = currentSong.def.kyo, cur = -1;
+          if (playing && anim && anim.song && anim.song.gisByNote && V3.mora >= 0) {
+            var tok = 0, gb = anim.song.gisByNote, nts = currentSong.def.notes;
+            for (var ni = 0; ni < nts.length; ni++) { if (nts[ni].rest) continue; if (gb[ni] && gb[ni].indexOf(V3.mora) >= 0) { cur = tok; break; } tok++; }
+            if (cur >= 0) V3.kyoCur = cur;
+          }
+          var showI = cur >= 0 ? cur : (playing && V3.kyoCur !== undefined ? V3.kyoCur : 0), phI = KY[showI].ph, row = KY.filter(function (c) { return c.ph === phI; });
+          ctx.font = "30px serif"; var wds = row.map(function (c) { return Math.max(34, ctx.measureText(c.k).width + 8); }), tw = wds.reduce(function (a, b) { return a + b; }, 0), x0 = W * 0.5 - tw / 2 + 20;
+          ctx.textAlign = "center";
+          row.forEach(function (c, i) {
+            var on = KY.indexOf(c) === cur, xc = x0 + wds[i] / 2;
+            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.55)"; ctx.font = "30px serif"; ctx.fillText(c.k, xc, 84);
+            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.45)"; ctx.font = "12px sans-serif"; ctx.fillText(c.r, xc, 52);
+            x0 += wds[i];
+          });
+          ctx.textAlign = "left";
+        }
+        /* いま鳴っている音の成分（出力を実際に周波数分析した値）。縦線は共鳴 F1〜F3 の目標、般若心経では狙っている倍音に印を付ける */
+        (function () {
+          var gx2 = W + 24, gy2 = 668, gw2 = W - 48, gh2 = 66, FMAX = 3500, col = monk ? "#ffd68c" : "#5ee7ff";
+          ctx.fillStyle = "rgba(2,12,16,0.92)"; ctx.fillRect(gx2 - 8, gy2 - 22, gw2 + 16, gh2 + 40);
+          ctx.strokeStyle = "rgba(94,231,255,0.3)"; ctx.lineWidth = 1; ctx.strokeRect(gx2 - 8, gy2 - 22, gw2 + 16, gh2 + 40);
+          ctx.fillStyle = "rgba(94,231,255,0.75)"; ctx.font = "13px sans-serif";
+          ctx.fillText("いま鳴っている音の成分（実測）  0 → " + FMAX + " Hz", gx2, gy2 - 6);
+          if (!(N && N.analyser && AC && (playing || manOn))) { ctx.fillStyle = "rgba(238,250,255,0.5)"; ctx.fillText("再生すると表示されます", gx2 + 8, gy2 + gh2 / 2 + 4); return; }
+          if (!V3.spec) V3.spec = new Float32Array(N.analyser.frequencyBinCount);
+          N.analyser.getFloatFrequencyData(V3.spec);
+          var hz = AC.sampleRate / N.analyser.fftSize, nb = Math.min(V3.spec.length, Math.ceil(FMAX / hz));
+          function fx(f) { return gx2 + gw2 * f / FMAX; }
+          ctx.beginPath();
+          for (var i = 1; i < nb; i++) { var v = Math.max(0, Math.min(1, (V3.spec[i] + 88) / 58)), x = fx(i * hz), y = gy2 + gh2 - gh2 * v; if (i > 1) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+          ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke();
+          ["F1", "F2", "F3"].forEach(function (nm, j) {
+            if (!(dispF[j] > 0 && dispF[j] < FMAX)) return;
+            ctx.strokeStyle = "rgba(238,250,255,0.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(fx(dispF[j]), gy2 + 2); ctx.lineTo(fx(dispF[j]), gy2 + gh2); ctx.stroke();
+            ctx.fillStyle = "rgba(238,250,255,0.8)"; ctx.fillText(nm, fx(dispF[j]) + 3, gy2 + 12);
+          });
+          if (monk && dispF0 > 20) {
+            var kH = Math.max(1, Math.round(dispF[1] / dispF0)), fh = kH * dispF0;
+            if (fh < FMAX) {
+              ctx.fillStyle = "#ffb03c"; ctx.beginPath(); ctx.arc(fx(fh), gy2 + gh2 + 8, 4, 0, 7); ctx.fill();
+              var tx2 = "第" + kH + "倍音 ≈ " + Math.round(fh) + " Hz", twd = ctx.measureText(tx2).width;
+              ctx.fillText(tx2, Math.min(fx(fh) + 8, gx2 + gw2 - twd), gy2 + gh2 + 13);
+            }
+          }
+        })();
       }
       (function () {
         var cv = document.getElementById("view3d"), tab = document.getElementById("tab-3d");
@@ -2711,6 +2877,7 @@
         renderTract(poseCur);
         /* vocal folds shimmer while voicing */
         var voicing = (seg && seg.gains && seg.gains.v > 0.05) || manOn;
+        V3.voiced = !!voicing; V3.mora = seg && seg.mora !== undefined ? seg.mora : -1;
         if (voicing) {
           var sc = 1 + 0.16 * Math.sin(nowMs * 0.09);
           folds.setAttribute("transform", "translate(250 483) scale(1 " + sc.toFixed(3) + ") translate(-250 -483)");
