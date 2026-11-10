@@ -2291,6 +2291,19 @@
         if (close) ctx.closePath();
         ctx.strokeStyle = col; ctx.lineWidth = w; ctx.stroke();
       }
+      function g3Fill(ctx, vp, pts, col) {
+        ctx.beginPath();
+        pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
+        ctx.closePath(); ctx.fillStyle = col; ctx.fill();
+      }
+      function fillBand(ctx, vp, r0, r1, col) {
+        for (var k = 0; k < r0.length; k++) { var k2 = (k + 1) % r0.length; g3Fill(ctx, vp, [r0[k], r0[k2], r1[k2], r1[k]], col); }
+      }
+      function g3Label(ctx, vp, x, y, z, txt, dx, dy) {
+        var s = g3Proj(x, y, z, vp);
+        ctx.strokeStyle = "rgba(238,250,255,0.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] + dx, s[1] + dy); ctx.stroke();
+        ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; ctx.fillText(txt, dx < 0 ? s[0] + dx - 8 - ctx.measureText(txt).width : s[0] + dx + 4, s[1] + dy + 4);
+      }
       function g3Scene(ctx, vp, p) {
         var H = "rgba(34,121,143,0.75)", HB = "rgba(94,231,255,0.9)";
         /* 頭：矢状の輪郭を左右へ並べ（楕円体風に縮める）、水平の輪郭リングを重ねる */
@@ -2333,6 +2346,7 @@
         });
         /* 舌：輪郭を幅方向に重ね、背面に横断のアーチ */
         var tg = g3Tongue(p), tcx = 0, tcy = 0;
+        g3Fill(ctx, vp, g3Tongue(p).map(function (q) { return [q[0], q[1], 0]; }), "rgba(61,255,142,0.10)");
         tg.forEach(function (s) { tcx += s[0]; tcy += s[1]; }); tcx /= tg.length; tcy /= tg.length;
         [0, 0.45, 0.8].forEach(function (q) {
           [1, -1].forEach(function (sg) {
@@ -2368,7 +2382,7 @@
         [-14, -7, 0, 7, 14].forEach(function (z) { g3Line(ctx, vp, [[338, 254, z], [(338 + vx) / 2 - 8, ((254 + vy) / 2) + 2, z], [vx, vy, z]], "rgba(238,250,255,0.75)", 1.2); });
         /* 声道の管：中心線から壁までの矢状径で断面楕円を作る */
         var polys = [V3.phar, V3.pal, [[338, 254], [vx, vy]], tg.concat([tg[0]]), jaw];
-        var cl = crSpline(ORAL_PATH, false, 4), rings = [];
+        var cl = crSpline(ORAL_PATH, false, 4), rings = [], areas = [];
         for (var ci = 0; ci < cl.length; ci++) {
           var c0 = cl[Math.max(0, ci - 1)], c1 = cl[Math.min(cl.length - 1, ci + 1)];
           var tx = c1[0] - c0[0], ty = c1[1] - c0[1], tl = Math.sqrt(tx * tx + ty * ty) || 1, nx = -ty / tl, ny = tx / tl;
@@ -2380,8 +2394,12 @@
             ring.push([cl[ci][0] + nx * u, cl[ci][1] + ny * u, b2 * Math.sin(th2)]);
           }
           rings.push(ring);
-          g3Line(ctx, vp, ring, "rgba(94,231,255," + (0.5 + 0.45 * ci / cl.length).toFixed(2) + ")", 1.4, true);
+          var wr = Math.max(0, Math.min(1, (a2 - 3) / 11)), rc = "rgba(" + Math.round(255 - 161 * wr) + "," + Math.round(176 + 55 * wr) + "," + Math.round(60 + 195 * wr) + ",";
+          areas.push(Math.PI * a2 * b2);
+          if (ci) fillBand(ctx, vp, rings[ci - 1], ring, rc + "0.07)");
+          g3Line(ctx, vp, ring, rc + (0.5 + 0.45 * ci / cl.length).toFixed(2) + ")", 1.4, true);
         }
+        V3.areas = areas;
         for (var kl = 0; kl < 16; kl += 2) g3Line(ctx, vp, rings.map(function (r) { return r[kl]; }), "rgba(94,231,255,0.28)", 1);
         /* 声帯・唇・鼻腔 */
         [-1, 1].forEach(function (sg) { g3Line(ctx, vp, [[250, 486, 0], [250 + sg * 0, 486, 0]], HB, 1); });
@@ -2391,6 +2409,35 @@
         g3Line(ctx, vp, lp, "rgba(255,138,226,0.95)", 2, true);
         var nas = []; for (var kn = 0; kn < 28; kn++) { var tn = kn / 28 * Math.PI * 2; nas.push([352 + 27 * Math.cos(tn), 210 + 5 * Math.sin(tn), 15 * Math.sin(tn)]); }
         g3Line(ctx, vp, nas, "rgba(94,231,255,0.35)", 1, true);
+        /* 喉頭まわり：舌骨（馬蹄形）・甲状軟骨（左右の板）・喉頭蓋（舌根の後ろに立つ葉）・気管の輪 */
+        var HY = "rgba(255,200,120,0.85)";
+        var hy0 = 462 + p.jaw * 4, hyo = []; for (var kh = -9; kh <= 9; kh++) { var zh = kh * 4; hyo.push([306 - 24 * (zh / 36) * (zh / 36), hy0, zh]); }
+        g3Line(ctx, vp, hyo, HY, 2);
+        [-1, 1].forEach(function (sg) {
+          g3Line(ctx, vp, [[272, 478, sg * 8], [292, 494, sg * 24], [294, 466, sg * 25], [270, 460, sg * 9]], "rgba(255,200,120,0.55)", 1.2, true);
+          g3Line(ctx, vp, [[262 + sg * 0, 466, sg * 2], [268, 448, sg * 10], [276, 432, sg * 12], [284, 424, sg * 5]], "rgba(255,138,226,0.7)", 1.2);
+        });
+        g3Line(ctx, vp, [[262, 468, 0], [268, 448, 0], [276, 432, 0], [284, 424, 0]], "rgba(255,138,226,0.95)", 1.6);
+        for (var kt = 0; kt < 4; kt++) {
+          var tring = [], ty0 = 498 + kt * 12; for (var kk4 = 0; kk4 < 20; kk4++) { var t4 = kk4 / 20 * Math.PI * 2; tring.push([250 + 12 * Math.cos(t4), ty0, 12 * Math.sin(t4)]); }
+          g3Line(ctx, vp, tring, "rgba(94,231,255," + (0.4 - kt * 0.08).toFixed(2) + ")", 1, true);
+        }
+        /* 気流：声門から唇へ中心線を流れる点（音の計算には使っていない表示） */
+        var tNow = Date.now() / 1400;
+        for (var kp = 0; kp < 9; kp++) {
+          var idx = Math.floor(((tNow + kp / 9) % 1) * (cl.length - 1)), cp0 = cl[idx], sp0 = g3Proj(cp0[0], cp0[1], 0, vp);
+          ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath(); ctx.arc(sp0[0], sp0[1], 2.6, 0, 7); ctx.fill();
+        }
+        if (vp.labels) {
+          g3Label(ctx, vp, p.tx, p.ty, 0, "舌尖", -60, -34);
+          g3Label(ctx, vp, vx, vy, 0, "軟口蓋", 20, -40);
+          g3Label(ctx, vp, 250, 486, 0, "声帯", -70, 12);
+          g3Label(ctx, vp, 474 + p.pro * 9, 318, 0, "唇", 30, -30);
+          g3Label(ctx, vp, 276, 432, 0, "喉頭蓋", 60, 36);
+          g3Label(ctx, vp, 306, hy0, 0, "舌骨", 56, 20);
+          g3Label(ctx, vp, 352, 210, 0, "鼻腔", 30, -30);
+          g3Label(ctx, vp, V3.phar[12][0], V3.phar[12][1], 0, "咽頭後壁", -50, -10);
+        }
       }
       function render3D(p) {
         if (!V3.ready) g3Init();
@@ -2400,7 +2447,7 @@
         ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height);
         ctx.globalCompositeOperation = "lighter"; ctx.lineJoin = "round"; ctx.lineCap = "round";
         var W = cv.width / 2;
-        [{ cx: W * 0.5 + 40, cy: 395, zoom: 1.2, yaw: V3.yaw, pitch: V3.pitch, label: "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: 395, zoom: 1.2, yaw: 0, pitch: 0, label: "VIEW  SIDE" }].forEach(function (vp, i) {
+        [{ cx: W * 0.5 + 40, cy: 395, zoom: 1.2, yaw: V3.yaw, pitch: V3.pitch, label: "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: 395, zoom: 1.2, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           g3Scene(ctx, vp, p); ctx.restore();
           ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
@@ -2408,6 +2455,19 @@
           ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
         });
         ctx.globalCompositeOperation = "source-over";
+        /* 断面積関数（声門→唇）：推定断面（矢状径×1.35倍の楕円）の面積。狭窄は橙で示す */
+        if (V3.areas && V3.areas.length) {
+          var A = V3.areas, mx = Math.max.apply(null, A), gx = 24, gy = 668, gw = W - 48, gh = 66;
+          ctx.fillStyle = "rgba(2,12,16,0.92)"; ctx.fillRect(gx - 8, gy - 22, gw + 16, gh + 40);
+          ctx.strokeStyle = "rgba(94,231,255,0.3)"; ctx.strokeRect(gx - 8, gy - 22, gw + 16, gh + 40);
+          ctx.fillStyle = "rgba(94,231,255,0.75)"; ctx.font = "13px sans-serif";
+          ctx.fillText("断面積関数（推定）  声門 → 唇", gx, gy - 6);
+          ctx.beginPath(); A.forEach(function (a, i) { var x = gx + gw * i / (A.length - 1), y = gy + gh - gh * a / mx; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+          ctx.strokeStyle = "#5ee7ff"; ctx.lineWidth = 2; ctx.stroke();
+          var mi = 0; A.forEach(function (a, i) { if (a < A[mi]) mi = i; });
+          ctx.fillStyle = "#ffb03c"; ctx.beginPath(); ctx.arc(gx + gw * mi / (A.length - 1), gy + gh - gh * A[mi] / mx, 4, 0, 7); ctx.fill();
+          ctx.fillText("最狭部", gx + gw * mi / (A.length - 1) + 8, gy + gh - gh * A[mi] / mx - 4);
+        }
       }
       (function () {
         var cv = document.getElementById("view3d"), tab = document.getElementById("tab-3d");
@@ -2418,6 +2478,7 @@
           document.querySelector("svg.tract").style.display = view3dOn ? "none" : "";
           if (view3dOn) render3D(poseCur);
         });
+        (function loop() { if (view3dOn && !V3.drag && V3.last && !reduced) render3D(V3.last); setTimeout(loop, 80); })();
         cv.addEventListener("pointerdown", function (e) { V3.drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; });
         cv.addEventListener("pointermove", function (e) {
           if (!V3.drag) return;
