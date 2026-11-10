@@ -2304,6 +2304,7 @@
         ctx.strokeStyle = "rgba(238,250,255,0.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] + dx, s[1] + dy); ctx.stroke();
         ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; ctx.fillText(txt, dx < 0 ? s[0] + dx - 8 - ctx.measureText(txt).width : s[0] + dx + 4, s[1] + dy + 4);
       }
+      var cvH3 = 760;
       function g3Scene(ctx, vp, p) {
         var H = "rgba(34,121,143,0.75)", HB = "rgba(94,231,255,0.9)";
         /* 頭：矢状の輪郭を左右へ並べ（楕円体風に縮める）、水平の輪郭リングを重ねる */
@@ -2428,6 +2429,25 @@
           var idx = Math.floor(((tNow + kp / 9) % 1) * (cl.length - 1)), cp0 = cl[idx], sp0 = g3Proj(cp0[0], cp0[1], 0, vp);
           ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath(); ctx.arc(sp0[0], sp0[1], 2.6, 0, 7); ctx.fill();
         }
+        /* 僧侶モード（般若心経・倍音）：剃髪の頭に、閉じた目・眉・鼻・耳・首・肩・衣の襟・袈裟・数珠を線で足す（演出。音には無関係） */
+        if (appMode === "song" && currentSong && currentSong.def.overtone) {
+          var MK = "rgba(255,230,170,0.95)", MK2 = "rgba(255,230,170,0.6)";
+          [-1, 1].forEach(function (sg) {
+            g3Line(ctx, vp, [[436, 230, sg * 22], [446, 225, sg * 32], [454, 228, sg * 42]], MK, 2.4);           /* 閉じた目 */
+            g3Line(ctx, vp, [[432, 208, sg * 18], [446, 201, sg * 32], [458, 208, sg * 46]], MK2, 1.8);          /* 眉 */
+            var ear = []; for (var ke = 0; ke < 14; ke++) { var te = ke / 13 * Math.PI; ear.push([340 + 9 * Math.sin(te), 228 + 22 * Math.cos(te) + 10, sg * (96 + 6 * Math.sin(te))]); }
+            g3Line(ctx, vp, ear, MK2, 1.2);                                                                           /* 耳 */
+            g3Line(ctx, vp, [[286, 500, sg * 44], [280, 560, sg * 54], [250, 586, sg * 118], [200, 604, sg * 170]], MK, 1.4); /* 首〜肩 */
+            g3Line(ctx, vp, [[300, 586, sg * 10], [252, 574, sg * 48], [222, 592, sg * 92]], MK2, 1.2);            /* 衣の襟 V */
+          });
+          g3Line(ctx, vp, [[478, 236, 0], [486, 266, 0], [478, 280, 0]], MK, 1.4);                                   /* 鼻 */
+          for (var kr2 = 0; kr2 < 7; kr2++) { var ty2 = 500 + kr2 * 14, nr = []; for (var kk5 = 0; kk5 < 20; kk5++) { var t5 = kk5 / 20 * Math.PI * 2; nr.push([284 + (24 + kr2 * 3) * Math.cos(t5), ty2, (46 + kr2 * 4) * Math.sin(t5)]); } g3Line(ctx, vp, nr, "rgba(255,214,140,0.22)", 1, true); } /* 首の輪 */
+          g3Line(ctx, vp, [[230, 584, -150], [262, 600, -80], [300, 606, 0], [330, 600, 70]], "rgba(255,138,60,0.8)", 2.2);   /* 袈裟の帯（左肩から斜め） */
+          g3Line(ctx, vp, [[236, 596, -150], [268, 612, -80], [306, 618, 0], [336, 612, 70]], "rgba(255,138,60,0.5)", 1.4);
+          var jz = []; for (var kj = 0; kj < 36; kj++) { var tj = kj / 36 * Math.PI * 2; var jx = 318 + 10 * Math.cos(tj), jy = 592 + 26 * Math.sin(tj) + 8, jzz = 40 * Math.cos(tj) * 0.9; jz.push([jx, jy, jzz]); }
+          jz.forEach(function (q) { var sq = g3Proj(q[0], q[1], q[2], vp); ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.beginPath(); ctx.arc(sq[0], sq[1], 2.2, 0, 7); ctx.fill(); }); /* 数珠 */
+          if (vp.labels) { ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.font = "14px sans-serif"; ctx.fillText("読経モード（倍音唱法）", 20, cvH3 - 18); }
+        }
         if (vp.labels) {
           g3Label(ctx, vp, p.tx, p.ty, 0, "舌尖", -60, -34);
           g3Label(ctx, vp, vx, vy, 0, "軟口蓋", 20, -40);
@@ -2446,8 +2466,8 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height);
         ctx.globalCompositeOperation = "lighter"; ctx.lineJoin = "round"; ctx.lineCap = "round";
-        var W = cv.width / 2;
-        [{ cx: W * 0.5 + 40, cy: 395, zoom: 1.2, yaw: V3.yaw, pitch: V3.pitch, label: "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: 395, zoom: 1.2, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
+        var W = cv.width / 2, monk = appMode === "song" && currentSong && currentSong.def.overtone, zz = monk ? 0.92 : 1.2, cyy = monk ? 300 : 395;
+        [{ cx: W * 0.5 + 40, cy: cyy, zoom: zz, yaw: V3.yaw, pitch: V3.pitch, label: monk ? "VIEW  3/4  読経" : "VIEW  3/4" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           g3Scene(ctx, vp, p); ctx.restore();
           ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
