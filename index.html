@@ -2693,7 +2693,7 @@
         return best;
       }
       function g3Proj(x, y, z, vp) {
-        var X = x - 330, Y = 310 - y, Z = z, cy = Math.cos(vp.yaw), sy = Math.sin(vp.yaw);
+        var X = x - 330, Y = 310 - y + (vp.yo || 0), Z = z, cy = Math.cos(vp.yaw), sy = Math.sin(vp.yaw);
         /* 輪（曼荼羅表示）：その人の位置へ回して置く。顔（+X）が輪の中心を向く */
         if (vp.ring) { var rg = vp.ring, Xr = X * rg.c - Z * rg.s; Z = X * rg.s + Z * rg.c + rg.pz; X = Xr + rg.px; }
         var X1 = X * cy + Z * sy, Z1 = -X * sy + Z * cy, cp = Math.cos(vp.pitch), sp = Math.sin(vp.pitch);
@@ -2805,7 +2805,7 @@
           }
         });
         for (var kv = 0; kv < 7; kv++) {
-          var vx0 = 216 + 9 * Math.sin(kv / 6 * Math.PI), vy0 = 338 + kv * 25, vr = 12 + kv * 0.5;
+          var vx0 = 216 + 9 * Math.sin(kv / 6 * Math.PI), vy0 = 338 + kv * (vp.ring ? 19 : 25), vr = 12 + kv * 0.5; /* 輪の表示では頸椎の全長を約13cmにする（側面ビューは声道の図に合わせた間隔のまま） */
           [0, 13].forEach(function (dy) { var vb = []; for (var a0 = 0; a0 < 16; a0++) { var tv = a0 / 16 * Math.PI * 2; vb.push([vx0 + vr * Math.cos(tv), vy0 + dy, (vr + 3) * Math.sin(tv)]); } g3Line(ctx, vp, vb, BN + "0.5)", 1, true); });
           [0, 4, 8, 12].forEach(function (a0) { var tv = a0 / 16 * Math.PI * 2; g3Line(ctx, vp, [[vx0 + vr * Math.cos(tv), vy0, (vr + 3) * Math.sin(tv)], [vx0 + vr * Math.cos(tv), vy0 + 13, (vr + 3) * Math.sin(tv)]], BN + "0.4)", 1); });
           g3Line(ctx, vp, [[vx0 - vr, vy0 + 6, 0], [vx0 - vr - 20 - kv * 1.5, vy0 + 15, 0]], BN + "0.7)", 1.4);                       /* 棘突起 */
@@ -2970,6 +2970,17 @@
         function L(pts, a, w, close) { g3Line(ctx, vp, pts, BN + (+a * (vp.lod ? 0.62 : 0.85)).toFixed(2) + ")", w || 1, close); }
         function ring(cx, cy, cz, rx, rz, m, col, w) { var o = []; for (var k = 0; k < m; k++) { var t = k / m * 2 * PI; o.push([cx + rx * Math.cos(t), cy, cz + rz * Math.sin(t)]); } g3Line(ctx, vp, o, col, w || 1, true); }
         function ringV(x, cy, cz, ry, rz) { var o = []; for (var k = 0; k < 12; k++) { var t = k / 12 * 2 * PI; o.push([x, cy + ry * Math.cos(t), cz + rz * Math.sin(t)]); } g3Line(ctx, vp, o, SK, 0.9, true); }
+        /* 四肢の肉づき：骨に沿った筒（太さは手置きの近似） */
+        function tube(a, b, ra, rb) {
+          var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], u = [d[1], -d[0], 0], ul = Math.sqrt(u[0] * u[0] + u[1] * u[1]) || 1; u = [u[0] / ul, u[1] / ul, 0];
+          var v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]], vl = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) || 1; v = [v[0] / vl, v[1] / vl, v[2] / vl];
+          var r0 = [], r1 = [];
+          for (var k = 0; k < 8; k++) { var t = k / 8 * 2 * PI, c = Math.cos(t), sn = Math.sin(t); r0.push([a[0] + ra * (u[0] * c + v[0] * sn), a[1] + ra * (u[1] * c + v[1] * sn), a[2] + ra * (u[2] * c + v[2] * sn)]); r1.push([b[0] + rb * (u[0] * c + v[0] * sn), b[1] + rb * (u[1] * c + v[1] * sn), b[2] + rb * (u[2] * c + v[2] * sn)]); }
+          var TC = "rgba(34,121,143,0.2)";
+          for (var k2 = 0; k2 < 8; k2 += 2) g3Line(ctx, vp, [r0[k2], r1[k2]], TC, 0.8);
+          g3Line(ctx, vp, r0, TC, 0.7, true); g3Line(ctx, vp, r1, TC, 0.7, true);
+          if (!vp.lod) fillBand(ctx, vp, r0, r1, "rgba(40,150,175,0.022)");
+        }
         function joint(x, y, z, r) { var o = []; for (var k = 0; k < 8; k++) { var t = k / 8 * 2 * PI; o.push([x + r * Math.cos(t), y + r * Math.sin(t), z]); } L(o, "0.6", 1, true); }
         /* 背骨：胸椎 T1〜T12（後弯）・腰椎 L1〜L5（前弯）・仙骨と尾骨 */
         var sp = [], T = [];
@@ -2997,6 +3008,7 @@
             var o = [], fm = (q < 7 ? 0.8 : RM[q]) * PI;
             for (var k = 0; k <= 10; k++) { var f = k / 10 * fm, c = (1 - Math.cos(f)) / 2; o.push([T[q][0] + 4 + d * c, T[q][1] + dr * c, sg * w * Math.sin(f)]); }
             L(o, q < 7 ? "0.62" : "0.5", q < 7 ? 1.2 : 1); e = o[o.length - 1];
+            if (vp.det >= 1) L(o.map(function (pt) { return [pt[0], pt[1] + 11, pt[2]]; }), "0.32", 0.8);
             if (q < 7) g3Line(ctx, vp, [e, [(e[0] + sxAt(SY[q])) / 2 + 8, (e[1] + SY[q]) / 2 + 10, sg * (Math.abs(e[2]) * 0.45 + 8)], [sxAt(SY[q]), SY[q], sg * 15]], CT, 1);
           });
           ends.push([e[0], e[1], Math.abs(e[2])]);
@@ -3013,7 +3025,7 @@
           L([ac, [196, 524, sg * 78], [182, 690, sg * 96], ac], "0.45", 1); L([[196, 548, sg * 82], [228, 540, sg * 176]], "0.4", 1);
           /* 腕：上腕骨・橈骨・尺骨・手（胸の前で合掌） */
           var sh = [234, 548, sg * 186], el = [275, 830, sg * 170], wr = [430, 715, sg * 30], tip = [452, 534, sg * 8];
-          joint(sh[0], sh[1], sh[2], 17); L([sh, el], "0.75", 1.9); joint(el[0], el[1], el[2], 11);
+          joint(sh[0], sh[1], sh[2], 17); L([sh, el], "0.75", 1.9); joint(el[0], el[1], el[2], 11); tube(sh, el, 50, 40); tube(el, wr, 40, 27);
           L([[el[0] + 6, el[1] - 8, el[2]], [wr[0], wr[1] - 9, wr[2] + sg * 6]], "0.65", 1.3); L([[el[0] - 6, el[1] + 8, el[2] - sg * 8], [wr[0], wr[1] + 9, wr[2] - sg * 6]], "0.65", 1.3);
           for (var fg = 0; fg < 5; fg++) {
             var fx = (fg - 2) * 15, thumb = fg === 4, ln = thumb ? 0.62 : [0.9, 1, 0.95, 0.82][fg];
@@ -3027,22 +3039,30 @@
           /* 脚（正座）：大腿骨・膝蓋骨・脛骨と腓骨・足 */
           var hp = [282, 1052, sg * 92], kn = [690, 1152, sg * 105], an = [332, 1166, sg * 80];
           joint(hp[0], hp[1], hp[2], 20); L([hp, [300, 1040, sg * 130], kn], "0.75", 2.1); joint(kn[0] + 8, kn[1] - 4, kn[2], 16);
-          L([kn, an], "0.7", 1.7); L([[kn[0] - 14, kn[1] + 12, kn[2] + sg * 16], [an[0], an[1] + 4, an[2] + sg * 14]], "0.5", 1);
+          L([kn, an], "0.7", 1.7); tube([hp[0], hp[1] + 8, hp[2]], [kn[0] - 20, kn[1] - 34, kn[2]], 84, 56); tube([kn[0] - 30, kn[1] - 6, kn[2]], [an[0] + 10, an[1] - 22, an[2]], 54, 34); L([[kn[0] - 14, kn[1] + 12, kn[2] + sg * 16], [an[0], an[1] + 4, an[2] + sg * 14]], "0.5", 1);
           L([[an[0] + 20, an[1] - 22, an[2]], an, [236, 1172, sg * 74], [150, 1176, sg * 66]], "0.6", 1.3); /* かかと（坐骨の下）・足の甲は床・つま先は後ろ */
           /* 肺（薄紅）・体表の輪郭（腕・太もも） */
           var base = 745 + 34 * br, lo = [], lo2 = [], li = sg > 0 ? 80 : 68, lw2 = sg > 0 ? 46 : 56; /* 右肺（z<0）が大きく、左肺は心臓のぶん内側が欠ける */
           for (var k3 = 0; k3 <= 20; k3++) { var a3 = k3 / 20 * 2 * PI, tap = 0.55 + 0.45 * (1 - Math.cos(a3)) / 2, ly = (540 + base) / 2 - (base - 540) / 2 * Math.cos(a3); lo.push([292 + 6 * Math.sin(a3), ly, sg * (li + lw2 * Math.sin(a3) * tap)]); lo2.push([292 + 72 * Math.sin(a3) * tap, ly, sg * 72]); }
           g3Line(ctx, vp, lo, "rgba(255,150,170,0.5)", 1.1, true); g3Line(ctx, vp, lo2, "rgba(255,150,170,0.32)", 1, true);
-          ring(256, 690, sg * 184, 46, 44, 12, SK, 0.9); ringV(420, 1098, sg * 98, 76, 84); ringV(560, 1118, sg * 102, 62, 72);
+          
         });
         /* 心臓（左寄り・心尖は左下）・横隔膜（橙。声を出すあいだ上がり、吸うと下がる） */
-        var ht = []; for (var k4 = 0; k4 <= 16; k4++) { var a4 = k4 / 16 * 2 * PI; ht.push([318 + 40 * Math.cos(a4), 690 + 58 * Math.sin(a4) + 14 * Math.cos(a4), 22 + 46 * Math.cos(a4 + 0.9)]); }
+        var hb = 1 + (reduced ? 0 : 0.07 * Math.pow(Math.max(0, Math.sin(Date.now() / 1000 * 2 * PI * 1.1)), 6)); /* 心拍（毎分約66回の表示上の演出） */
+        var ht = []; for (var k4 = 0; k4 <= 16; k4++) { var a4 = k4 / 16 * 2 * PI; ht.push([318 + 40 * hb * Math.cos(a4), 690 + 58 * hb * Math.sin(a4) + 14 * Math.cos(a4), 22 + 46 * hb * Math.cos(a4 + 0.9)]); }
         g3Line(ctx, vp, ht, "rgba(255,110,110,0.45)", 1.1, true);
         var dia = 747 + 34 * br, dc = [], ds = [];
         for (var k5 = -10; k5 <= 10; k5++) { dc.push([300, dia + 44 * (1 - Math.cos(k5 / 10 * PI / 2)), k5 * 13.5]); ds.push([214 + (k5 + 10) * 9.4, dia + 40 * Math.pow(Math.abs(k5) / 10, 1.6), 0]); }
         g3Line(ctx, vp, dc, "rgba(255,170,80,0.85)", 1.6); g3Line(ctx, vp, ds, "rgba(255,170,80,0.6)", 1.2);
         /* 体表の輪郭：肩・胸・みぞおち・腰・骨盤の高さの水平断面（楕円）。腹は吸うと前へ出る */
-        [[232, 548, 86, 205], [296, 640, 118 + 4 * br, 168], [300, 740, 116 + 5 * br, 156], [296 + 10 * br, 860, 104 + 12 * br, 148], [290, 960, 110, 168], [300, 1060, 150, 182]].forEach(function (r) { ring(r[0], r[1], 0, r[2], r[3], 24, SK, 0.9); });
+        var TR = [[262, 470, 58, 62], [232, 548, 86, 205], [296, 640, 118 + 4 * br, 168], [300, 740, 116 + 5 * br, 156], [296 + 10 * br, 860, 104 + 12 * br, 148], [290, 960, 110, 168], [300, 1060, 150, 182]].map(function (r) {
+          var o = []; for (var k = 0; k < 24; k++) { var t = k / 24 * 2 * PI; o.push([r[0] + r[2] * Math.cos(t), r[1], r[3] * Math.sin(t)]); } g3Line(ctx, vp, o, SK, 0.9, true); return o;
+        });
+        for (var tb = 0; tb < TR.length - 1; tb++) { if (!vp.lod) fillBand(ctx, vp, TR[tb], TR[tb + 1], "rgba(40,150,175,0.045)"); [0, 6, 12, 18].forEach(function (k) { g3Line(ctx, vp, [TR[tb][k], TR[tb + 1][k]], SK, 0.8); }); }
+        if (vp.det >= 3) for (var tb2 = 0; tb2 < TR.length - 1; tb2++) for (var sub = 1; sub < 4; sub++) {
+          g3Line(ctx, vp, TR[tb2].map(function (pt, k) { var o2 = TR[tb2 + 1][k], f2 = sub / 4; return [pt[0] + (o2[0] - pt[0]) * f2, pt[1] + (o2[1] - pt[1]) * f2, pt[2] + (o2[2] - pt[2]) * f2]; }), "rgba(34,121,143,0.2)", 0.7, true);
+        }
+        if (vp.det) g3BodyDetail(ctx, vp, br, T, V, dia);
         /* 首から肩への線（胸鎖乳突筋・僧帽筋の輪郭）と頬骨弓 */
         [-1, 1].forEach(function (sg) {
           g3Line(ctx, vp, [[336, 262, sg * 62], [350, 400, sg * 40], [376, 500, sg * 10]], SK, 1);
@@ -3050,9 +3070,63 @@
           g3Line(ctx, vp, [[440, 242, sg * 50], [398, 248, sg * 66], [346, 246, sg * 70]], BN + "0.5)", 1);
         });
       }
+      /* 人数が少ないほど1人に使える描画量が増えるので、細部を段階的に足す（det: 12人=0／6人=1／3人=2／1人=3）。
+         det1: 椎骨の横突起・肋骨の厚み・気管支（右は太く短く急、左は長く水平ぎみ）・肺の葉間裂（右3葉・左2葉）
+         det2: 大動脈（上行→弓は左後ろへ→脊柱の左前を下行→第4腰椎の高さで左右に分岐）と頸動脈、肝臓（右上腹部）・胃（左上腹部）、手根と中足骨
+         det3: 脳（大脳・小脳・脳幹）、脊髄（第1〜2腰椎の高さで終わり、その下は馬尾）、腎臓（右がやや低い）、細かい体表の輪、気道を上がる息の粒
+         位置と形は解剖学の標準的な配置を参考にした手置きの模式図で、実測ではない。心拍・息の粒は表示上の演出 */
+      function g3BodyDetail(ctx, vp, br, T, V, dia) {
+        var D = vp.det || 0, PI = Math.PI, now = Date.now(), mv = reduced ? 0 : 1;
+        function ln(pts, col, w, close) { g3Line(ctx, vp, pts, col, w || 1, close); }
+        var BN = "rgba(200,226,242,0.42)";
+        if (D >= 1) {
+          V.forEach(function (v, k) { var r = 13 + k * 0.45; [-1, 1].forEach(function (sg) { ln([[v[0] - 4, v[1], sg * (r + 4)], [v[0] - 14, v[1] + 3, sg * (r + (k < 12 ? 22 : 34))]], BN, 1); }); });
+          /* 気管分岐（胸骨角の高さ）と主気管支・葉気管支 */
+          var AW = "rgba(120,235,255,0.6)", car = [272, 636, 0], rb = [282, 700, -42], lb = [282, 684, 58];
+          ln([car, rb], AW, 2.2); ln([car, lb], AW, 1.8);
+          [[rb, [290, 650, -78]], [rb, [318, 718, -70]], [rb, [272, 760, -82]], [lb, [292, 646, 86]], [lb, [276, 752, 90]]].forEach(function (b) { ln(b, AW, 1.2); });
+          var base = 745 + 34 * br, RP = "rgba(255,150,170,0.38)";
+          ln([[236, 600, -72], [300, 690, -100], [356, 740 + 20 * br, -76]], RP, 1); ln([[300, 678, -112], [362, 672, -70]], RP, 1); /* 右肺：斜裂と水平裂 */
+          ln([[236, 600, 78], [300, 690, 104], [352, 742 + 20 * br, 84]], RP, 1);                                                  /* 左肺：斜裂のみ */
+        }
+        if (D >= 2) {
+          var AR = "rgba(255,96,96,0.62)";
+          ln([[318, 650, 4], [308, 606, 8], [270, 598, 18], [240, 620, 22], [230, 700, 20], [232, 790, 14], [258, 880, 8], [262, 925, 4]], AR, 2.4);
+          [-1, 1].forEach(function (sg) {
+            ln([[262, 925, 4], [290, 1000, sg * 55], [300, 1050, sg * 85]], AR, 1.6);
+            ln([[300, 602, sg * 16], [316, 480, sg * 30], [332, 372, sg * 34]], AR, 1.2);
+          });
+          ln([[310, dia + 12, -130], [313, dia - 2, -70], [315, dia + 8, 0], [316, dia + 30, 46], [312, dia + 72, 0], [308, dia + 116, -70], [306, dia + 122, -126]], "rgba(214,128,96,0.5)", 1.3, true);
+          ln([[318, dia + 22, 30], [316, dia + 10, 82], [312, dia + 44, 122], [314, dia + 112, 96], [318, dia + 138, 40], [318, dia + 112, 20], [316, dia + 62, 60]], "rgba(244,186,146,0.46)", 1.2, true);
+        }
+        if (D >= 3) {
+          var BR = "rgba(255,176,206,0.42)";
+          [0, -34, 34, -62, 62].forEach(function (z) {
+            var sc = Math.sqrt(1 - (z / 90) * (z / 90)), cb = [], ce = [];
+            for (var k = 0; k <= 48; k++) { var t = k / 48 * 2 * PI, rr = 1 + 0.045 * Math.sin(13 * t); cb.push([306 + 108 * sc * rr * Math.cos(t), 232 - 78 * sc * rr * Math.sin(t) * (Math.sin(t) > 0 ? 1 : 0.55), z]); }
+            ln(cb, BR, z === 0 ? 1.2 : 0.8, true);
+            if (Math.abs(z) < 60) { for (var k2 = 0; k2 <= 20; k2++) { var t2 = k2 / 20 * 2 * PI; ce.push([236 + 38 * sc * Math.cos(t2), 300 + 26 * sc * Math.sin(t2), z]); } ln(ce, BR, 0.9, true); }
+          });
+          ln([[290, 286, 0], [268, 330, 0], [232, 372, 0]], BR, 2);
+          var SC = "rgba(255,240,150,0.62)", cord = [[224, 376, 0], [214, 500, 0]];
+          V.slice(0, 13).forEach(function (v) { cord.push([v[0] - 16, v[1], 0]); });
+          ln(cord, SC, 1.8); var ce0 = cord[cord.length - 1];
+          [-14, -7, 0, 7, 14].forEach(function (z) { ln([ce0, [ce0[0] + 4, ce0[1] + 80, z * 0.6], [208, 1010, z]], "rgba(255,240,150,0.3)", 0.8); });
+          var KD = "rgba(214,120,120,0.45)";
+          [[1, 845], [-1, 858]].forEach(function (kd) { var o = []; for (var k = 0; k <= 20; k++) { var t = k / 20 * 2 * PI; o.push([240, kd[1] + 55 * Math.cos(t), kd[0] * (62 + 28 * Math.sin(t) - 9 * Math.cos(t) * Math.cos(t))]); } ln(o, KD, 1.1, true); });
+          if (V3.voiced && !reduced) [[282, 700, -42], [282, 684, 58]].forEach(function (b, bi) {
+            var path = [[b[0] + 14, b[1] + 60, b[2] * 1.7], b, [272, 636, 0], [266, 540, 0], [262, 470, 0]];
+            for (var d = 0; d < 9; d++) {
+              var u = ((now / 900) + d / 9 + bi * 0.05) % 1, seg = Math.min(3, Math.floor(u * 4)), f = u * 4 - seg, a = path[seg], c = path[seg + 1];
+              var q = g3Proj(a[0] + (c[0] - a[0]) * f, a[1] + (c[1] - a[1]) * f, a[2] + (c[2] - a[2]) * f, vp);
+              ctx.fillStyle = "rgba(210,250,255," + (0.35 + 0.55 * u).toFixed(2) + ")"; ctx.fillRect(q[0] - 1.6, q[1] - 1.6, 3.2, 3.2);
+            }
+          });
+        }
+      }
       /* 曼荼羅の光の演出（表示だけ。音の計算とは無関係）：星・中心の光と光の柱・立ちのぼる光の粒・床を回る経文の輪。
          声が出ている間だけ明るくなる。動きを減らす設定（reduced）のときは静止させる */
-      function g3MandalaFx(ctx, base, R, fy) {
+      function g3MandalaFx(ctx, base, R, fy, solo) {
         var TAU = Math.PI * 2, now = Date.now(), mv = reduced ? 0 : 1;
         V3.glow = (V3.glow || 0) + ((V3.voiced ? 1 : 0.22) - (V3.glow || 0)) * 0.08;
         var g = V3.glow, k, j;
@@ -3067,10 +3141,12 @@
         ctx.fillStyle = gr; ctx.fillRect(c0[0] - rad, c0[1] - rad, rad * 2, rad * 2);
         var lg = ctx.createLinearGradient(c0[0], c0[1], c1[0], c1[1]);
         lg.addColorStop(0, "rgba(255,228,165," + (0.55 * g).toFixed(2) + ")"); lg.addColorStop(1, "rgba(255,228,165,0)");
-        ctx.strokeStyle = lg; ctx.lineCap = "round"; ctx.lineWidth = 6 + 16 * g; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
-        ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
+        if (!solo) { /* 光の柱（1人のときは本人が中心に座るので描かない） */
+          ctx.strokeStyle = lg; ctx.lineCap = "round"; ctx.lineWidth = 6 + 16 * g; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
+          ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
+        }
         for (j = 0; j < 90; j++) {
-          var ph = ((now / 5200 * mv) + j / 90) % 1, a = j * 2.399 + now / 2600 * mv, rr = R * 0.34 * (1 - ph * 0.8) * (0.25 + 0.75 * ((j * 7) % 10) / 10);
+          var ph = ((now / 5200 * mv) + j / 90) % 1, a = j * 2.399 + now / 2600 * mv, rr = (solo ? R * (0.75 + 0.5 * ((j * 7) % 10) / 10) : R * 0.34 * (1 - ph * 0.8) * (0.25 + 0.75 * ((j * 7) % 10) / 10));
           var pt = g3Proj(330 + rr * Math.cos(a), fy - 860 * ph, rr * Math.sin(a), base), sz = 1.2 + 1.6 * (1 - ph);
           ctx.fillStyle = "rgba(255,228,172," + ((1 - ph) * 0.85 * g).toFixed(2) + ")"; ctx.fillRect(pt[0] - sz / 2, pt[1] - sz / 2, sz, sz);
         }
@@ -3095,11 +3171,12 @@
       function g3Mandala(ctx, vp, p) {
         var n = vp.mandala;
         if (n > 12) { g3CrowdMandala(ctx, vp, p); return; }
-        var R = Math.max(560, n * 430 / (2 * Math.PI) - 100), zoom = 430 / (2 * R + 620), lw = n > 6 ? 0.55 : 0.8;
-        var fy = 1185, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500 };
+        var solo = n === 1, det = solo ? 3 : n <= 3 ? 2 : n <= 6 ? 1 : 0;
+        var R = solo ? 330 : Math.max(640, n * 430 / (2 * Math.PI) - 100), Rs = solo ? 0 : R, zoom = solo ? 0.45 : 430 / (2 * R + 620), lw = n > 6 ? 0.55 : solo ? 1 : 0.8;
+        var fy = 1147, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500 };
         var gold = "rgba(255,206,120,0.5)", cyan = "rgba(94,231,255,0.32)", TAU = Math.PI * 2;
         function ringPts(r, m, a0) { var o = []; for (var k = 0; k <= m; k++) { var a = a0 + TAU * k / m; o.push([330 + r * Math.cos(a), fy, r * Math.sin(a)]); } return o; }
-        g3MandalaFx(ctx, base, R, fy);
+        g3MandalaFx(ctx, base, R, fy, solo);
         g3Line(ctx, base, ringPts(R + 330, 96, 0), "rgba(255,206,120,0.28)", 1);
         g3Line(ctx, base, ringPts(R + 250, 72, 0), gold, 1.6);
         g3Line(ctx, base, ringPts(R + 225, 72, 0), cyan, 1);
@@ -3112,23 +3189,42 @@
           for (var u = 0; u <= 12; u++) { var t = u / 12, rr = R * 0.3 * Math.sin(Math.PI * t), aa = a + (t - 0.5) * 0.7; pet.push([330 + rr * Math.cos(aa), fy, rr * Math.sin(aa)]); }
           g3Line(ctx, base, pet, gold, 1.2);
         }
+        for (var q2 = 0; q2 < 16; q2++) { /* 外側の蓮弁（16枚） */
+          var a16 = TAU * (q2 + 0.5) / 16, pet2 = [];
+          for (var u2 = 0; u2 <= 10; u2++) { var t2 = u2 / 10, r2 = R * (0.34 + 0.26 * Math.sin(Math.PI * t2)), a2b = a16 + (t2 - 0.5) * 0.36; pet2.push([330 + r2 * Math.cos(a2b), fy, r2 * Math.sin(a2b)]); }
+          g3Line(ctx, base, pet2, q2 % 2 ? gold : cyan, 1);
+        }
+        for (var gq = 0; gq < 4; gq++) { /* 四方の門（外の四角の各辺の中央） */
+          var ga = TAU * gq / 4, gd = (R + 225) * Math.SQRT1_2, gc = Math.cos(ga), gs = Math.sin(ga);
+          g3Line(ctx, base, [[0, -70], [55, -70], [55, -125], [95, -125], [95, 125], [55, 125], [55, 70], [0, 70]].map(function (rt) { return [330 + (gd + rt[0]) * gc - rt[1] * gs, fy, (gd + rt[0]) * gs + rt[1] * gc]; }), gold, 1.3);
+        }
+        var fl = []; for (var fk = 0; fk <= 192; fk++) { var fa = TAU * fk / 192, fr = R + 345 + (fk % 2 ? 26 : 0); fl.push([330 + fr * Math.cos(fa), fy, fr * Math.sin(fa)]); }
+        g3Line(ctx, base, fl, "rgba(255,150,90,0.38)", 1); /* 炎の輪 */
+        /* 倍音の星：いま F2 が合わせている倍音の次数 k（= F2 ÷ 声の高さ）と同じ数の頂点を持つ星。次数が変わると形が変わる */
+        var hk2 = dispF0 > 0 ? Math.round(dispF[1] / dispF0) : 0;
+        if (hk2 >= 3 && hk2 <= 48) {
+          var st = [], rot2 = reduced ? 0 : Date.now() / 9000, sa = 0.35 + 0.5 * (V3.glow || 0);
+          for (var sk2 = 0; sk2 <= hk2 * 2; sk2++) { var s2a = TAU * sk2 / (hk2 * 2) + rot2, s2r = R * (sk2 % 2 ? 0.42 : 0.52); st.push([330 + s2r * Math.cos(s2a), fy - 6, s2r * Math.sin(s2a)]); }
+          g3Line(ctx, base, st, "rgba(255,236,170," + sa.toFixed(2) + ")", 1.5);
+        }
         if (V3.voiced && !reduced) { /* 声が中心へ集まる輪（演出） */
           for (var w = 0; w < 3; w++) { var ph = ((Date.now() / 1600 + w / 3) % 1); g3Line(ctx, base, ringPts(R * (1 - ph) * 0.95, 60, 0), "rgba(255,214,140," + (0.5 * ph).toFixed(3) + ")", 1.4); }
         }
         for (var i = 0; i < n; i++) {
           var ang = TAU * i / n, th = ang + Math.PI;
           g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
-          var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw,
-            ring: { c: Math.cos(th), s: Math.sin(th), px: R * Math.cos(ang), pz: R * Math.sin(ang) } };
-          g3Scene(ctx, vpi, p); g3Body(ctx, vpi, V3.lung);
+          var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw, det: det,
+            ring: { c: Math.cos(th), s: Math.sin(th), px: Rs * Math.cos(ang) - (solo ? 50 : 0), pz: Rs * Math.sin(ang) } };
+          g3Scene(ctx, vpi, p);
+          g3Body(ctx, Object.assign({}, vpi, { yo: 38 }), Math.max(0, Math.min(1, (V3.lung === undefined ? 0.6 : V3.lung) + (reduced ? 0 : 0.07 * Math.sin(Date.now() / 1700 + i * 1.7)))));
           /* 光背（頭の後ろの輪）と、口から中心へ向かう声の光（演出）。色は人ごとに少しずつ変える */
           var gl = V3.glow || 0, hue = 38 + (i * 137) % 60 - 30, hal = [], hal2 = [], tm = reduced ? 0 : Date.now() / 1100;
           for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + (178 + 6 * Math.sin(tm * 2 + i)) * Math.cos(ha), (178 + 6 * Math.sin(tm * 2 + i)) * Math.sin(ha)]); }
           g3Line(ctx, vpi, hal, "hsla(" + hue + ",100%,72%," + (0.22 + 0.5 * gl).toFixed(2) + ")", 2.2);
           g3Line(ctx, vpi, hal2, "hsla(" + hue + ",100%,80%," + (0.1 + 0.25 * gl).toFixed(2) + ")", 1);
           var m0 = [482, 308, 0], m1 = [330 + R - 20, 520, 0];
-          g3Line(ctx, vpi, [m0, m1], "hsla(" + hue + ",100%,70%," + (0.06 + 0.16 * gl).toFixed(2) + ")", 1);
-          if (V3.voiced) for (var bk = 0; bk < 4; bk++) {
+          if (!solo) g3Line(ctx, vpi, [m0, m1], "hsla(" + hue + ",100%,70%," + (0.06 + 0.16 * gl).toFixed(2) + ")", 1);
+          if (V3.voiced && !solo) for (var bk = 0; bk < 4; bk++) {
             var bt = ((tm * 0.55 + bk / 4 + i * 0.13) % 1), bt2 = Math.min(1, bt + 0.07);
             g3Line(ctx, vpi, [[m0[0] + (m1[0] - m0[0]) * bt, m0[1] + (m1[1] - m0[1]) * bt, 0], [m0[0] + (m1[0] - m0[0]) * bt2, m0[1] + (m1[1] - m0[1]) * bt2, 0]], "hsla(" + hue + ",100%,82%," + (0.85 * (1 - bt)).toFixed(2) + ")", 2.6);
           }
@@ -3231,9 +3327,10 @@
         if (reduced) V3.lung = 0.6;
         else if (playing || manOn) V3.lung = V3.voiced ? Math.max(0.08, V3.lung - dtR / 12) : V3.lung + (1 - V3.lung) * Math.min(1, dtR * 5);
         else V3.lung += ((0.5 + 0.22 * Math.sin(nowT / 1900)) - V3.lung) * Math.min(1, dtR * 4);
-        var nCho = (appMode === "song" && choN > 1) ? choN : 1;
+        var nCho = (appMode === "song" && choN > 1) ? choN : 1, soloMan = appMode === "song" && choN <= 1 && monk;
         var VIEWS = [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }];
-        if (nCho > 1) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000), pitch: Math.max(0.5, Math.min(1.2, V3.pitch + 0.72)), label: "VIEW  曼荼羅（" + nCho + "人）" };
+        if (nCho > 1 || soloMan) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: soloMan ? 318 : 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000),
+          pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : 0.72))), label: soloMan ? "VIEW  独唱（全身）" : "VIEW  曼荼羅（" + nCho + "人）" };
         VIEWS.forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           if (vp.mandala) g3Mandala(ctx, vp, p); else g3Scene(ctx, vp, p);
