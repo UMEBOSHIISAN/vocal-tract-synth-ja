@@ -2709,7 +2709,7 @@
         if (close) ctx.closePath();
         dz /= pts.length || 1;
         ctx.globalAlpha = g3Fog(dz);
-        ctx.strokeStyle = col; ctx.lineWidth = w * Math.max(0.7, Math.min(1.35, 1 - dz / 500)); ctx.stroke();
+        ctx.strokeStyle = col; ctx.lineWidth = w * (vp.lw || 1) * Math.max(0.7, Math.min(1.35, 1 - dz / 500)); ctx.stroke();
         ctx.globalAlpha = 1;
       }
       function g3Fill(ctx, vp, pts, col) {
@@ -2771,14 +2771,14 @@
         var H = "rgba(34,121,143,0.75)", HB = "rgba(94,231,255,0.9)";
         /* 頭：矢状の輪郭を左右へ並べ（楕円体風に縮める）、水平の輪郭リングを重ねる */
         var xc = 292, yc = 190;
-        [0, 0.2, 0.38, 0.54, 0.68, 0.8, 0.9, 0.97].forEach(function (q) {
+        (vp.lod ? [0, 0.38, 0.68, 0.9] : [0, 0.2, 0.38, 0.54, 0.68, 0.8, 0.9, 0.97]).forEach(function (q) {
           [1, -1].forEach(function (sg) {
             if (q === 0 && sg === -1) return;
             var c = Math.sqrt(1 - q * q);
-            g3Line(ctx, vp, V3.skull.map(function (s) { return [xc + (s[0] - xc) * c, yc + (s[1] - yc) * (s[1] < 300 ? c : 1), sg * q * 100]; }), q === 0 ? HB : "rgba(34,121,143,0.55)", q === 0 ? 1.6 : 0.9);
+            g3Line(ctx, vp, (vp.ring && q > 0 ? V3.skull.filter(function (s) { return s[1] <= 300; }) : V3.skull).map(function (s) { return [xc + (s[0] - xc) * c, yc + (s[1] - yc) * (s[1] < 300 ? c : 1), sg * q * 100]; }), q === 0 ? HB : "rgba(34,121,143,0.55)", q === 0 ? 1.6 : 0.9);
           });
         });
-        for (var y = 80; y <= 296; y += 18) {
+        for (var y = 80; y <= 296; y += (vp.lod ? 36 : 18)) {
           var xs = [];
           for (var i = 0; i < V3.skull.length - 1; i++) {
             var a = V3.skull[i], b = V3.skull[i + 1];
@@ -2961,15 +2961,146 @@
           g3Label(ctx, vp, V3.phar[12][0], V3.phar[12][1], 0, "咽頭後壁", -50, -10);
         }
       }
+      /* 全身の骨格（曼荼羅表示用・正座で合掌）：頸椎の下に、胸椎12・腰椎5・仙骨、肋骨12対（第1〜7は胸骨へ、第8〜10は肋骨弓へ、
+         第11・12は浮遊肋）、胸骨、鎖骨、肩甲骨、上腕骨・橈骨・尺骨・手、骨盤、大腿骨・膝蓋骨・脛骨・足、肺・心臓・横隔膜、体表の輪郭を描く。
+         縮尺は 10px ≒ 1cm。骨の長さ・胸郭の幅・背骨の弯曲（胸椎の後弯・腰椎の前弯）は解剖学の標準的な比率を参考にした手置きの近似で、
+         個人の実測値ではない。呼吸で肋骨が外と前へ広がり、横隔膜が上下する動きは表示上の演出（量は実測ではない）。音の計算には使っていない */
+      function g3Body(ctx, vp, lung) {
+        var BN = "rgba(200,226,242,", SK = "rgba(34,121,143,0.34)", PI = Math.PI, br = lung || 0;
+        function L(pts, a, w, close) { g3Line(ctx, vp, pts, BN + (+a * (vp.lod ? 0.62 : 0.85)).toFixed(2) + ")", w || 1, close); }
+        function ring(cx, cy, cz, rx, rz, m, col, w) { var o = []; for (var k = 0; k < m; k++) { var t = k / m * 2 * PI; o.push([cx + rx * Math.cos(t), cy, cz + rz * Math.sin(t)]); } g3Line(ctx, vp, o, col, w || 1, true); }
+        function ringV(x, cy, cz, ry, rz) { var o = []; for (var k = 0; k < 12; k++) { var t = k / 12 * 2 * PI; o.push([x, cy + ry * Math.cos(t), cz + rz * Math.sin(t)]); } g3Line(ctx, vp, o, SK, 0.9, true); }
+        function joint(x, y, z, r) { var o = []; for (var k = 0; k < 8; k++) { var t = k / 8 * 2 * PI; o.push([x + r * Math.cos(t), y + r * Math.sin(t), z]); } L(o, "0.6", 1, true); }
+        /* 背骨：胸椎 T1〜T12（後弯）・腰椎 L1〜L5（前弯）・仙骨と尾骨 */
+        var sp = [], T = [];
+        for (var i = 0; i < 12; i++) { var t = (i + 0.5) / 12; T.push([222 - 26 * Math.sin(PI * t), 515 + 280 * t]); }
+        var V = T.slice();
+        for (var j = 0; j < 5; j++) { var u = (j + 0.5) / 5; V.push([222 + 18 * Math.sin(PI * u), 800 + 175 * u]); }
+        V.forEach(function (v, k) {
+          var r = 13 + k * 0.45;
+          ring(v[0], v[1], 0, r, r + 4, 8, BN + "0.5)", 1);
+          L([[v[0] - r, v[1], 0], [v[0] - r - 24, v[1] + 12, 0]], "0.6", 1.2);
+          sp.push([v[0], v[1], 0]);
+        });
+        L([[222, 495, 0]].concat(sp), "0.35", 1);
+        L([[224, 975, 0], [216, 1010, 0], [203, 1045, 0], [196, 1075, 0], [204, 1092, 0]], "0.7", 1.6);
+        [-1, 1].forEach(function (sg) { L([[224, 975, sg * 24], [212, 1015, sg * 30], [202, 1050, sg * 18], [196, 1075, 0]], "0.45", 1); });
+        /* 肋骨 12 対と胸骨・肋骨弓 */
+        var RW = [5.5, 8.5, 10.5, 12, 13, 13.6, 14, 14, 13.6, 13, 11.5, 9.5], RD = [9.5, 12.5, 15, 16.5, 17.5, 18, 18, 17.5, 16.5, 15, 13, 11];
+        var RY = [3, 4, 5, 6, 7, 8, 9, 9.5, 9.5, 9, 6, 5], RM = [0.96, 0.96, 0.96, 0.96, 0.96, 0.96, 0.96, 0.84, 0.8, 0.76, 0.6, 0.5], ends = [];
+        /* 胸骨への付着点（胸骨上縁は第2〜3胸椎、剣状突起との境は第9胸椎の高さ）。肋骨の前端から肋軟骨（緑がかった線）でつなぐ */
+        var SY = [575, 606, 630, 653, 675, 696, 713], CT = "rgba(150,226,205,0.5)";
+        function sxAt(y) { return 322 + (y - 560) * 0.4 + 5 * br; }
+        for (var q = 0; q < 12; q++) {
+          var w = RW[q] * 10 * (1 + 0.04 * br), d = RD[q] * 10 * (1 + 0.035 * br), dr = RY[q] * 10 * (1 - 0.12 * br), e = null;
+          [-1, 1].forEach(function (sg) {
+            var o = [], fm = (q < 7 ? 0.8 : RM[q]) * PI;
+            for (var k = 0; k <= 10; k++) { var f = k / 10 * fm, c = (1 - Math.cos(f)) / 2; o.push([T[q][0] + 4 + d * c, T[q][1] + dr * c, sg * w * Math.sin(f)]); }
+            L(o, q < 7 ? "0.62" : "0.5", q < 7 ? 1.2 : 1); e = o[o.length - 1];
+            if (q < 7) g3Line(ctx, vp, [e, [(e[0] + sxAt(SY[q])) / 2 + 8, (e[1] + SY[q]) / 2 + 10, sg * (Math.abs(e[2]) * 0.45 + 8)], [sxAt(SY[q]), SY[q], sg * 15]], CT, 1);
+          });
+          ends.push([e[0], e[1], Math.abs(e[2])]);
+        }
+        /* 胸骨：胸骨柄・胸骨体・剣状突起 */
+        [-1, 1].forEach(function (sg) { L([[sxAt(560), 560, sg * 30], [sxAt(606), 606, sg * 20], [sxAt(713), 713, sg * 16], [sxAt(745), 745, 0]], "0.75", 1.5); });
+        L([[sxAt(560), 560, -30], [sxAt(560), 560, 30]], "0.7", 1.3); L([[sxAt(606), 606, -20], [sxAt(606), 606, 20]], "0.4", 1);
+        [-1, 1].forEach(function (sg) {
+          /* 肋骨弓：第7肋軟骨の下に第8〜10肋軟骨が順につながる */
+          g3Line(ctx, vp, [[sxAt(713), 713, sg * 15]].concat(ends.slice(7, 10).map(function (e) { return [e[0], e[1], sg * e[2]]; })), CT, 1.1);
+          /* 鎖骨（S字）・肩甲骨 */
+          var ac = [236, 532, sg * 192];
+          L([[sxAt(560) - 2, 556, sg * 28], [sxAt(560) - 8, 540, sg * 80], [278, 528, sg * 135], [250, 528, sg * 176]], "0.75", 1.5); L([[250, 528, sg * 176], ac], "0.5", 1.1);
+          L([ac, [196, 524, sg * 78], [182, 690, sg * 96], ac], "0.45", 1); L([[196, 548, sg * 82], [228, 540, sg * 176]], "0.4", 1);
+          /* 腕：上腕骨・橈骨・尺骨・手（胸の前で合掌） */
+          var sh = [234, 548, sg * 186], el = [275, 830, sg * 170], wr = [430, 715, sg * 30], tip = [452, 534, sg * 8];
+          joint(sh[0], sh[1], sh[2], 17); L([sh, el], "0.75", 1.9); joint(el[0], el[1], el[2], 11);
+          L([[el[0] + 6, el[1] - 8, el[2]], [wr[0], wr[1] - 9, wr[2] + sg * 6]], "0.65", 1.3); L([[el[0] - 6, el[1] + 8, el[2] - sg * 8], [wr[0], wr[1] + 9, wr[2] - sg * 6]], "0.65", 1.3);
+          for (var fg = 0; fg < 5; fg++) {
+            var fx = (fg - 2) * 15, thumb = fg === 4, ln = thumb ? 0.62 : [0.9, 1, 0.95, 0.82][fg];
+            var tp = [wr[0] + (tip[0] - wr[0]) * ln + fx * 0.25 + (thumb ? -34 : 0), wr[1] + (tip[1] - wr[1]) * ln, tip[2]];
+            L([[wr[0] + fx * 0.5, wr[1] - 8, wr[2] * 0.7], [(wr[0] + tp[0]) / 2 + fx * 0.6, (wr[1] + tp[1]) / 2, sg * 14], tp], "0.6", 1);
+          }
+          /* 骨盤：腸骨稜・上前腸骨棘・恥骨・坐骨 */
+          var cr = []; for (var k2 = 0; k2 <= 8; k2++) { var a2 = k2 / 8 * PI * 0.72; cr.push([222 + 118 * (1 - Math.cos(a2)) / 2 + 10, 962 + 26 * Math.sin(a2 * 0.5) - 30 * Math.sin(a2), sg * (26 + 126 * Math.sin(a2))]); }
+          L(cr, "0.7", 1.5); var asis = cr[cr.length - 1];
+          L([asis, [340, 1040, sg * 60], [338, 1078, sg * 8]], "0.6", 1.2); L([[338, 1078, sg * 8], [286, 1118, sg * 52], [240, 1112, sg * 62], [212, 1015, sg * 30]], "0.5", 1.1);
+          /* 脚（正座）：大腿骨・膝蓋骨・脛骨と腓骨・足 */
+          var hp = [282, 1052, sg * 92], kn = [690, 1152, sg * 105], an = [332, 1166, sg * 80];
+          joint(hp[0], hp[1], hp[2], 20); L([hp, [300, 1040, sg * 130], kn], "0.75", 2.1); joint(kn[0] + 8, kn[1] - 4, kn[2], 16);
+          L([kn, an], "0.7", 1.7); L([[kn[0] - 14, kn[1] + 12, kn[2] + sg * 16], [an[0], an[1] + 4, an[2] + sg * 14]], "0.5", 1);
+          L([[an[0] + 20, an[1] - 22, an[2]], an, [236, 1172, sg * 74], [150, 1176, sg * 66]], "0.6", 1.3); /* かかと（坐骨の下）・足の甲は床・つま先は後ろ */
+          /* 肺（薄紅）・体表の輪郭（腕・太もも） */
+          var base = 745 + 34 * br, lo = [], lo2 = [], li = sg > 0 ? 80 : 68, lw2 = sg > 0 ? 46 : 56; /* 右肺（z<0）が大きく、左肺は心臓のぶん内側が欠ける */
+          for (var k3 = 0; k3 <= 20; k3++) { var a3 = k3 / 20 * 2 * PI, tap = 0.55 + 0.45 * (1 - Math.cos(a3)) / 2, ly = (540 + base) / 2 - (base - 540) / 2 * Math.cos(a3); lo.push([292 + 6 * Math.sin(a3), ly, sg * (li + lw2 * Math.sin(a3) * tap)]); lo2.push([292 + 72 * Math.sin(a3) * tap, ly, sg * 72]); }
+          g3Line(ctx, vp, lo, "rgba(255,150,170,0.5)", 1.1, true); g3Line(ctx, vp, lo2, "rgba(255,150,170,0.32)", 1, true);
+          ring(256, 690, sg * 184, 46, 44, 12, SK, 0.9); ringV(420, 1098, sg * 98, 76, 84); ringV(560, 1118, sg * 102, 62, 72);
+        });
+        /* 心臓（左寄り・心尖は左下）・横隔膜（橙。声を出すあいだ上がり、吸うと下がる） */
+        var ht = []; for (var k4 = 0; k4 <= 16; k4++) { var a4 = k4 / 16 * 2 * PI; ht.push([318 + 40 * Math.cos(a4), 690 + 58 * Math.sin(a4) + 14 * Math.cos(a4), 22 + 46 * Math.cos(a4 + 0.9)]); }
+        g3Line(ctx, vp, ht, "rgba(255,110,110,0.45)", 1.1, true);
+        var dia = 747 + 34 * br, dc = [], ds = [];
+        for (var k5 = -10; k5 <= 10; k5++) { dc.push([300, dia + 44 * (1 - Math.cos(k5 / 10 * PI / 2)), k5 * 13.5]); ds.push([214 + (k5 + 10) * 9.4, dia + 40 * Math.pow(Math.abs(k5) / 10, 1.6), 0]); }
+        g3Line(ctx, vp, dc, "rgba(255,170,80,0.85)", 1.6); g3Line(ctx, vp, ds, "rgba(255,170,80,0.6)", 1.2);
+        /* 体表の輪郭：肩・胸・みぞおち・腰・骨盤の高さの水平断面（楕円）。腹は吸うと前へ出る */
+        [[232, 548, 86, 205], [296, 640, 118 + 4 * br, 168], [300, 740, 116 + 5 * br, 156], [296 + 10 * br, 860, 104 + 12 * br, 148], [290, 960, 110, 168], [300, 1060, 150, 182]].forEach(function (r) { ring(r[0], r[1], 0, r[2], r[3], 24, SK, 0.9); });
+        /* 首から肩への線（胸鎖乳突筋・僧帽筋の輪郭）と頬骨弓 */
+        [-1, 1].forEach(function (sg) {
+          g3Line(ctx, vp, [[336, 262, sg * 62], [350, 400, sg * 40], [376, 500, sg * 10]], SK, 1);
+          g3Line(ctx, vp, [[250, 318, sg * 30], [224, 430, sg * 58], [228, 510, sg * 130], [236, 532, sg * 192]], SK, 1);
+          g3Line(ctx, vp, [[440, 242, sg * 50], [398, 248, sg * 66], [346, 246, sg * 70]], BN + "0.5)", 1);
+        });
+      }
+      /* 曼荼羅の光の演出（表示だけ。音の計算とは無関係）：星・中心の光と光の柱・立ちのぼる光の粒・床を回る経文の輪。
+         声が出ている間だけ明るくなる。動きを減らす設定（reduced）のときは静止させる */
+      function g3MandalaFx(ctx, base, R, fy) {
+        var TAU = Math.PI * 2, now = Date.now(), mv = reduced ? 0 : 1;
+        V3.glow = (V3.glow || 0) + ((V3.voiced ? 1 : 0.22) - (V3.glow || 0)) * 0.08;
+        var g = V3.glow, k, j;
+        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        for (k = 0; k < 110; k++) {
+          var hx = Math.sin(k * 12.9898) * 43758.5453, hy = Math.sin(k * 78.233) * 12543.137; hx -= Math.floor(hx); hy -= Math.floor(hy);
+          ctx.fillStyle = "rgba(190,230,255," + (0.18 + 0.32 * Math.abs(Math.sin(now / 1300 * mv + k))).toFixed(2) + ")"; ctx.fillRect(base.cx - 312 + hx * 624, 36 + hy * 600, 1.4, 1.4);
+        }
+        var c0 = g3Proj(330, fy, 0, base), c1 = g3Proj(330, fy - 900, 0, base), rad = 110 + 170 * g;
+        var gr = ctx.createRadialGradient(c0[0], c0[1], 0, c0[0], c0[1], rad);
+        gr.addColorStop(0, "rgba(255,222,150," + (0.22 + 0.3 * g).toFixed(2) + ")"); gr.addColorStop(0.45, "rgba(255,170,90," + (0.1 * g).toFixed(2) + ")"); gr.addColorStop(1, "rgba(255,200,120,0)");
+        ctx.fillStyle = gr; ctx.fillRect(c0[0] - rad, c0[1] - rad, rad * 2, rad * 2);
+        var lg = ctx.createLinearGradient(c0[0], c0[1], c1[0], c1[1]);
+        lg.addColorStop(0, "rgba(255,228,165," + (0.55 * g).toFixed(2) + ")"); lg.addColorStop(1, "rgba(255,228,165,0)");
+        ctx.strokeStyle = lg; ctx.lineCap = "round"; ctx.lineWidth = 6 + 16 * g; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
+        for (j = 0; j < 90; j++) {
+          var ph = ((now / 5200 * mv) + j / 90) % 1, a = j * 2.399 + now / 2600 * mv, rr = R * 0.34 * (1 - ph * 0.8) * (0.25 + 0.75 * ((j * 7) % 10) / 10);
+          var pt = g3Proj(330 + rr * Math.cos(a), fy - 860 * ph, rr * Math.sin(a), base), sz = 1.2 + 1.6 * (1 - ph);
+          ctx.fillStyle = "rgba(255,228,172," + ((1 - ph) * 0.85 * g).toFixed(2) + ")"; ctx.fillRect(pt[0] - sz / 2, pt[1] - sz / 2, sz, sz);
+        }
+        /* 経文の輪：いま読んでいる字（金色）を中心に、前後の字を床の外周に並べる */
+        var KY = currentSong && currentSong.def.kyo;
+        if (KY && KY.length) {
+          var cur = V3.kyoCur || 0, m = Math.min(KY.length, 84), rot = reduced ? 0 : now / 30000;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          for (k = 0; k < m; k++) {
+            var idx = ((cur - (m >> 1) + k) % KY.length + KY.length) % KY.length, an = TAU * k / m + rot;
+            var q = g3Proj(330 + (R + 290) * Math.cos(an), fy, (R + 290) * Math.sin(an), base), isCur = idx === cur, fs = Math.max(7, Math.round((isCur ? 24 : 15) * Math.max(0.6, Math.min(1.5, 1 - q[2] / 2600))));
+            ctx.font = fs + "px 'Hiragino Mincho ProN','Yu Mincho',serif";
+            ctx.fillStyle = isCur ? "rgba(255,214,120,0.98)" : "rgba(150,222,240," + Math.max(0.16, Math.min(0.6, 0.38 - q[2] / 4200)).toFixed(2) + ")";
+            ctx.fillText(KY[idx].k, q[0], q[1]);
+          }
+          ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+        }
+        ctx.restore();
+      }
       /* 曼荼羅表示（合唱）：人数ぶんの頭を輪に並べ、全員が中心を向く。床に同心円・四角・放射線・蓮弁の図形を描く。
          全員の口の形は主の声のものを共用する（人ごとの違いは音だけ）。配置と図形は表示上の演出で、音の計算には使っていない */
       function g3Mandala(ctx, vp, p) {
         var n = vp.mandala;
         if (n > 12) { g3CrowdMandala(ctx, vp, p); return; }
-        var R = Math.max(270, n * 330 / (2 * Math.PI)), chest = n <= 6, zoom = 560 / (2 * R + 330) * (chest ? 0.6 : 0.84);
-        var fy = chest ? 850 : 590, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 3200 };
+        var R = Math.max(560, n * 430 / (2 * Math.PI) - 100), zoom = 430 / (2 * R + 620), lw = n > 6 ? 0.55 : 0.8;
+        var fy = 1185, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500 };
         var gold = "rgba(255,206,120,0.5)", cyan = "rgba(94,231,255,0.32)", TAU = Math.PI * 2;
         function ringPts(r, m, a0) { var o = []; for (var k = 0; k <= m; k++) { var a = a0 + TAU * k / m; o.push([330 + r * Math.cos(a), fy, r * Math.sin(a)]); } return o; }
+        g3MandalaFx(ctx, base, R, fy);
+        g3Line(ctx, base, ringPts(R + 330, 96, 0), "rgba(255,206,120,0.28)", 1);
         g3Line(ctx, base, ringPts(R + 250, 72, 0), gold, 1.6);
         g3Line(ctx, base, ringPts(R + 225, 72, 0), cyan, 1);
         g3Line(ctx, base, ringPts(R + 225, 4, Math.PI / 4), gold, 1.2);
@@ -2987,8 +3118,20 @@
         for (var i = 0; i < n; i++) {
           var ang = TAU * i / n, th = ang + Math.PI;
           g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
-          g3Scene(ctx, { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 3200, chest: chest,
-            ring: { c: Math.cos(th), s: Math.sin(th), px: R * Math.cos(ang), pz: R * Math.sin(ang) } }, p);
+          var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw,
+            ring: { c: Math.cos(th), s: Math.sin(th), px: R * Math.cos(ang), pz: R * Math.sin(ang) } };
+          g3Scene(ctx, vpi, p); g3Body(ctx, vpi, V3.lung);
+          /* 光背（頭の後ろの輪）と、口から中心へ向かう声の光（演出）。色は人ごとに少しずつ変える */
+          var gl = V3.glow || 0, hue = 38 + (i * 137) % 60 - 30, hal = [], hal2 = [], tm = reduced ? 0 : Date.now() / 1100;
+          for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + (178 + 6 * Math.sin(tm * 2 + i)) * Math.cos(ha), (178 + 6 * Math.sin(tm * 2 + i)) * Math.sin(ha)]); }
+          g3Line(ctx, vpi, hal, "hsla(" + hue + ",100%,72%," + (0.22 + 0.5 * gl).toFixed(2) + ")", 2.2);
+          g3Line(ctx, vpi, hal2, "hsla(" + hue + ",100%,80%," + (0.1 + 0.25 * gl).toFixed(2) + ")", 1);
+          var m0 = [482, 308, 0], m1 = [330 + R - 20, 520, 0];
+          g3Line(ctx, vpi, [m0, m1], "hsla(" + hue + ",100%,70%," + (0.06 + 0.16 * gl).toFixed(2) + ")", 1);
+          if (V3.voiced) for (var bk = 0; bk < 4; bk++) {
+            var bt = ((tm * 0.55 + bk / 4 + i * 0.13) % 1), bt2 = Math.min(1, bt + 0.07);
+            g3Line(ctx, vpi, [[m0[0] + (m1[0] - m0[0]) * bt, m0[1] + (m1[1] - m0[1]) * bt, 0], [m0[0] + (m1[0] - m0[0]) * bt2, m0[1] + (m1[1] - m0[1]) * bt2, 0]], "hsla(" + hue + ",100%,82%," + (0.85 * (1 - bt)).toFixed(2) + ")", 2.6);
+          }
         }
       }
       /* 同じ長さの輪郭を全員に使い、輪と口の動きだけを投影する大人数用の描画。 */
