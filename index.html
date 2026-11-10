@@ -477,6 +477,7 @@
               </table>
               <p class="anat-note" id="an-note"></p>
               <p class="anat-note" id="an-overtone" hidden><b>倍音唱法（般若心経）：</b>構造＝声帯振動の高調波列に声道共鳴 F2 を一致させる（先行研究は F2・F3 の両方を同じ倍音の近くに寄せる“二重フォルマント”を報告。ここでは F2 の1本に簡略化した近似）。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 150／F2 25／F3 220 Hz。倍音を1本だけ分けるのは F2）と、狙った倍音の強調（音量比 F1/F2/F3 = 0.8/4.2/0.35。先行研究の“二重フォルマント”を並列共鳴器の音量比で近似）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。<b>発声：</b>読経経験者の助言（声帯は途切れさせず、口腔の形の変化だけで響かせる。腹式で圧を一定に保つ）に従い、子音の破裂・摩擦の雑音は鳴らさず、声を出したまま子音の構えへ滑る区間に置き換え、声源の強さは全区間で一定にしています（「かんじーざいぼー」→「あーんいーあいおー」のような聞こえ方）。<b>経文：</b>出典：『般若波羅蜜多心経』唐・玄奘訳（大正新脩大蔵経 第8冊 No.251、848頁下段3〜8行）。冒頭「観自在菩薩」〜「空即是色」を CBETA 電子仏典の本文と照合済み（2026-11-10）。表示は新字体（原文は「觀」「舍」）、読みは日本の読経で一般的な呉音読みで、宗派・寺院による読みの違いは反映していません。<b>近似：</b>日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。倍音の聞こえ方は 2026-11-10 にオーナー確認済み（その後「もっと」の要望で F2 を強めた値も 2026-11-10 にオーナーが「いい感じ」と確認）。<b>3D の胸：</b>肋骨・肺・横隔膜・気管支の形と大きさ、呼吸の動きの量は模式図で、実測値ではありません（音の計算には不使用）。</p>
+              <p class="anat-note" id="an-tube"><b>管モデル（実験・「音の作り方」ボタンで切り替え）：</b>構造＝声門から唇までの声道を、同じ長さの短い管をつないだ1本の音響管とみなす。物理量＝区間ごとの断面積の比で決まる反射、声門と唇での反射、管の中を往復する圧力波（Kelly–Lochbaum 型の進行波モデル＝確立した音響理論）。断面積＝上の表の実測平均寄せのフォルマントに共鳴が一致するよう、一様な管からのずれをコサイン3成分で逆算した<b>相対値</b>（摂動理論：Schroeder 1967／Mermelstein 1967）。MRI 実測の断面積ではなく、3D タブの形とも別物。近似＝声門流の波形（Rosenberg 型。割合は一次文献と未照合）、反射係数と損失（帯域幅を決める近似値）、唇の放射（1階差分）。未実装＝鼻腔への分岐（鼻音は口の管の形だけで近似）、摩擦・破裂の雑音（従来どおり管の外で足す）、倍音ボイスの帯域幅の絞り込み（管モデルでは効かない）。<b>聴感未確認。</b>既定は従来の共鳴3本方式のまま。</p>
             </div>
           </div>
         </div>
@@ -563,6 +564,14 @@
             <button class="preset-chip" data-tvariant="en" aria-pressed="false">英語（本家の歌詞）</button>
           </div>
           <p class="parse-note" id="songNote"></p>
+          <div class="preset-row" id="choRow">
+            <span class="free-lab">人数（合唱）</span>
+            <button class="preset-chip" data-cho="1" aria-pressed="true" type="button">1人</button>
+            <button class="preset-chip" data-cho="3" aria-pressed="false" type="button">3人</button>
+            <button class="preset-chip" data-cho="6" aria-pressed="false" type="button">6人</button>
+            <button class="preset-chip" data-cho="12" aria-pressed="false" type="button">12人（大合唱）</button>
+          </div>
+          <p class="parse-note">合唱は、声道の長さ・音程・出だしを人ごとに少しずつずらした声を重ねます（ずらす量は仮の値で、実測ではありません。聴感未確認）。次の再生・WAV 書き出しから反映されます。画面の断面図・3D・スペクトルは主の声だけを表示します。</p>
           <div id="otCtl" hidden>
             <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
             <div class="ot-grid" id="otGrid"></div>
@@ -603,6 +612,7 @@
           <button class="stop-btn" id="stopBtn">■ STOP</button>
           <button class="wav-btn" id="wavBtn">WAV 書き出し</button>
           <button class="wav-btn" id="wavBatchBtn">WAV 一括書き出し（全12件）</button>
+          <button class="wav-btn" id="tubeBtn" aria-pressed="false" title="声の作り方を切り替えます。次の再生・書き出しから反映されます">音の作り方：共鳴3本</button>
           <span class="ctl-lab">速度</span>
           <div class="seg-ctl" id="speedCtl" role="group" aria-label="速度">
             <button data-speed="0.6" aria-pressed="false">ゆっくり<span class="x">×0.6</span></button>
@@ -727,7 +737,32 @@
              狙った倍音だけを強め、土台（F1）と F3 を少し下げて浮き上がらせる。先行研究の“二重フォルマント”
              （F2・F3 を同じ倍音へ寄せて1本を強める）を、並列共鳴器の音量比で近似したもの。
            ※数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 25, 220], gains: [0.8, 4.2, 0.35], lpf: 5200, noise: 0.2, hop: 0.008 }
+        overtone: { f0Midi: 43, bw: [150, 25, 220], gains: [0.8, 4.2, 0.35], lpf: 5200, noise: 0.2, hop: 0.008 },
+        /* ⑧管モデル（実験・切り替え式）— 声道を、長さの等しい短い管をつないだ1本の音響管として時間領域で計算する
+             （Kelly–Lochbaum 型の進行波モデル＝確立した音響理論。隣り合う管の断面積比で反射係数が決まる）。
+           区間数：1区間の長さ = 音速 /(2×標本化周波数)。声道長 ÷ それ を四捨五入（長さの誤差は最大でも約1%）。
+           断面積：5母音などの目標フォルマント（上の実測平均寄せの値）に共鳴が一致するよう、一様管からの
+             ずれを奇数次コサイン3成分（声門=0 → 唇=1 の位置 x に対し cos((2n−1)πx)）で逆算する。
+             共鳴の位置を一意に決められるのはこの成分だけ、という摂動理論（Schroeder 1967／Mermelstein 1967）に基づく。
+             ※MRI 実測の断面積ではなく、絶対値を持たない相対断面積。3D の形とも別物。
+           声門流：立ち上がり open・立ち下がり close（周期に対する割合）の山形パルス（Rosenberg 型の近似。割合は一次文献と未照合）。
+             流量の山の高さは F0 に反比例させる（120Hz で1倍）。唇の放射で微分されると音の強さが F0 に比例して
+             大きくなるため、声門が閉じる瞬間の変化の速さを音の高さによらず一定に保つ近似。
+           反射係数 glot／lip と1区間ごとの損失 loss：共鳴の帯域幅を決める損失の近似値（実測ではない）。
+           唇の放射は1階差分（高域ほど放射しやすい性質の近似）。gain は共鳴3本方式と音量をそろえる係数。
+           未実装：鼻腔への分岐（鼻音は口の管の形だけで近似）、摩擦・破裂の雑音（従来どおり管の外で足す）。 */
+        /* ⑨合唱（歌モードの「人数」）— 主の声に、別の人の声を重ねる。声ごとに別の合成グラフで独立に鳴らす。
+           人ごとの違いは声道の差で作る：vtl＝主の話者の声道長からの差 cm（共鳴がその分ずれる）。
+           cents＝音程のずれ（1/100 半音）、delay＝出だしの遅れ ms、pan＝左右の位置（−1〜1）。
+           倍音ボイスでは、声ごとに自分の F0 の高調波へ F2 を合わせ直す。
+           ※値はすべて仮置き。集団での読経・合唱の人ごとのばらつきの実測値は取り込めていない（聴感未確認）。 */
+        chorus: {
+          vtl:   [0.5, -0.5, 0.9, -0.9, 0.3, -0.3, 1.2, -1.2, 0.7, -0.7, 0.15],
+          cents: [9, -11, 16, -14, 5, -7, 21, -19, 12, -9, 3],
+          delay: [22, 35, 12, 48, 28, 8, 41, 17, 55, 31, 44],
+          pan:   [-0.5, 0.5, -0.8, 0.8, -0.25, 0.25, -0.65, 0.65, -0.4, 0.4, 0.1]
+        },
+        tube: { glot: 0.97, lip: -0.9, loss: 0.9995, open: 0.4, close: 0.16, gain: 12 }
       };
       /* 倍音唱法：F2 を最も近い高調波 k·F0 に吸着（F1・F3 は母音のまま）。
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
@@ -1363,6 +1398,143 @@
         return segs;
       }
 
+      function tubeN(vtl, fs, c) { return Math.max(8, Math.round(vtl * 2 * fs / c)); }
+      function tubeFormants(A, fs) {
+        var N = A.length, out = [], prev = 0, pf = 0;
+        function D(f) {
+          var th = Math.PI * f / fs, cs = Math.cos(th), s = Math.sin(th), a = 1, b = 0, c = 0, d = 1;
+          for (var i = 0; i < N; i++) {
+            var Ai = A[i], a2 = a * cs - b * Ai * s, b2 = a * s / Ai + b * cs, c2 = c * cs + d * Ai * s, d2 = -c * s / Ai + d * cs;
+            a = a2; b = b2; c = c2; d = d2;
+          }
+          return d;
+        }
+        for (var f = 40; f <= 6000 && out.length < 3; f += 20) {
+          var v = D(f);
+          if (f > 40 && v * prev < 0) {
+            var lo = pf, hi = f, vl = prev;
+            for (var k = 0; k < 18; k++) { var m = (lo + hi) / 2, vm = D(m); if (vm * vl <= 0) hi = m; else { lo = m; vl = vm; } }
+            out.push((lo + hi) / 2);
+          }
+          prev = v; pf = f;
+        }
+        while (out.length < 3) out.push(6000);
+        return out;
+      }
+      function tubeShape(cf, N) {
+        var A = new Array(N);
+        for (var i = 0; i < N; i++) {
+          var x = (i + 0.5) / N, l = 0;
+          for (var n = 0; n < cf.length; n++) l += cf[n] * Math.cos((2 * n + 1) * Math.PI * x);
+          A[i] = Math.exp(Math.max(-4, Math.min(3, l)));
+        }
+        return A;
+      }
+      function tubeFit(target, N, fs) {
+        var cf = [0, 0, 0], best = null;
+        function err(c) { var F = tubeFormants(tubeShape(c, N), fs); return [Math.log(F[0] / target[0]), Math.log(F[1] / target[1]), Math.log(F[2] / target[2])]; }
+        for (var it = 0; it < 40; it++) {
+          var r = err(cf), e = Math.abs(r[0]) + Math.abs(r[1]) + Math.abs(r[2]);
+          if (!best || e < best.e) best = { e: e, cf: cf.slice() };
+          if (e < 0.003) break;
+          var J = [[0,0,0],[0,0,0],[0,0,0]], h = 0.02;
+          for (var j = 0; j < 3; j++) { var c2 = cf.slice(); c2[j] += h; var r2 = err(c2); for (var i = 0; i < 3; i++) J[i][j] = (r2[i] - r[i]) / h; }
+          var det = J[0][0]*(J[1][1]*J[2][2]-J[1][2]*J[2][1]) - J[0][1]*(J[1][0]*J[2][2]-J[1][2]*J[2][0]) + J[0][2]*(J[1][0]*J[2][1]-J[1][1]*J[2][0]);
+          if (Math.abs(det) < 1e-9) break;
+          var dx = [0,0,0];
+          for (var j2 = 0; j2 < 3; j2++) {
+            var M = J.map(function (row) { return row.slice(); });
+            for (var i2 = 0; i2 < 3; i2++) M[i2][j2] = -r[i2];
+            dx[j2] = (M[0][0]*(M[1][1]*M[2][2]-M[1][2]*M[2][1]) - M[0][1]*(M[1][0]*M[2][2]-M[1][2]*M[2][0]) + M[0][2]*(M[1][0]*M[2][1]-M[1][1]*M[2][0])) / det;
+          }
+          var mx = Math.max(Math.abs(dx[0]), Math.abs(dx[1]), Math.abs(dx[2])), sc = mx > 0.5 ? 0.5 / mx : 1;
+          for (var j3 = 0; j3 < 3; j3++) cf[j3] += dx[j3] * sc;
+        }
+        var A = tubeShape(best.cf, N);
+        return { A: A, cf: best.cf, F: tubeFormants(A, fs), e: best.e };
+      }
+      var tubeOn = false, TUBE_URL = null, tubeCache = {};
+      /* 目標フォルマント f に共鳴が合う管の形（区間ごとの相対断面積の自然対数）。同じ目標は使い回す */
+      function tubeLn(f, N, fs) {
+        var key = N + "|" + fs + "|" + f.join("/");
+        if (!tubeCache[key]) {
+          var r = tubeFit(f, N, fs), a = new Float32Array(N);
+          for (var i = 0; i < N; i++) a[i] = Math.log(r.A[i]);
+          tubeCache[key] = { a: a, F: r.F };
+        }
+        return tubeCache[key];
+      }
+      var TUBE_SRC = [
+        "class VTube extends AudioWorkletProcessor {",
+        "  static get parameterDescriptors() { return [{ name: 'f0', defaultValue: 112, automationRate: 'a-rate' }, { name: 'amp', defaultValue: 0, automationRate: 'a-rate' }]; }",
+        "  constructor(o) { super(); var p = o.processorOptions; this.p = p; this.q = []; this.ph = 0; this.prev = 0; this.tau = 0.02; this.init(p.N, null);",
+        "    var me = this; this.port.onmessage = function (e) { var d = e.data; if (d.clear) { me.q = []; return; } if (d.ping) { me.port.postMessage({ pong: 1 }); return; } me.q.push(d); me.q.sort(function (a, b) { return a.t - b.t; }); }; }",
+        "  init(N, a) { this.N = N; this.R = new Float64Array(N); this.L = new Float64Array(N); this.jR = new Float64Array(N + 1); this.jL = new Float64Array(N + 1);",
+        "    this.cur = new Float64Array(N); this.tgt = new Float64Array(N); if (a) { this.cur.set(a); this.tgt.set(a); } this.k0 = new Float64Array(N); this.k1 = new Float64Array(N); this.refl(this.k1); this.k0.set(this.k1); }",
+        "  refl(k) { var N = this.N, c = this.cur, pa = Math.exp(c[0]); for (var i = 1; i < N; i++) { var a = Math.exp(c[i]); k[i] = (pa - a) / (pa + a); pa = a; } }",
+        "  process(inp, out, prm) {",
+        "    var o = out[0][0], n = o.length, p = this.p, f0 = prm.f0, amp = prm.amp, dt = n / sampleRate;",
+        "    while (this.q.length && this.q[0].t <= currentTime + dt * 0.5) { var m = this.q.shift(); if (m.a.length !== this.N) this.init(m.a.length, m.a); else this.tgt.set(m.a); this.tau = m.tau; }",
+        "    var N = this.N, al = 1 - Math.exp(-dt / Math.max(0.001, this.tau)), cur = this.cur, tgt = this.tgt;",
+        "    for (var i = 0; i < N; i++) cur[i] += (tgt[i] - cur[i]) * al;",
+        "    var k0 = this.k0, k1 = this.k1; k0.set(k1); this.refl(k1);",
+        "    var R = this.R, L = this.L, jR = this.jR, jL = this.jL, gr = p.glot, lr = p.lip, loss = p.loss, tp = p.open, tn = p.close;",
+        "    for (var s = 0; s < n; s++) {",
+        "      var f = f0.length > 1 ? f0[s] : f0[0], a = amp.length > 1 ? amp[s] : amp[0], w = s / n;",
+        "      this.ph += f / sampleRate; if (this.ph >= 1) this.ph -= 1;",
+        "      var x = this.ph, g = x < tp ? 0.5 * (1 - Math.cos(Math.PI * x / tp)) : (x < tp + tn ? Math.cos(Math.PI * (x - tp) / (2 * tn)) : 0), src = g * a * (120 / Math.max(40, f)), lipSum = 0;",
+        "      for (var st = 0; st < 2; st++) {",
+        "        jR[0] = L[0] * gr + src; jL[N] = R[N - 1] * lr;",
+        "        for (var j = 1; j < N; j++) { var k = k0[j] + (k1[j] - k0[j]) * w, v = k * (R[j - 1] + L[j]); jR[j] = R[j - 1] - v; jL[j] = L[j] + v; }",
+        "        for (var j2 = 0; j2 < N; j2++) { R[j2] = jR[j2] * loss; L[j2] = jL[j2 + 1] * loss; }",
+        "        lipSum += R[N - 1];",
+        "      }",
+        "      var lip = lipSum * 0.5; o[s] = lip - this.prev; this.prev = lip;",
+        "    }",
+        "    return true;",
+        "  }",
+        "}",
+        "registerProcessor('vtube', VTube);"
+      ].join("\n");
+      /* 合成グラフ G に管モデルのノードを足す（非同期。使えないブラウザでは false） */
+      function tubeAttach(ctx, G) {
+        if (G.tube) return Promise.resolve(true);
+        if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return Promise.resolve(false);
+        try {
+          /* file:// で開いた場合 blob: の URL は読み込みに失敗するため、data: の URL で渡す（実測） */
+          if (!TUBE_URL) TUBE_URL = "data:application/javascript;base64," + btoa(TUBE_SRC);
+          if (!ctx._tubeMod) ctx._tubeMod = ctx.audioWorklet.addModule(TUBE_URL);
+          return ctx._tubeMod.then(function () {
+            if (G.tube) return true;
+            var T = ANAT.tube;
+            var node = new AudioWorkletNode(ctx, "vtube", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1],
+              processorOptions: { N: tubeN(CUR.vtl, ctx.sampleRate, ANAT.c), glot: T.glot, lip: T.lip, loss: T.loss, open: T.open, close: T.close } });
+            node.connect(G.master); G.tube = node; G.tubeFs = ctx.sampleRate;
+            return true;
+          }, function () { return false; });
+        } catch (e) { return Promise.resolve(false); }
+      }
+      /* 管の形の予約が音声スレッドへ届くのを待つ（オフライン描画の開始前に使う） */
+      function tubeFlush(G) {
+        return new Promise(function (resolve) {
+          if (!G.tube) return resolve();
+          var done = false, fin = function () { if (!done) { done = true; resolve(); } };
+          G.tube.port.onmessage = function (e) { if (e.data && e.data.pong) fin(); };
+          G.tube.port.postMessage({ ping: 1 });
+          setTimeout(fin, 400);
+        });
+      }
+      function tubeSched(G, seg, t) {
+        if (!seg.f) return;
+        var N = tubeN(G.vtl || CUR.vtl, G.tubeFs, ANAT.c);
+        var tau = seg.type === "vowel" ? (seg.legato ? 0.05 : 0.02) : 0.012;
+        var to = tubeLn(seg.f, N, G.tubeFs).a;
+        if (seg.fFrom && seg.fFrom.join("/") !== seg.f.join("/")) {
+          G.tube.port.postMessage({ t: t, a: tubeLn(seg.fFrom, N, G.tubeFs).a, tau: 0.004 });
+          G.tube.port.postMessage({ t: t + 0.008, a: to, tau: tau });
+        } else G.tube.port.postMessage({ t: t, a: to, tau: tau });
+      }
+
       /* ---------- audio engine (formant synthesis) ----------
          グラフ構築はライブ再生／WAV書き出し（OfflineAudioContext）で共用する。 */
       var AC = null, N = null, N2 = null;
@@ -1399,7 +1571,7 @@
         noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
 
         osc.start(); noise.start();
-        return { master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
+        return { comp: comp, master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
                  f1: f1, f2: f2, f2b: f2b, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
       }
       function ensureCtx() {
@@ -1416,15 +1588,24 @@
         });
         G.master.gain.cancelScheduledValues(now); G.master.gain.setTargetAtTime(0, now, 0.03);
         G.osc.frequency.cancelScheduledValues(now);
+        if (G.tube) {
+          var ta = G.tube.parameters.get("amp"); ta.cancelScheduledValues(now); ta.setTargetAtTime(0, now, 0.03);
+          G.tube.parameters.get("f0").cancelScheduledValues(now); G.tube.port.postMessage({ clear: 1 });
+        }
         [G.f1.f.frequency, G.f2.f.frequency, G.f3.f.frequency].forEach(function (pr) { pr.cancelScheduledValues(now); });
       }
       function silenceParams(now) {
         silenceGraph(N, now);
         if (N2) silenceGraph(N2, now);
+        CHO.forEach(function (G) { if (G) silenceGraph(G, now); });
       }
       function scheduleSegG(G, seg, t) {
         var g = seg.gains || { v: 0, g: [0, 0, 0], nas: 0, noise: 0 };
         var tc = seg.legato ? 0.03 : 0.008;
+        /* 管モデル：有声の成分は管で作り、共鳴3本の側は無音にする（雑音の経路はそのまま） */
+        var tb = !!G.tube && tubeOn;
+        if (G.tube) G.tube.parameters.get("amp").setTargetAtTime(tb && seg.type !== "burst" ? g.v * ANAT.tube.gain : 0, t, tc);
+        if (tb) { tubeSched(G, seg, t); g = { v: 0, g: [0, 0, 0], nas: 0, noise: g.noise }; }
         if (seg.type === "burst") {
           G.noiseBP.frequency.setValueAtTime(seg.burstF, t);
           G.noiseG.gain.setValueAtTime(0, t);
@@ -1478,23 +1659,59 @@
         G.f3.g.gain.setTargetAtTime(g.g[2] * 0.9, t, tc);
         G.nasG.gain.setTargetAtTime(g.nas * 0.8, t, tc);
         G.noiseG.gain.setTargetAtTime(g.noise || 0, t, tc);
-        G.osc.frequency.setTargetAtTime(seg.f0a, t, 0.012);
+        var f0ps = G.tube ? [G.osc.frequency, G.tube.parameters.get("f0")] : [G.osc.frequency];
+        f0ps.forEach(function (fp) {
+        fp.setTargetAtTime(seg.f0a, t, 0.012);
         if (seg.vib) {
           /* ビブラート：入りは遅らせ、半周期ごとに目標周波数を往復させる */
           var f0 = seg.f0a, half = 1 / (seg.vib.rate * 2);
           var tt = t + seg.vib.delay, sgn = 1;
-          G.osc.frequency.setValueAtTime(f0, tt);
+          fp.setValueAtTime(f0, tt);
           while (tt + half < t + seg.dur - 0.02) {
             tt += half;
-            G.osc.frequency.linearRampToValueAtTime(f0 * (1 + sgn * seg.vib.depth), tt);
+            fp.linearRampToValueAtTime(f0 * (1 + sgn * seg.vib.depth), tt);
             sgn = -sgn;
           }
-          G.osc.frequency.linearRampToValueAtTime(f0, t + seg.dur);
+          fp.linearRampToValueAtTime(f0, t + seg.dur);
         } else if (seg.type === "vowel") {
-          G.osc.frequency.setTargetAtTime(seg.f0b, t + seg.dur * 0.45, seg.dur * 0.3);
+          fp.setTargetAtTime(seg.f0b, t + seg.dur * 0.45, seg.dur * 0.3);
         }
+        });
       }
       function scheduleSeg(seg, t) { scheduleSegG(N, seg, t); }
+
+      /* ---------- 合唱（ANAT.chorus）---------- */
+      var choN = 1, CHO = [];
+      /* i 番目（1〜）の追加の声のスコア：声道長をずらした話者で組み直し、音程をずらす */
+      function choScore(song, i) {
+        var C = ANAT.chorus, r = Math.pow(2, C.cents[i - 1] / 1200);
+        return buildSongScoreAs(song, speakerForVtl(CUR.vtl + C.vtl[i - 1])).map(function (sg) {
+          var c = Object.assign({}, sg); c.f0a = sg.f0a * r; c.f0b = sg.f0b * r;
+          if (sg.bw && sg.f) c.f = [sg.f[0], sg.f[1] * r, sg.f[2]];
+          return c;
+        });
+      }
+      function choGraph(i) {
+        if (!CHO[i]) {
+          var G = buildGraph(AC, null);
+          if (AC.createStereoPanner) {
+            var pn = AC.createStereoPanner(); pn.pan.value = ANAT.chorus.pan[i - 1];
+            G.comp.disconnect(); G.comp.connect(pn); pn.connect(AC.destination);
+          }
+          CHO[i] = G;
+        }
+        CHO[i].vtl = CUR.vtl + ANAT.chorus.vtl[i - 1];
+        return CHO[i];
+      }
+      /* 人数ぶんのグラフを先に用意する（管モデルのときは音声ノードの読み込みを待つ） */
+      function choPrepare() {
+        if (!AC) return Promise.resolve();
+        var ps = [];
+        for (var i = 1; i < choN; i++) { var G = choGraph(i); if (tubeOn) ps.push(tubeAttach(AC, G)); }
+        return Promise.all(ps);
+      }
+      /* 声の数に応じた1声あたりの音量（重ねても割れないように下げる） */
+      function choPeak(n) { return 1.5 / Math.pow(n, 0.8); }
 
       /* ---------- playback state ---------- */
       var speed = 1, playing = false, anim = null, loopOn = false, playMode = "phrase";
@@ -1518,11 +1735,23 @@
         if (segs2) {
           /* 第2声：別の声道パラメータで構築したスコアを、独立した合成グラフ N2 で同時再生 */
           if (!N2) N2 = buildGraph(AC, null);
+          N2.vtl = (ANAT.speakers[duetKey] || CUR).vtl;
           N2.master.gain.cancelScheduledValues(now);
           N2.master.gain.setValueAtTime(0, now);
           N2.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
           var t2 = t0;
           segs2.forEach(function (s) { scheduleSegG(N2, s, t2); t2 += s.dur; });
+        }
+        if (song && choN > 1) {
+          /* 合唱：追加の声を別グラフで同時再生（出だしを少しずつ遅らせる） */
+          var cp = choPeak(choN + (segs2 ? 1 : 0));
+          N.master.gain.cancelScheduledValues(now); N.master.gain.setValueAtTime(0, now); N.master.gain.linearRampToValueAtTime(cp, t0 + 0.02);
+          if (segs2) { N2.master.gain.cancelScheduledValues(now); N2.master.gain.setValueAtTime(0, now); N2.master.gain.linearRampToValueAtTime(cp, t0 + 0.02); }
+          for (var ci = 1; ci < choN; ci++) {
+            var CG = choGraph(ci), ct = t0 + ANAT.chorus.delay[ci - 1] / 1000;
+            CG.master.gain.cancelScheduledValues(now); CG.master.gain.setValueAtTime(0, now); CG.master.gain.linearRampToValueAtTime(cp, t0 + 0.02);
+            scaled(choScore(song, ci)).forEach(function (sg) { scheduleSegG(CG, sg, ct); ct += sg.dur; });
+          }
         }
         var acc = 0;
         segs.forEach(function (s) { s.start = acc; acc += s.dur; });
@@ -1934,12 +2163,13 @@
       }
       /* スコアをオフラインで描いて WAV ダウンロードする（単体・一括で共用）。
          ファイル名は「フレーズ名_日時.wav」。Promise を返す。 */
-      function renderAndDownload(raw, nameBase, raw2) {
+      function renderAndDownload(raw, nameBase, raw2, extra) {
         return new Promise(function (resolve) {
           try {
             var segs = raw.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / speed; return c; });
             var segs2 = raw2 ? raw2.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / speed; return c; }) : null;
             var peak = segs2 ? 0.72 : 0.9;
+            if (extra && extra.length) peak = choPeak(1 + extra.length + (segs2 ? 1 : 0));
             var totalAll = segs.reduce(function (a, s) { return a + s.dur; }, 0);
             var lead = segs.length && segs[0].type === "pause" ? segs[0].dur : 0;
             var lastSeg = segs[segs.length - 1];
@@ -1955,16 +2185,26 @@
               G.master.gain.linearRampToValueAtTime(0, dur);
               return G;
             }
-            function schedAll(G, list) {
-              var acc = 0;
+            function schedAll(G, list, d0) {
+              var acc = d0 || 0;
               list.forEach(function (s) {
                 if (acc + s.dur > lead && acc - lead < dur) scheduleSegG(G, s, Math.max(0.001, acc - lead + 0.01));
                 acc += s.dur;
               });
             }
-            schedAll(prepGraph(), segs);
-            if (segs2) schedAll(prepGraph(), segs2); /* 第2声も同じオフライン描画へ混ぜる */
-            off.startRendering().then(function (buffer) {
+            var Gs = [prepGraph()];
+            if (segs2) { Gs.push(prepGraph()); Gs[1].vtl = (ANAT.speakers[duetKey] || CUR).vtl; } /* 第2声も同じオフライン描画へ混ぜる */
+            var nBase = Gs.length;
+            (extra || []).forEach(function (ex) { var G = prepGraph(); G.vtl = ex.vtl; Gs.push(G); });
+            var ready = tubeOn ? Promise.all(Gs.map(function (G) { return tubeAttach(off, G); })) : Promise.resolve();
+            ready.then(function () {
+              schedAll(Gs[0], segs);
+              if (segs2) schedAll(Gs[1], segs2);
+              (extra || []).forEach(function (ex, k) {
+                schedAll(Gs[nBase + k], ex.segs.map(function (sg) { var c = Object.assign({}, sg); c.dur = sg.dur / speed; return c; }), ex.delay);
+              });
+              return Promise.all(Gs.map(tubeFlush));
+            }).then(function () { return off.startRendering(); }).then(function (buffer) {
               var url = URL.createObjectURL(encodeWav(buffer));
               var a = document.createElement("a");
               a.href = url; a.download = nameBase + "_" + stampNow() + ".wav";
@@ -1976,13 +2216,17 @@
         });
       }
       function renderWav() {
-        var raw, nameBase, raw2 = null;
+        var raw, nameBase, raw2 = null, extra = null;
         var sp2 = duetKey ? ANAT.speakers[duetKey] : null;
         if (appMode === "song") {
           if (!currentSong) setSong("furusato");
           raw = buildSongScore(currentSong);
           if (sp2) raw2 = buildSongScoreAs(currentSong, sp2);
           nameBase = currentSong.def.file;
+          if (choN > 1) {
+            extra = [];
+            for (var ci = 1; ci < choN; ci++) extra.push({ segs: choScore(currentSong, ci), vtl: CUR.vtl + ANAT.chorus.vtl[ci - 1], delay: ANAT.chorus.delay[ci - 1] / 1000 });
+          }
         } else if (appMode === "manual") {
           /* 手動調音：今のポーズを約1.2秒の持続音として書き出す（デュエット対象外） */
           var ef = estimateF(manualPose);
@@ -2002,13 +2246,33 @@
           nameBase = "namamugi";
         }
         if (raw2) nameBase += "_duet";
+        if (extra) nameBase += "_chorus" + choN;
         var btn = document.getElementById("wavBtn");
         btn.disabled = true; btn.textContent = "書き出し中…";
-        renderAndDownload(raw, nameBase, raw2).then(function () {
+        renderAndDownload(raw, nameBase, raw2, extra).then(function () {
           btn.disabled = false; btn.textContent = "WAV 書き出し";
         });
       }
       document.getElementById("wavBtn").addEventListener("click", renderWav);
+      Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (b) {
+        b.addEventListener("click", function () {
+          choN = +b.dataset.cho;
+          Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+          ensureCtx(); choPrepare();
+        });
+      });
+      /* 音の作り方の切り替え（共鳴3本 ⇔ 管モデル）。次の再生・書き出しから反映 */
+      document.getElementById("tubeBtn").addEventListener("click", function () {
+        var btn = this;
+        function upd(fail) {
+          btn.setAttribute("aria-pressed", tubeOn ? "true" : "false");
+          btn.textContent = fail ? "管モデルはこのブラウザで使えません" : (tubeOn ? "音の作り方：管モデル（実験）" : "音の作り方：共鳴3本");
+        }
+        if (tubeOn) { tubeOn = false; upd(false); return; }
+        ensureCtx();
+        if (!N2) N2 = buildGraph(AC, null);
+        Promise.all([tubeAttach(AC, N), tubeAttach(AC, N2)]).then(function (r) { tubeOn = !!(r[0] && r[1]); upd(!tubeOn); if (tubeOn) choPrepare(); });
+      });
 
       /* ---------- WAV 一括書き出し ----------
          プリセット（なまむぎ／早口言葉×5／歌×6）を1つずつレンダリングして
@@ -2310,8 +2574,10 @@
       }
       function g3Proj(x, y, z, vp) {
         var X = x - 330, Y = 310 - y, Z = z, cy = Math.cos(vp.yaw), sy = Math.sin(vp.yaw);
+        /* 輪（曼荼羅表示）：その人の位置へ回して置く。顔（+X）が輪の中心を向く */
+        if (vp.ring) { var rg = vp.ring, Xr = X * rg.c - Z * rg.s; Z = X * rg.s + Z * rg.c + rg.pz; X = Xr + rg.px; }
         var X1 = X * cy + Z * sy, Z1 = -X * sy + Z * cy, cp = Math.cos(vp.pitch), sp = Math.sin(vp.pitch);
-        var Y2 = Y * cp - Z1 * sp, Z2 = Y * sp + Z1 * cp, s = 900 / (900 + Z2);
+        var D = vp.dist || 900, Y2 = Y * cp - Z1 * sp, Z2 = Y * sp + Z1 * cp, s = D / (D + Z2);
         return [vp.cx + X1 * s * vp.zoom, vp.cy - Y2 * s * vp.zoom, Z2];
       }
       /* 奥行きの手がかり：視点から遠い線ほど淡く細く、近い線ほど明るく太く描く（空気遠近。表示だけの演出） */
@@ -2336,6 +2602,7 @@
         for (var k = 0; k < r0.length; k++) { var k2 = (k + 1) % r0.length; g3Fill(ctx, vp, [r0[k], r0[k2], r1[k2], r1[k]], col); }
       }
       function g3Label(ctx, vp, x, y, z, txt, dx, dy) {
+        if (vp.ring) return;
         var s = g3Proj(x, y, z, vp);
         ctx.strokeStyle = "rgba(238,250,255,0.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] + dx, s[1] + dy); ctx.stroke();
         ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; ctx.fillText(txt, dx < 0 ? s[0] + dx - 8 - ctx.measureText(txt).width : s[0] + dx + 4, s[1] + dy + 4);
@@ -2574,6 +2841,34 @@
           g3Label(ctx, vp, V3.phar[12][0], V3.phar[12][1], 0, "咽頭後壁", -50, -10);
         }
       }
+      /* 曼荼羅表示（合唱）：人数ぶんの頭を輪に並べ、全員が中心を向く。床に同心円・四角・放射線・蓮弁の図形を描く。
+         全員の口の形は主の声のものを共用する（人ごとの違いは音だけ）。配置と図形は表示上の演出で、音の計算には使っていない */
+      function g3Mandala(ctx, vp, p) {
+        var n = vp.mandala, R = Math.max(270, n * 330 / (2 * Math.PI)), chest = n <= 6, zoom = 560 / (2 * R + 330) * (chest ? 0.6 : 0.84);
+        var fy = chest ? 850 : 590, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 3200 };
+        var gold = "rgba(255,206,120,0.5)", cyan = "rgba(94,231,255,0.32)", TAU = Math.PI * 2;
+        function ringPts(r, m, a0) { var o = []; for (var k = 0; k <= m; k++) { var a = a0 + TAU * k / m; o.push([330 + r * Math.cos(a), fy, r * Math.sin(a)]); } return o; }
+        g3Line(ctx, base, ringPts(R + 250, 72, 0), gold, 1.6);
+        g3Line(ctx, base, ringPts(R + 225, 72, 0), cyan, 1);
+        g3Line(ctx, base, ringPts(R + 225, 4, Math.PI / 4), gold, 1.2);
+        g3Line(ctx, base, ringPts(R + 225, 4, 0), cyan, 1);
+        g3Line(ctx, base, ringPts(R * 0.62, 72, 0), gold, 1.2);
+        g3Line(ctx, base, ringPts(R * 0.3, 48, 0), cyan, 1);
+        for (var q = 0; q < 8; q++) { /* 中心の蓮弁（8枚） */
+          var a = TAU * q / 8, pet = [];
+          for (var u = 0; u <= 12; u++) { var t = u / 12, rr = R * 0.3 * Math.sin(Math.PI * t), aa = a + (t - 0.5) * 0.7; pet.push([330 + rr * Math.cos(aa), fy, rr * Math.sin(aa)]); }
+          g3Line(ctx, base, pet, gold, 1.2);
+        }
+        if (V3.voiced && !reduced) { /* 声が中心へ集まる輪（演出） */
+          for (var w = 0; w < 3; w++) { var ph = ((Date.now() / 1600 + w / 3) % 1); g3Line(ctx, base, ringPts(R * (1 - ph) * 0.95, 60, 0), "rgba(255,214,140," + (0.5 * ph).toFixed(3) + ")", 1.4); }
+        }
+        for (var i = 0; i < n; i++) {
+          var ang = TAU * i / n, th = ang + Math.PI;
+          g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
+          g3Scene(ctx, { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 3200, chest: chest,
+            ring: { c: Math.cos(th), s: Math.sin(th), px: R * Math.cos(ang), pz: R * Math.sin(ang) } }, p);
+        }
+      }
       function render3D(p) {
         if (!V3.ready) g3Init();
         V3.last = p;
@@ -2593,9 +2888,13 @@
         if (reduced) V3.lung = 0.6;
         else if (playing || manOn) V3.lung = V3.voiced ? Math.max(0.08, V3.lung - dtR / 12) : V3.lung + (1 - V3.lung) * Math.min(1, dtR * 5);
         else V3.lung += ((0.5 + 0.22 * Math.sin(nowT / 1900)) - V3.lung) * Math.min(1, dtR * 4);
-        [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }].forEach(function (vp, i) {
+        var nCho = (appMode === "song" && choN > 1) ? choN : 1;
+        var VIEWS = [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }];
+        if (nCho > 1) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000), pitch: Math.max(0.5, Math.min(1.2, V3.pitch + 0.72)), label: "VIEW  曼荼羅（" + nCho + "人）" };
+        VIEWS.forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
-          g3Scene(ctx, vp, p); ctx.restore();
+          if (vp.mandala) g3Mandala(ctx, vp, p); else g3Scene(ctx, vp, p);
+          ctx.restore();
           ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
           ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(94,231,255,0.7)"; ctx.font = "16px 'Share Tech Mono', monospace";
           ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
