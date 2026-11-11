@@ -586,6 +586,12 @@
             <button class="preset-chip" data-cho="108" aria-pressed="false" type="button">108人（大曼荼羅）</button>
           </div>
           <p class="parse-note">合唱は声道の長さ・音程・入りの時間を少しずつずらして重ねます。36人以上では3重の輪を描き、最大12系統の合成声で全体の響きを作ります。人数は次の再生・WAV書き出しから反映します。</p>
+          <label class="free-lab" for="chantVoicing">読経の声域</label>
+          <select id="chantVoicing" class="preset-chip">
+            <option value="low">低音合唱 — 低音・五度・オクターブ</option>
+            <option value="unison">従来の同音読誦</option>
+          </select>
+          <p class="parse-note">般若心経の3人以上に適用。導師を元の高さに保ち、低音担当を加えます（標準時は約49・73.5・98Hz＋小さな個人差）。速さ・経文は変わりません。経験者の助言を参考にした音の演出で、宗派の正式な唱法の再現ではありません。変更すると停止し、次の再生とWAVへ反映します。</p>
           <div id="otCtl" hidden>
             <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
             <div class="ot-grid" id="otGrid"></div>
@@ -2070,7 +2076,7 @@
       function scheduleSeg(seg, t) { scheduleSegG(N, seg, t); }
 
       /* ---------- 合唱（ANAT.chorus）---------- */
-      var choN = 1, CHO = [], listenVoice = -1;
+      var choN = 1, CHO = [], listenVoice = -1, choVoicing = "low";
       function choExtraCount(n, duet) {
         return Math.max(0, Math.min(n - 1, ANAT.chorus.vtl.length - (duet ? 1 : 0)));
       }
@@ -2078,6 +2084,11 @@
       /* i 番目（1〜）の追加の声のスコア：声道長をずらした話者で組み直し、音程をずらす */
       function choScore(song, i) {
         var C = ANAT.chorus, r = Math.pow(2, C.cents[i - 1] / 1200);
+        // Artistic voicing, not a claim about any school's prescribed chant pitches.
+        // Keep the leader at the original pitch; bass : fifth : octave = 2 : 3 : 4.
+        if (song && song.def && song.def.kyo && typeof choVoicing !== "undefined" && choVoicing === "low") {
+          r *= [0.5, 0.75, 1][(i - 1) % 3];
+        }
         return ensembleScore(buildSongScoreAs(song, speakerForVtl(CUR.vtl + C.vtl[i - 1])),i,qualityConfig(ANAT.quality).human).map(function (sg) {
           var c = Object.assign({}, sg); c.f0a = sg.f0a * r; c.f0b = sg.f0b * r;
           if (sg.bw && sg.f) c.f = [sg.f[0], sg.f[1] * r, sg.f[2]];
@@ -2581,6 +2592,9 @@
       });
 
       /* ---------- sound laboratory controls (all values are synthesis settings) ---------- */
+      document.getElementById("chantVoicing").addEventListener("change", function () {
+        stop(); choVoicing = this.value === "low" ? "low" : "unison";
+      });
       var qualityPreset="classic",qualityPaintAt=0;
       /* AUDITION_UI_BEGIN */
       function applyListening() {
@@ -2777,6 +2791,7 @@
         }
         if (raw2) nameBase += "_duet";
         if (extra) nameBase += "_chorus" + choN;
+        if (extra && chant && choVoicing === "low") nameBase += "_low";
         var btn = document.getElementById("wavBtn");
         btn.disabled = true; btn.textContent = "書き出し中…";
         renderAndDownload(raw, nameBase, raw2, extra, chant).then(function (ok) {
