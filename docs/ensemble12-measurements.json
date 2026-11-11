@@ -1,0 +1,176 @@
+{
+  "cases": [
+    {
+      "label": "twelve-before",
+      "frames": 432842,
+      "rate": 44100,
+      "seconds": 9.81501133786848,
+      "channels": [
+        {
+          "rms": 0.013375677532443819,
+          "peak": 0.1123819351196289,
+          "nonfinite": 0,
+          "clips": 0
+        }
+      ],
+      "stereoDifferenceRms": 0,
+      "config": {
+        "source": "pulse",
+        "open": 0.4,
+        "close": 0.12,
+        "partials": {
+          "on": true,
+          "orders": [
+            4,
+            6,
+            10
+          ],
+          "levels": [
+            1,
+            1,
+            1
+          ],
+          "mix": 0.8,
+          "width": 30
+        },
+        "human": {
+          "amount": 0.45,
+          "seed": 20261111
+        },
+        "room": {
+          "on": true,
+          "rt": 1.4,
+          "wet": 0.24,
+          "damp": 0.5,
+          "listener": 0.65,
+          "size": [
+            8,
+            10,
+            4
+          ]
+        }
+      },
+      "offline_worklets": 0,
+      "source_sha256": "8d17e0a73f512a415c8a6b9518a3fd142ffe3b656e7adcd977967f86251d31b3"
+    },
+    {
+      "label": "twelve-formant",
+      "frames": 432842,
+      "rate": 44100,
+      "seconds": 9.81501133786848,
+      "channels": [
+        {
+          "rms": 0.03721303678273168,
+          "peak": 0.3342275619506836,
+          "nonfinite": 0,
+          "clips": 0
+        },
+        {
+          "rms": 0.03198938210580197,
+          "peak": 0.27958202362060547,
+          "nonfinite": 0,
+          "clips": 0
+        }
+      ],
+      "stereoDifferenceRms": 0.025481795025043916,
+      "config": {
+        "source": "pulse",
+        "open": 0.4,
+        "close": 0.12,
+        "partials": {
+          "on": true,
+          "orders": [
+            4,
+            6,
+            10
+          ],
+          "levels": [
+            1,
+            0.7,
+            0.45
+          ],
+          "mix": 0.55,
+          "width": 40
+        },
+        "human": {
+          "amount": 0.65,
+          "seed": 20261111
+        },
+        "room": {
+          "on": true,
+          "rt": 1.4,
+          "wet": 0.22,
+          "damp": 0.5,
+          "size": [
+            8,
+            10,
+            4
+          ],
+          "listener": 0.65
+        }
+      },
+      "offline_worklets": 0,
+      "source_sha256": "c01be50003913bfd244f8d3b781169cdfbcaa894bc998ec17624fa667abdd790"
+    },
+    {
+      "label": "twelve-tube",
+      "frames": 432842,
+      "rate": 44100,
+      "seconds": 9.81501133786848,
+      "channels": [
+        {
+          "rms": 0.055722943909408705,
+          "peak": 0.3377351760864258,
+          "nonfinite": 0,
+          "clips": 0
+        },
+        {
+          "rms": 0.051293141913039714,
+          "peak": 0.31585216522216797,
+          "nonfinite": 0,
+          "clips": 0
+        }
+      ],
+      "stereoDifferenceRms": 0.042036776867601516,
+      "config": {
+        "source": "pulse",
+        "open": 0.4,
+        "close": 0.12,
+        "partials": {
+          "on": true,
+          "orders": [
+            4,
+            6,
+            10
+          ],
+          "levels": [
+            1,
+            0.7,
+            0.45
+          ],
+          "mix": 0.55,
+          "width": 40
+        },
+        "human": {
+          "amount": 0.65,
+          "seed": 20261111
+        },
+        "room": {
+          "on": true,
+          "rt": 1.4,
+          "wet": 0.22,
+          "damp": 0.5,
+          "size": [
+            8,
+            10,
+            4
+          ],
+          "listener": 0.65
+        }
+      },
+      "offline_worklets": 12,
+      "source_sha256": "c01be50003913bfd244f8d3b781169cdfbcaa894bc998ec17624fa667abdd790"
+    }
+  ],
+  "excerpt": "first 8 seconds of each score plus native export fades and complete synthetic tail; no external normalization"
+}

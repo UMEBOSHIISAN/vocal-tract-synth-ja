@@ -22,7 +22,7 @@ function setup(mode) {
   const context = vm.createContext({
     AC: null, N: null, manOn: false, duetKey: null, tubeOn: false, CUR: { vtl: 15.8 },
     ANAT: { quality: {} }, qualityConfig: (q) => q,
-    prepareQualityScene() {}, prepareQualityVoice() {}, resetQualityTail() {},
+    prepareQualityScene() {}, prepareQualityVoice() {}, resetQualityTail() {}, applyListening() {},
     document: { getElementById: (id) => id === 'liveTxt'
       ? status : { classList: { remove() {} } } },
     clearTiles() {},
@@ -77,7 +77,7 @@ test('an explicit new playback cancels the previous queued loop', () => {
   h.context.finishUtterance();
   assert.equal(h.pending.size, 1);
   const noop = () => {};
-  h.context.AC = { currentTime: 0 };
+  h.context.AC = { currentTime: 0, sampleRate: 44100, createBuffer:()=>({}), createBufferSource:()=>({connect:noop,start:noop,stop:noop,disconnect:noop}) };
   h.context.N = { scene: { plan: { tail: 0 } }, master: { gain: { cancelScheduledValues: noop, setValueAtTime: noop, linearRampToValueAtTime: noop } } };
   h.context.ensureCtx = noop;
   h.context.silenceParams = noop;

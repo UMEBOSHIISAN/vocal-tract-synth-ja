@@ -31,7 +31,7 @@ test('explicit STOP mutes and discards room history, while preparation creates a
  assert.ok(begin>=0&&end>begin);vm.runInContext(html.slice(begin,end),c);
  const G=c.buildGraph(ctx,ctx.createAnalyser(),c.qualityDefaults());
  assert.ok(G.humanGain,'voice output still bypasses shared quality scene');
- assert.ok(G.comp.outputs.includes(G.humanGain));assert.ok(G.humanGain.outputs.includes(G.scene.input));
+ assert.ok(G.comp.outputs.includes(G.humanGain));assert.ok(G.humanGain.outputs.includes(G.auditionGain));assert.ok(G.auditionGain.outputs.includes(G.scene.input));
  assert.equal(G.hBands.length,3);assert.ok(!G.comp.outputs.includes(ctx.destination));
  });
  test('WAV reserves the whole shared room tail instead of truncating it',async()=>{
@@ -46,3 +46,30 @@ test('explicit STOP mutes and discards room history, while preparation creates a
  const ok=await c.renderAndDownload([{dur:1.2,type:'vowel'}],'synthetic');assert.equal(ok,true);
  assert.equal(ctx.length,Math.ceil((1.23+c.roomPlan(q,44100).tail)*44100),'IR tail must be included in the rendered sample count');
  });
+ test('choir offline graph uses stereo destination and the singer pan before shared room',async()=>{
+ const {ctx,c}=setup();const q=c.qualityDefaults();c.ANAT={quality:q,tube:{open:.4,close:.16}};c.speed=1;c.tubeOn=false;c.CUR={vtl:15.8};c.duetKey=null;
+ const b=html.indexOf('      function buildGraph('),e=html.indexOf('      function ensureCtx()',b);vm.runInContext(html.slice(b,e),c);
+ c.OfflineAudioContext=function(channels,frames,sr){ctx.channels=channels;ctx.sampleRate=sr;ctx.currentTime=0;ctx.startRendering=()=>Promise.resolve({});return ctx;};
+ c.scheduleSegG=()=>{};c.tubeFlush=()=>Promise.resolve();c.encodeWav=()=>({});c.stampNow=()=> 'test';c.URL={createObjectURL:()=> 'blob:test',revokeObjectURL(){}};c.setTimeout=()=>{};c.document={createElement:()=>({click(){},remove(){}}),body:{appendChild(){}}};
+ const rb=html.indexOf('      function renderAndDownload('),re=html.indexOf('      function renderWav()',rb);vm.runInContext(html.slice(rb,re),c);
+ vm.runInContext(html.match(/function choPeak\(n\) \{[^}]+\}/)[0],c);
+ const score=[{dur:1.2,type:'vowel'}];assert.equal(await c.renderAndDownload(score,'test',null,[{segs:score,vtl:16,delay:.02,pan:-.7}],false),true);
+ assert.equal(ctx.channels,2,'choir renderer still creates a mono context');const pn=ctx.nodes.find(n=>n.kind==='panner');assert.ok(pn,'offline panner is missing');assert.equal(pn.pan.value,-.7);assert.ok(pn.outputs.includes(c.qualityScenes.get(ctx).input));
+ });
+test('audition isolates one singer after human automation and ALL restores unity',()=>{
+ const {ctx,c}=setup();assert.equal(typeof c.setVoiceAudition,'function','independent audition control is missing');
+ const q=c.qualityDefaults();q.human.amount=.65;c.ANAT={quality:q,tube:{open:.4,close:.16}};
+ const b=html.indexOf('      function buildGraph('),e=html.indexOf('      function ensureCtx()',b);vm.runInContext(html.slice(b,e),c);
+ const gs=Array.from({length:12},(_,i)=>{const g=c.buildGraph(ctx,null,q);assert.equal(g.auditionGain.gain.value,1);c.prepareQualityVoice(g,q,i,2,1,false);return g;});
+ const human=JSON.stringify(gs.map(g=>g.humanGain.gain.events));c.setVoiceAudition(gs,3);
+ assert.deepEqual(gs.map(g=>g.auditionGain.gain.value),Array.from({length:12},(_,i)=>i===3?1:0));assert.equal(JSON.stringify(gs.map(g=>g.humanGain.gain.events)),human);
+ for(const g of gs){assert.ok(g.humanGain.outputs.includes(g.auditionGain));assert.ok(g.auditionGain.outputs.includes(g.scene.input));assert.ok(!g.humanGain.outputs.includes(g.scene.input));}
+ for(const selected of [-1,99,2.5]){c.setVoiceAudition(gs,selected);assert.ok(gs.every(g=>g.auditionGain.gain.value===1));}
+ c.setVoiceAudition(gs,11);c.setVoiceAudition(gs,0);c.setVoiceAudition(gs,-1);assert.ok(gs.every(g=>g.auditionGain.gain.value===1));c.setVoiceAudition([],1);
+});
+test('offline graphs omit audition processing rather than depending on a unity gate',()=>{
+ const {ctx,c}=setup();c.ANAT={quality:c.qualityDefaults(),tube:{open:.4,close:.16}};
+ const b=html.indexOf('      function buildGraph('),e=html.indexOf('      function ensureCtx()',b);vm.runInContext(html.slice(b,e),c);
+ const g=c.buildGraph(ctx,null,c.qualityDefaults(),false);assert.equal(g.auditionGain,null,'offline still includes live-only audition DSP');assert.equal(g.output,g.humanGain);assert.ok(g.humanGain.outputs.includes(g.scene.input));
+ c.prepareQualityVoice(g,c.qualityDefaults(),0,.01,1,false);c.setVoiceAudition([g],0);assert.ok(g.humanGain.outputs.includes(g.scene.input));
+});

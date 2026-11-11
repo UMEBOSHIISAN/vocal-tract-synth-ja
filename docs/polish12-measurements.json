@@ -1,0 +1,402 @@
+{
+  "source_binding": {
+    "native_full_source_sha256": "25e9bf476c90ba9388bd3e4909c8d8e11f4b1a041cf67628c76fb20a0b11260b",
+    "final_source_sha256": "ae504b81bbf25aa62ea21e9251c568397d61a2d4e7765b3ccc4a818304d59199",
+    "only_post_render_edits": [
+      "update audition status after clearing playback state",
+      "hide idle Hz and reject decaying F0 below 20 Hz"
+    ],
+    "offline_render_pipeline_unchanged": true,
+    "proof_method": "Apply exactly the recorded UI string substitutions to the saved native-render source; require byte-identical equality with current index.html."
+  },
+  "full_renders": [
+    {
+      "done": true,
+      "case": {
+        "label": "full-formant",
+        "frames": 7351673,
+        "rate": 44100,
+        "seconds": 166.70460317460316,
+        "channels": [
+          {
+            "rms": 0.036726524812535154,
+            "peak": 0.33448904752731323,
+            "nonfinite": 0,
+            "clips": 0
+          },
+          {
+            "rms": 0.033653969215184015,
+            "peak": 0.37047064304351807,
+            "nonfinite": 0,
+            "clips": 0
+          }
+        ],
+        "stereoDifferenceRms": 0.026760082861040372,
+        "wallMs": 55739.79999999702,
+        "config": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "size": [
+              8,
+              10,
+              4
+            ],
+            "listener": 0.65
+          }
+        },
+        "graphs": [
+          {
+            "voice": 0,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 1,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 2,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 3,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 4,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 5,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 6,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 7,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 8,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 9,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 10,
+            "auditionGain": null,
+            "engineTube": false
+          },
+          {
+            "voice": 11,
+            "auditionGain": null,
+            "engineTube": false
+          }
+        ]
+      },
+      "header": {
+        "channels": 2,
+        "rate": 44100,
+        "bits": 16,
+        "dataBytes": 29406692,
+        "blobBytes": 29406736
+      },
+      "input": {
+        "seconds": 165.01959999999946,
+        "segments": 1026,
+        "selected": 3
+      },
+      "worklets": 0,
+      "errors": [],
+      "source_sha256": "25e9bf476c90ba9388bd3e4909c8d8e11f4b1a041cf67628c76fb20a0b11260b"
+    },
+    {
+      "done": true,
+      "case": {
+        "label": "full-tube",
+        "frames": 7351673,
+        "rate": 44100,
+        "seconds": 166.70460317460316,
+        "channels": [
+          {
+            "rms": 0.054669547151892636,
+            "peak": 0.3795502185821533,
+            "nonfinite": 0,
+            "clips": 0
+          },
+          {
+            "rms": 0.05118673135538184,
+            "peak": 0.3501715660095215,
+            "nonfinite": 0,
+            "clips": 0
+          }
+        ],
+        "stereoDifferenceRms": 0.04182102482256629,
+        "wallMs": 118515,
+        "config": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "size": [
+              8,
+              10,
+              4
+            ],
+            "listener": 0.65
+          }
+        },
+        "graphs": [
+          {
+            "voice": 0,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 1,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 2,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 3,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 4,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 5,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 6,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 7,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 8,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 9,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 10,
+            "auditionGain": null,
+            "engineTube": true
+          },
+          {
+            "voice": 11,
+            "auditionGain": null,
+            "engineTube": true
+          }
+        ]
+      },
+      "header": {
+        "channels": 2,
+        "rate": 44100,
+        "bits": 16,
+        "dataBytes": 29406692,
+        "blobBytes": 29406736
+      },
+      "input": {
+        "seconds": 165.01959999999946,
+        "segments": 1026,
+        "selected": 3
+      },
+      "worklets": 12,
+      "errors": [],
+      "worklets_this_render": 12,
+      "source_sha256": "25e9bf476c90ba9388bd3e4909c8d8e11f4b1a041cf67628c76fb20a0b11260b"
+    }
+  ],
+  "unity_check": {
+    "epsilon": 1e-07,
+    "max_difference": 1.1920928955078125e-07,
+    "original_epsilon_passed": false,
+    "unchanged_old_control_max_difference": 1.1920928955078125e-07,
+    "note": "Failed original numerical criterion retained. Same maximum was observed in an unchanged-old-source control. Neither bit identity nor perceptual identity is claimed."
+  },
+  "live_audition": {
+    "source_sha256": "25e9bf476c90ba9388bd3e4909c8d8e11f4b1a041cf67628c76fb20a0b11260b",
+    "cases": [
+      {
+        "selected": 6,
+        "voices": 12,
+        "gates": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "tubeVoices": 0,
+        "peak": 0.018162131309509277,
+        "finite": true,
+        "errors": [],
+        "engine": "formant",
+        "restored": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "stopPeak": 0
+      },
+      {
+        "selected": 6,
+        "voices": 12,
+        "gates": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "tubeVoices": 12,
+        "peak": 0.07458534836769104,
+        "finite": true,
+        "errors": [],
+        "engine": "tube",
+        "restored": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "stopPeak": 1.2814998626708984e-06
+      }
+    ]
+  },
+  "background_ending": {
+    "source_sha256": "25e9bf476c90ba9388bd3e4909c8d8e11f4b1a041cf67628c76fb20a0b11260b",
+    "ended": {
+      "expected": 2.0587414965986395,
+      "observed": 2.0607709750566894,
+      "animationEnd": 2.0587414965986395,
+      "visibility": "hidden"
+    },
+    "playing": false,
+    "visibility": "hidden",
+    "errors": []
+  },
+  "manual_reset": {
+    "manual": true,
+    "gain": 1,
+    "errors": []
+  },
+  "final_ui": {
+    "playing": false,
+    "status": "次の再生：6番の声 ／ WAVは全員（試聴の選択を含めません）",
+    "readout": "主声の目標: H4 / H6 / H10 ／ 独立ゆらぎ ±7.8cent ／ 仮想室 8×10×4m・設定RT60 1.40s・聴取距離 4.5m",
+    "errors": []
+  }
+}

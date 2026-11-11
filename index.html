@@ -623,6 +623,7 @@
           <h2 id="qualityHeading" style="font-size:1rem;margin:0 0 10px">声・倍音・合唱・空間 — SOUND LAB</h2>
           <div class="preset-row" role="group" aria-label="音の比較プリセット">
             <button type="button" class="preset-chip" data-quality-preset="classic" aria-pressed="true">原音で比較</button>
+            <button type="button" class="preset-chip" id="ensemble12" data-quality-preset="ensemble12" aria-pressed="false">十二人の堂 — おすすめ</button>
             <button type="button" class="preset-chip" data-quality-preset="two" aria-pressed="false">倍音2本</button>
             <button type="button" class="preset-chip" data-quality-preset="three" aria-pressed="false">倍音3本</button>
             <button type="button" class="preset-chip" data-quality-preset="small" aria-pressed="false">明瞭な小堂（合成）</button>
@@ -655,6 +656,11 @@
           <p class="parse-note">ゆらぎ100%は最大±12cent・振幅±8%の合成用設定。全員に同じLFOは使いません。空間は一次反射＋合成残響で、設定RT60は実測値ではありません。絶対音圧・HRTF・実寺院の最適性は未較正です。</p>
           <canvas id="qualityWave" class="quality-wave" width="800" height="120" role="img" aria-label="声源の一周期モデル。実測出力とは異なります。"></canvas>
           <p class="parse-note" id="qualityReadout"></p>
+          <div id="auditionPanel" hidden>
+            <p class="parse-note">声の聴き比べ（合成系統ごと・試聴のみ）</p>
+            <div class="preset-row" id="auditionButtons"></div>
+            <p class="parse-note" id="auditionStatus" aria-live="polite"></p>
+          </div>
           <p class="parse-note" id="qualityStatus" role="status" aria-live="polite">まず原音と比較してください。下の出力波形・3Dスペクトルは部屋を通った合成音を表示します。</p>
           <p class="parse-note">理論・確認範囲は <a href="docs/sources.md">出典とモデルの限界</a>。音の自然さは聴感での確認が必要です。</p>
         </section>
@@ -664,6 +670,7 @@
           <button class="play-btn" id="playBtn">▶ 発音する</button>
           <button class="stop-btn" id="stopBtn">■ STOP</button>
           <button class="wav-btn" id="wavBtn">WAV 書き出し</button>
+          <span class="parse-note" id="wavAuditionNote">WAVは全員の合唱を書き出します（ひとり聴きの選択は試聴のみ）。</span>
           <button class="wav-btn" id="wavBatchBtn">WAV 一括書き出し（全12件）</button>
           <button class="wav-btn" id="tubeBtn" aria-pressed="false" title="声の作り方を切り替えます。次の再生・書き出しから反映されます">音の作り方：共鳴3本</button>
           <span class="ctl-lab">速度</span>
@@ -829,6 +836,35 @@
         }
         return { cents: 12 * h.amount * slow(0.8 + 0.6 * qHash(voice, seed), 17),
           gain: 1 + 0.08 * h.amount * slow(1.2 + qHash(voice + 3, seed), 991) };
+      }
+      function ensembleScore(segs, voice, input) {
+        var h=qualityConfig({human:input}).human,shift=new Float64Array(segs.length+1);
+        if(voice && h.amount)for(var i=1;i<segs.length;i++){
+          var limit=Math.min(0.025,Math.max(0,segs[i-1].dur)*0.16,Math.max(0,segs[i].dur)*0.16)*h.amount;
+          var key=Number.isFinite(segs[i].mora)?segs[i].mora:i;
+          shift[i]=(qHash(key,(h.seed+Math.imul(voice,3571))|0)*2-1)*limit;
+        }
+        return segs.map(function(s,i){var c=Object.assign({},s);c.dur=s.dur+shift[i+1]-shift[i];return c;});
+      }
+      function singerShape(input, voice) {
+        var q=qualityConfig(input),a=q.human.amount,open=q.open,close=q.close;
+        if(voice && a && q.source==="pulse"){
+          open+=0.04*a*(qHash(voice,q.human.seed+283)*2-1);
+          close*=1+0.35*a*(qHash(voice,q.human.seed+1187)*2-1);
+        }
+        var shape=qualityConfig({open:open,close:close});return {open:shape.open,close:shape.close};
+      }
+      function singerFrame(list, elapsed) {
+        if(!list.length || elapsed<0)return null;
+        var lo=0,hi=list.length;
+        while(lo<hi){var mid=(lo+hi)>>1;if(list[mid].start<=elapsed)lo=mid+1;else hi=mid;}
+        var s=list[lo-1];if(!s || elapsed>=s.start+s.dur)return null;
+        return {seg:s,voiced:s.type!=="pause"&&!!s.gains&&s.gains.v>0.01,inhale:s.type==="pause"};
+      }
+      function ensemblePreset() {
+        var q=qualityDefaults();q.source="pulse";q.close=0.12;
+        q.partials.on=true;q.partials.orders=[4,6,10];q.partials.levels=[1,0.7,0.45];q.partials.mix=0.55;q.partials.width=40;
+        q.human.amount=0.65;q.room.on=true;q.room.rt=1.4;q.room.wet=0.22;return q;
       }
       function roomPlan(input, fs) {
         var q = qualityConfig(input), r = q.room; fs = qClamp(fs, 8000, 96000, 44100);
@@ -1850,13 +1886,14 @@
       }
       function prepareQualityVoice(G,input,voice,start,duration,engineTube,offset) {
         G.q=qualityConfig(input);G.engineTube=!!engineTube;G.voiceIndex=voice;G.humanStart=start;
-        var q=G.q,scene=G.scene;
+        var q=G.q,scene=G.scene,shape=singerShape(q,voice);G.sourceShape=shape;
+        if(G.auditionGain){G.auditionGain.gain.cancelScheduledValues(0);G.auditionGain.gain.setValueAtTime(1,start);}
         if(q.source==="pulse"){
-          var key=q.open+"/"+q.close,w=scene.waves.get(key);
-          if(!w){var coef=pulseCoefficients(q.open,q.close,64);w=G.ctx.createPeriodicWave(coef.real,coef.imag);if(scene.waves.size>=6)scene.waves.delete(scene.waves.keys().next().value);scene.waves.set(key,w);}
+          var key=shape.open+"/"+shape.close,w=scene.waves.get(key);
+          if(!w){var coef=pulseCoefficients(shape.open,shape.close,64);w=G.ctx.createPeriodicWave(coef.real,coef.imag);if(scene.waves.size>=6)scene.waves.delete(scene.waves.keys().next().value);scene.waves.set(key,w);}
           G.osc.setPeriodicWave(w);
         }else G.osc.type="sawtooth";
-        if(G.tube)G.tube.port.postMessage({shape:{open:q.source==="pulse"?q.open:ANAT.tube.open,close:q.source==="pulse"?q.close:ANAT.tube.close}});
+        if(G.tube)G.tube.port.postMessage({shape:{open:q.source==="pulse"?shape.open:ANAT.tube.open,close:q.source==="pulse"?shape.close:ANAT.tube.close}});
         var n=Math.max(2,Math.min(6001,Math.ceil(duration*10)+1)),pitch=new Float32Array(n),gain=new Float32Array(n);
         for(var i=0;i<n;i++){var h=humanAt((offset||0)+i*duration/(n-1),voice,q.human);pitch[i]=h.cents;gain[i]=h.gain;}
         var detunes=[G.osc.detune].concat(G.hBands.map(function(b){return b.f.detune;}));
@@ -1864,6 +1901,14 @@
         detunes.forEach(function(p){p.cancelScheduledValues(0);if(q.human.amount)p.setValueCurveAtTime(pitch,start,Math.max(0.01,duration));else p.setValueAtTime(0,start);});
         G.humanGain.gain.cancelScheduledValues(0);
         if(q.human.amount)G.humanGain.gain.setValueCurveAtTime(gain,start,Math.max(0.01,duration));else G.humanGain.gain.setValueAtTime(1,start);
+      }
+      function setVoiceAudition(graphs, selected) {
+        var valid=Number.isInteger(selected)&&selected>=0&&selected<graphs.length;
+        graphs.forEach(function(G,i){
+          if(!G.auditionGain)return;
+          var p=G.auditionGain.gain,now=G.ctx.currentTime,current=p.value;
+          p.cancelScheduledValues(now);p.setValueAtTime(current,now);p.setTargetAtTime(!valid||i===selected?1:0,now,0.015);
+        });
       }
       function resetQualityVoice(G,now) {
         if(!G.hBands)return;
@@ -1877,14 +1922,15 @@
       /* ---------- audio engine (formant synthesis) ----------
          グラフ構築はライブ再生／WAV書き出し（OfflineAudioContext）で共用する。 */
       var AC = null, N = null, N2 = null;
-      function buildGraph(ctx, analyser, quality) {
+      function buildGraph(ctx, analyser, quality, audition) {
         var q=qualityConfig(quality || ANAT.quality),scene=qualityScene(ctx,analyser,q);
         var master = ctx.createGain(); master.gain.value = 0;
         var comp = ctx.createDynamicsCompressor();
         comp.threshold.value = -18; comp.ratio.value = 6;
         var hDry=ctx.createGain(),hBands=[];master.connect(hDry);hDry.connect(comp);
         for(var hb=0;hb<3;hb++){var hf=ctx.createBiquadFilter(),hg=ctx.createGain();hf.type="bandpass";hf.frequency.value=600+hb*400;hf.Q.value=20;hg.gain.value=0;master.connect(hf);hf.connect(hg);hg.connect(comp);hBands.push({f:hf,g:hg});}
-        var humanGain=ctx.createGain();humanGain.gain.value=1;comp.connect(humanGain);humanGain.connect(scene.input);
+        var humanGain=ctx.createGain(),auditionGain=audition===false?null:ctx.createGain();humanGain.gain.value=1;comp.connect(humanGain);
+        if(auditionGain){auditionGain.gain.value=1;humanGain.connect(auditionGain);auditionGain.connect(scene.input);}else humanGain.connect(scene.input);
 
         var osc = ctx.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 112;
         var oscGain = ctx.createGain(); oscGain.gain.value = 0;
@@ -1911,7 +1957,7 @@
         noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
 
         osc.start(); noise.start();
-        return { ctx:ctx,scene:scene,q:q,hDry:hDry,hBands:hBands,humanGain:humanGain,comp: comp, master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
+        return { ctx:ctx,scene:scene,q:q,hDry:hDry,hBands:hBands,humanGain:humanGain,auditionGain:auditionGain,output:auditionGain||humanGain,comp: comp, master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
                  f1: f1, f2: f2, f2b: f2b, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
       }
       function ensureCtx() {
@@ -2024,7 +2070,7 @@
       function scheduleSeg(seg, t) { scheduleSegG(N, seg, t); }
 
       /* ---------- 合唱（ANAT.chorus）---------- */
-      var choN = 1, CHO = [];
+      var choN = 1, CHO = [], listenVoice = -1;
       function choExtraCount(n, duet) {
         return Math.max(0, Math.min(n - 1, ANAT.chorus.vtl.length - (duet ? 1 : 0)));
       }
@@ -2032,7 +2078,7 @@
       /* i 番目（1〜）の追加の声のスコア：声道長をずらした話者で組み直し、音程をずらす */
       function choScore(song, i) {
         var C = ANAT.chorus, r = Math.pow(2, C.cents[i - 1] / 1200);
-        return buildSongScoreAs(song, speakerForVtl(CUR.vtl + C.vtl[i - 1])).map(function (sg) {
+        return ensembleScore(buildSongScoreAs(song, speakerForVtl(CUR.vtl + C.vtl[i - 1])),i,qualityConfig(ANAT.quality).human).map(function (sg) {
           var c = Object.assign({}, sg); c.f0a = sg.f0a * r; c.f0b = sg.f0b * r;
           if (sg.bw && sg.f) c.f = [sg.f[0], sg.f[1] * r, sg.f[2]];
           return c;
@@ -2043,7 +2089,7 @@
           var G = buildGraph(AC, null);
           if (AC.createStereoPanner) {
             var pn = AC.createStereoPanner(); pn.pan.value = ANAT.chorus.pan[i - 1];
-            G.humanGain.disconnect(); G.humanGain.connect(pn); pn.connect(G.scene.input);
+            G.output.disconnect(); G.output.connect(pn); pn.connect(G.scene.input);
           }
           CHO[i] = G;
         }
@@ -2062,9 +2108,10 @@
       function choPeak(n) { return 1.5 / Math.pow(n, 0.8); }
 
       /* ---------- playback state ---------- */
-      var speed = 1, playing = false, anim = null, loopOn = false, playMode = "phrase", loopTimer = null, playTicket = 0;
+      var speed = 1, playing = false, anim = null, loopOn = false, playMode = "phrase", loopTimer = null, playTicket = 0, endSignal = null;
       var duetKey = null; /* デュエットの相手プリセット（null = なし）。第2声は N2 グラフで独立合成 */
       function startPlayback(raw, mode, items, song, raw2, ready) {
+        cancelEndSignal();
         if (loopTimer !== null) { clearTimeout(loopTimer); loopTimer = null; }
         ensureCtx();
         var cfg=ready?ready.cfg:qualityConfig(ANAT.quality),engine=ready?ready.engine:tubeOn;
@@ -2093,8 +2140,9 @@
         function scaled(r) { return r.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / playSpeed; return c; }); }
         var segs = scaled(raw);
         var segs2 = raw2 ? scaled(raw2) : null;
+        var voices=[{segs:segs,start:0,graph:N}];
         var total = segs.reduce(function (a, s) { return a + s.dur; }, 0);
-        var t0 = now + 0.09;
+        var t0 = now + 0.09;voices[0].start=t0;
         var peak = segs2 ? 0.72 : 0.9;
         N.scene.tailUntil=t0+total+N.scene.plan.tail;
         prepareQualityVoice(N,cfg,0,t0,total,engine);
@@ -2111,6 +2159,7 @@
           N2.master.gain.cancelScheduledValues(now);
           N2.master.gain.setValueAtTime(0, now);
           N2.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
+          voices.push({segs:segs2,start:t0,graph:N2});
           var t2 = t0;
           segs2.forEach(function (s) { scheduleSegG(N2, s, t2); t2 += s.dur; });
         }
@@ -2125,14 +2174,17 @@
             var CG = choGraph(ci), ct = t0 + ANAT.chorus.delay[ci - 1] / 1000;
             prepareQualityVoice(CG,cfg,ci+(segs2?1:0),ct,total,engine);
             CG.master.gain.cancelScheduledValues(now); CG.master.gain.setValueAtTime(0, now); CG.master.gain.linearRampToValueAtTime(cp, t0 + 0.02);
-            scaled(choScore(song, ci)).forEach(function (sg) { scheduleSegG(CG, sg, ct); ct += sg.dur; });
+            var singerSegs=scaled(choScore(song,ci));voices.push({segs:singerSegs,start:ct,graph:CG});
+            singerSegs.forEach(function(sg){scheduleSegG(CG,sg,ct);ct+=sg.dur;});
           }
         }
-        var acc = 0;
-        segs.forEach(function (s) { s.start = acc; acc += s.dur; });
-        anim = { segs: segs, total: total, startCtx: t0, mode: mode, items: items, song: song || null, duetKey: duetKey };
+        var end=0;
+        voices.forEach(function(v){var acc=0;v.segs.forEach(function(s){s.start=acc;acc+=s.dur;});if(acc>0)end=Math.max(end,v.start-t0+acc);});
+        total=end;N.scene.tailUntil=t0+total+N.scene.plan.tail;
+        anim = { segs: segs, total: total, startCtx: t0, mode: mode, items: items, song: song || null, duetKey: duetKey, voices:voices };
+        V3.ensembleDraw=[];
         V3.kyoCur = 0;
-        playing = true;
+        playing = true;applyListening();armEndSignal(t0+total,ticket);
         document.getElementById("liveInd").classList.add("on");
         document.getElementById("liveTxt").textContent = mode === "song" ? "SINGING" : "SPEAKING";
       }
@@ -2147,22 +2199,31 @@
         startPlayback(buildSongScore(currentSong), "song", null, currentSong, raw2);
       }
       function stop() {
-        playTicket++;
+        playTicket++;cancelEndSignal();
         if (loopTimer !== null) { clearTimeout(loopTimer); loopTimer = null; }
         if (manOn) manUiOff();
         if (AC && N) silenceParams(AC.currentTime);
         if (AC) resetQualityTail(AC);
-        playing = false; anim = null;
+        playing = false; anim = null;applyListening();
         document.getElementById("liveInd").classList.remove("on");
         document.getElementById("liveTxt").textContent = "STANDBY";
         clearTiles();
       }
+      function cancelEndSignal() {
+        if(!endSignal)return;var clock=endSignal;endSignal=null;clock.onended=null;clock.stop();clock.disconnect();
+      }
+      function armEndSignal(deadline,ticket) {
+        var clock=AC.createBufferSource();clock.buffer=AC.createBuffer(1,1,AC.sampleRate);clock.connect(N.scene.input);
+        clock.onended=function(){if(endSignal!==clock)return;endSignal=null;clock.disconnect();if(ticket===playTicket&&playing)finishUtterance();};
+        endSignal=clock;clock.start(deadline);
+      }
       function finishUtterance() {
+        cancelEndSignal();
         var mode = anim ? anim.mode : "phrase";
         var lastItems = anim ? anim.items : null;
         var lastSong = anim ? anim.song : null;
         var lastDuet = anim ? anim.duetKey : null;
-        playing = false; anim = null;
+        playing = false; anim = null;applyListening();
         if (AC && N) silenceParams(AC.currentTime);
         document.getElementById("liveInd").classList.remove("on");
         document.getElementById("liveTxt").textContent = "STANDBY";
@@ -2438,7 +2499,7 @@
         if (m === "free") applyFreeText();
         else if (m === "song") { if (!currentSong) setSong("furusato"); SEQ = currentSong.morae; rebuildTiles(); }
         else { SEQ = MORAE; rebuildTiles(); }
-        dispKey = "__mode__"; setReadout(null);
+        dispKey = "__mode__"; setReadout(null);applyListening();
       }
       document.getElementById("modePhrase").addEventListener("click", function () { setMode("phrase"); });
       document.getElementById("modeFree").addEventListener("click", function () { setMode("free"); });
@@ -2521,10 +2582,30 @@
 
       /* ---------- sound laboratory controls (all values are synthesis settings) ---------- */
       var qualityPreset="classic",qualityPaintAt=0;
+      /* AUDITION_UI_BEGIN */
+      function applyListening() {
+        var graphs=playing&&anim&&anim.voices?anim.voices.map(function(v){return v.graph;}):[];
+        var count=graphs.length||(choN>1?1+choExtraCount(choN,!!duetKey)+(duetKey?1:0):1);
+        if(!Number.isInteger(listenVoice)||listenVoice<0||listenVoice>=count)listenVoice=-1;
+        var active=playing&&anim&&anim.mode==="song"&&graphs.length>1;
+        if(graphs.length)setVoiceAudition(graphs,active?listenVoice:-1);
+        var panel=document.getElementById("auditionPanel");if(panel)panel.hidden=appMode!=="song"||choN<2;
+        document.querySelectorAll("[data-listen]").forEach(function(b){var i=+b.dataset.listen;b.disabled=i>=count;b.setAttribute("aria-pressed",listenVoice===i?"true":"false");});
+        var status=document.getElementById("auditionStatus");if(status)status.textContent=(playing?"試聴中：":"次の再生：")+(listenVoice<0?"全員":listenVoice===0?"導師":String(listenVoice+1)+"番の声")+" ／ WAVは全員（試聴の選択を含めません）";
+      }
+      /* AUDITION_UI_END */
+      (function(){
+        var host=document.getElementById("auditionButtons");
+        for(var i=-1;i<12;i++){
+          var b=document.createElement("button");b.type="button";b.className="preset-chip";b.dataset.listen=String(i);b.textContent=i<0?"全員":i===0?"導師":String(i+1);
+          b.addEventListener("click",function(){listenVoice=+this.dataset.listen;applyListening();});host.appendChild(b);
+        }
+        applyListening();
+      })();
       function qualityMessage(text,failed) { var el=document.getElementById("qualityStatus");if(el){el.textContent=text;el.classList.toggle("warn",!!failed);} }
       function qualitySoundActive() { return !!(AC&&N&&(playing||manOn||AC.currentTime<(N.scene.tailUntil||0))); }
       function qualityDisplayBands() {
-        var q=qualitySoundActive()?N.q:qualityConfig(ANAT.quality),f0=typeof dispF0==="number"&&dispF0>0?dispF0:CUR.f0Base;
+        var q=qualitySoundActive()?N.q:qualityConfig(ANAT.quality),f0=typeof dispF0==="number"&&dispF0>20?dispF0:CUR.f0Base;
         return harmonicPlan(q.partials,f0,AC?AC.sampleRate:44100).bands;
       }
       function drawQualityPreview() {
@@ -2535,9 +2616,9 @@
         for(var i=0;i<W-32;i++){var ph=i/(W-33),v=(q.source==="pulse"||tubeOn)?qPulse(ph,q.source==="pulse"?q.open:ANAT.tube.open,q.source==="pulse"?q.close:ANAT.tube.close):ph;
           var x=i+16,y=H-20-v*(H-50);if(i)cx.lineTo(x,y);else cx.moveTo(x,y);}
         cx.strokeStyle="#ffd68c";cx.lineWidth=2;cx.stroke();
-        var f0=typeof dispF0==="number"&&dispF0>0?dispF0:(appMode==="manual"?manF0:CUR.f0Base);
+        var f0=typeof dispF0==="number"&&dispF0>20?dispF0:(appMode==="manual"?manF0:CUR.f0Base);
         var bands=harmonicPlan(q.partials,f0,AC?AC.sampleRate:44100).bands;
-        var desc=bands.length?bands.map(function(b){return "H"+b.order+" ≈ "+Math.round(b.frequency)+"Hz";}).join(" / "):"倍音ミキサーOFF（原音）";
+        var desc=bands.length?bands.map(function(b){return "H"+b.order+(qualitySoundActive()||appMode==="manual"?" ≈ "+Math.round(b.frequency)+"Hz":"");}).join(" / "):"倍音ミキサーOFF（原音）";
         var room=q.room.on?"仮想室 "+q.room.size.join("×")+"m・設定RT60 "+q.room.rt.toFixed(2)+"s・聴取距離 "+roomPlan(q,44100).directDistance.toFixed(1)+"m":"空間OFF";
         document.getElementById("qualityReadout").textContent="主声の目標: "+desc+" ／ 独立ゆらぎ ±"+(12*q.human.amount).toFixed(1)+"cent ／ "+room;
       }
@@ -2555,6 +2636,12 @@
       }
       document.querySelectorAll("[data-quality-preset]").forEach(function(b){b.addEventListener("click",function(){
         var key=b.dataset.qualityPreset,q=qualityDefaults();
+        if(key==="ensemble12"){
+          listenVoice=-1;setMode("song");setSong("hannya");ANAT.quality=ensemblePreset();qualityPreset=key;
+          document.querySelector('[data-cho="12"]').click();
+          if(!view3dOn)document.getElementById("tab-3d").click();
+          syncQualityUI();qualityMessage("十二人の堂：個別の声色・発音のずれ・小堂の余韻。PLAYで開始（合成上の演出です）。",false);return;
+        }
         if(key!=="classic"){q.source="pulse";q.close=0.08;q.partials.on=true;q.partials.orders=[4,6,10];q.partials.mix=0.9;q.partials.width=30;if(key==="two")q.partials.levels=[1,0,1];}
         if(key==="small"||key==="hall"){q.close=0.12;q.partials.mix=0.8;q.human.amount=0.45;q.room.on=true;if(key==="hall"){q.room.size=[14,20,7];q.room.rt=2.6;q.room.wet=0.34;q.room.damp=0.4;}}
         stop();ANAT.quality=qualityConfig(q);qualityPreset=key;syncQualityUI();qualityMessage("設定を反映しました。原音と比べて聴いてください（医学的・実空間の再現精度は未検証）。",false);
@@ -2575,19 +2662,17 @@
          44.1kHz・16bit・モノラルの WAV にしてダウンロードする。
          先頭・末尾の無音は最小限（頭 20ms ＋ 末尾フェード）に詰める。 */
       function encodeWav(buffer) {
-        var sr = buffer.sampleRate, len = buffer.length;
-        var data = buffer.getChannelData(0);
-        var out = new DataView(new ArrayBuffer(44 + len * 2));
-        function wstr(off, s) { for (var i = 0; i < s.length; i++) out.setUint8(off + i, s.charCodeAt(i)); }
-        wstr(0, "RIFF"); out.setUint32(4, 36 + len * 2, true); wstr(8, "WAVE");
-        wstr(12, "fmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 1, true);
-        out.setUint32(24, sr, true); out.setUint32(28, sr * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true);
-        wstr(36, "data"); out.setUint32(40, len * 2, true);
-        for (var i = 0; i < len; i++) {
-          var v = Math.max(-1, Math.min(1, data[i]));
-          out.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+        var sr=buffer.sampleRate,len=buffer.length,channels=Math.min(2,buffer.numberOfChannels||1),data=[];
+        for(var ch=0;ch<channels;ch++)data.push(buffer.getChannelData(ch));
+        var out=new DataView(new ArrayBuffer(44+len*channels*2));
+        function wstr(off,s){for(var i=0;i<s.length;i++)out.setUint8(off+i,s.charCodeAt(i));}
+        wstr(0,"RIFF");out.setUint32(4,36+len*channels*2,true);wstr(8,"WAVE");wstr(12,"fmt ");out.setUint32(16,16,true);
+        out.setUint16(20,1,true);out.setUint16(22,channels,true);out.setUint32(24,sr,true);out.setUint32(28,sr*channels*2,true);out.setUint16(32,channels*2,true);out.setUint16(34,16,true);
+        wstr(36,"data");out.setUint32(40,len*channels*2,true);
+        for(var i=0;i<len;i++)for(var ch=0;ch<channels;ch++){
+          var v=Math.max(-1,Math.min(1,data[ch][i]));out.setInt16(44+(i*channels+ch)*2,v<0?v*0x8000:v*0x7fff,true);
         }
-        return new Blob([out.buffer], { type: "audio/wav" });
+        return new Blob([out.buffer],{type:"audio/wav"});
       }
       function stampNow() {
         var d = new Date();
@@ -2612,9 +2697,9 @@
             var sourceDur = Math.max(0.2, totalAll - lead - trail + 0.03 + tailDelay);
             var sr = 44100;
             var dur=sourceDur+roomPlan(qc,sr).tail;
-            var off = new OfflineAudioContext(1, Math.ceil(dur * sr), sr);
+            var off = new OfflineAudioContext(extra && extra.length ? 2 : 1, Math.ceil(dur * sr), sr);
             function prepGraph(level) {
-              var G = buildGraph(off, null, qc);
+              var G = buildGraph(off, null, qc, false);
               G.vtl=CUR.vtl;
               G.master.gain.setValueAtTime(0, 0);
               G.master.gain.linearRampToValueAtTime(level, 0.025);
@@ -2632,7 +2717,11 @@
             var Gs = [prepGraph(chant && extra && extra.length ? chantLeadGain(peak) : peak)];
             if (segs2) { Gs.push(prepGraph(peak)); Gs[1].vtl = (ANAT.speakers[duetKey] || CUR).vtl; } /* 第2声も同じオフライン描画へ混ぜる */
             var nBase = Gs.length;
-            (extra || []).forEach(function (ex) { var G = prepGraph(peak); G.vtl = ex.vtl; Gs.push(G); });
+            (extra || []).forEach(function (ex) {
+              var G=prepGraph(peak);G.vtl=ex.vtl;
+              if(off.createStereoPanner){var pn=off.createStereoPanner();pn.pan.value=typeof ex.pan==="number"?ex.pan:0;G.output.disconnect();G.output.connect(pn);pn.connect(G.scene.input);}
+              Gs.push(G);
+            });
             var ready = engineTube ? Promise.all(Gs.map(function (G) { return tubeAttach(off, G); })) : Promise.resolve([]);
             ready.then(function (results) {
               if(engineTube && results.some(function(ok){return !ok;})) throw new Error("tube_unavailable");
@@ -2666,7 +2755,7 @@
           if (choN > 1) {
             extra = [];
             var extraCount = choExtraCount(choN, !!sp2);
-            for (var ci = 1; ci <= extraCount; ci++) extra.push({ segs: choScore(currentSong, ci), vtl: CUR.vtl + ANAT.chorus.vtl[ci - 1], delay: ANAT.chorus.delay[ci - 1] / 1000 });
+            for (var ci = 1; ci <= extraCount; ci++) extra.push({ segs: choScore(currentSong, ci), vtl: CUR.vtl + ANAT.chorus.vtl[ci - 1], delay: ANAT.chorus.delay[ci - 1] / 1000, pan: ANAT.chorus.pan[ci - 1] });
           }
         } else if (appMode === "manual") {
           /* 手動調音：今のポーズを約1.2秒の持続音として書き出す（デュエット対象外） */
@@ -2698,8 +2787,8 @@
       document.getElementById("wavBtn").addEventListener("click", renderWav);
       Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (b) {
         b.addEventListener("click", function () {
-          choN = +b.dataset.cho;
           stop();
+          choN = +b.dataset.cho;listenVoice=-1;applyListening();
           Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
           ensureCtx(); choPrepare();
         });
@@ -3042,15 +3131,15 @@
         pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
         if (close) ctx.closePath();
         dz /= pts.length || 1;
-        ctx.globalAlpha = g3Fog(dz);
+        var inheritedAlpha=ctx.globalAlpha;ctx.globalAlpha = inheritedAlpha*g3Fog(dz);
         ctx.strokeStyle = col; ctx.lineWidth = w * (vp.lw || 1) * Math.max(0.7, Math.min(1.35, 1 - dz / 500)); ctx.stroke();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = inheritedAlpha;
       }
       function g3Fill(ctx, vp, pts, col) {
         var dz = 0;
         ctx.beginPath();
         pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
-        ctx.closePath(); ctx.globalAlpha = g3Fog(dz / (pts.length || 1)); ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = 1;
+        var inheritedAlpha=ctx.globalAlpha;ctx.closePath(); ctx.globalAlpha = inheritedAlpha*g3Fog(dz / (pts.length || 1)); ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = inheritedAlpha;
       }
       function fillBand(ctx, vp, r0, r1, col) {
         for (var k = 0; k < r0.length; k++) { var k2 = (k + 1) % r0.length; g3Fill(ctx, vp, [r0[k], r0[k2], r1[k2], r1[k]], col); }
@@ -3501,12 +3590,12 @@
         ctx.restore();
       }
       /* 曼荼羅表示（合唱）：人数ぶんの頭を輪に並べ、全員が中心を向く。床に同心円・四角・放射線・蓮弁の図形を描く。
-         全員の口の形は主の声のものを共用する（人ごとの違いは音だけ）。配置と図形は表示上の演出で、音の計算には使っていない */
+         12人までは実際の各声のスコア時刻から口・息継ぎを描く（生理実測ではない模式図）。配置と図形は表示上の演出で、音の計算には使っていない */
       function g3Mandala(ctx, vp, p) {
         var n = vp.mandala;
         if (n > 12) { g3CrowdMandala(ctx, vp, p); return; }
         var solo = n === 1, det = solo ? 3 : n <= 3 ? 2 : n <= 6 ? 1 : 0;
-        var R = solo ? 330 : Math.max(640, n * 430 / (2 * Math.PI) - 100), Rs = solo ? 0 : R, zoom = solo ? 0.45 : 430 / (2 * R + 620), lw = n > 6 ? 0.55 : solo ? 1 : 0.8;
+        var R = solo ? 330 : Math.max(n===12?850:640, n * 430 / (2 * Math.PI) - 100), Rs = solo ? 0 : R, zoom = solo ? 0.45 : 430 / (2 * R + 620), lw = n > 6 ? 0.55 : solo ? 1 : 0.8;
         var fy = 1147, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500 };
         var gold = "rgba(255,206,120,0.5)", cyan = "rgba(94,231,255,0.32)", TAU = Math.PI * 2;
         function ringPts(r, m, a0) { var o = []; for (var k = 0; k <= m; k++) { var a = a0 + TAU * k / m; o.push([330 + r * Math.cos(a), fy, r * Math.sin(a)]); } return o; }
@@ -3550,8 +3639,19 @@
           g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
           var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw, det: det,
             ring: { c: Math.cos(th), s: Math.sin(th), px: Rs * Math.cos(ang) - (solo ? 50 : 0), pz: Rs * Math.sin(ang) } };
-          g3Scene(ctx, vpi, p);
-          g3Body(ctx, Object.assign({}, vpi, { yo: 38 }), Math.max(0, Math.min(1, (V3.lung === undefined ? 0.6 : V3.lung) + (reduced ? 0 : 0.07 * Math.sin(Date.now() / 1700 + i * 1.7)))));
+          var v=playing&&anim&&anim.voices?anim.voices[i]:null;
+          var frame=v&&AC?singerFrame(v.segs,AC.currentTime-v.start):null,target=frame&&frame.seg.pose?frame.seg.pose:p;
+          if(!V3.ensembleDraw)V3.ensembleDraw=[];
+          var ds=V3.ensembleDraw[i]||(V3.ensembleDraw[i]={pose:Object.assign({},target),lung:0.6,time:Date.now()});
+          var dt=Math.max(0,Math.min(0.1,(Date.now()-ds.time)/1000));ds.time=Date.now();
+          Object.keys(target).forEach(function(k){if(typeof target[k]==="number")ds.pose[k]=reduced?target[k]:(typeof ds.pose[k]==="number"?ds.pose[k]:target[k])+(target[k]-(typeof ds.pose[k]==="number"?ds.pose[k]:target[k]))*(1-Math.exp(-dt/0.035));});
+          var inhale=frame?frame.inhale:!playing;
+          ds.lung=reduced?0.6:inhale?ds.lung+(1-ds.lung)*Math.min(1,dt*4):Math.max(0.12,ds.lung-dt/11);
+          var savedVoiced=V3.voiced,savedGlow=V3.glow;
+          ctx.save();if(n>1&&listenVoice>=0&&listenVoice!==i)ctx.globalAlpha*=0.2;
+          V3.voiced=frame?frame.voiced:false;V3.glow=(savedGlow||0)*(V3.voiced?1:0.12);
+          if(!reduced)vpi.yaw+=0.025*Math.sin(Date.now()/1800+i*1.73);
+          g3Scene(ctx,vpi,ds.pose);g3Body(ctx,Object.assign({},vpi,{yo:38}),ds.lung);
           /* 光背（頭の後ろの輪）と、口から中心へ向かう声の光（演出）。色は人ごとに少しずつ変える */
           var gl = V3.glow || 0, hue = 38 + (i * 137) % 60 - 30, hal = [], hal2 = [], tm = reduced ? 0 : Date.now() / 1100;
           for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + (178 + 6 * Math.sin(tm * 2 + i)) * Math.cos(ha), (178 + 6 * Math.sin(tm * 2 + i)) * Math.sin(ha)]); }
@@ -3563,6 +3663,11 @@
             var bt = ((tm * 0.55 + bk / 4 + i * 0.13) % 1), bt2 = Math.min(1, bt + 0.07);
             g3Line(ctx, vpi, [[m0[0] + (m1[0] - m0[0]) * bt, m0[1] + (m1[1] - m0[1]) * bt, 0], [m0[0] + (m1[0] - m0[0]) * bt2, m0[1] + (m1[1] - m0[1]) * bt2, 0]], "hsla(" + hue + ",100%,82%," + (0.85 * (1 - bt)).toFixed(2) + ")", 2.6);
           }
+          if(n===12){
+            var label=g3Proj(228,0,0,vpi);ctx.save();ctx.globalCompositeOperation="source-over";ctx.font="20px sans-serif";ctx.textAlign="center";
+            ctx.fillStyle=V3.voiced?"#ffd68c":"rgba(143,210,223,0.7)";ctx.fillText(i===0?"導師":String(i+1),label[0],label[1]-8);ctx.restore();
+          }
+          ctx.restore();V3.voiced=savedVoiced;V3.glow=savedGlow;
         }
       }
       /* 同じ長さの輪郭を全員に使い、輪と口の動きだけを投影する大人数用の描画。 */
@@ -3665,7 +3770,7 @@
         var nCho = (appMode === "song" && choN > 1) ? choN : 1, soloMan = appMode === "song" && choN <= 1 && monk;
         var VIEWS = [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }];
         if (nCho > 1 || soloMan) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: soloMan ? 318 : 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000),
-          pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : 0.72))), label: soloMan ? "VIEW  独唱（全身）" : "VIEW  曼荼羅（" + nCho + "人）" };
+          pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : nCho===12 ? 0.5 : 0.72))), label: soloMan ? "VIEW  独唱（全身）" : "VIEW  曼荼羅（" + nCho + "人）" };
         VIEWS.forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           if (vp.mandala) g3Mandala(ctx, vp, p); else g3Scene(ctx, vp, p);
@@ -3675,7 +3780,7 @@
           ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
         });
         /* 発光のにじみ：描いた線画をぼかして重ねる（対応していないブラウザでは何も起きない） */
-        if (!reduced && "filter" in ctx) { ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = nCho > 12 ? 0.27 : 0.55; ctx.filter = "blur(6px)"; ctx.drawImage(cv, 0, 0); ctx.restore(); }
+        if (!reduced && "filter" in ctx) { ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = nCho === 12 ? 0.24 : nCho > 12 ? 0.27 : 0.55; ctx.filter = nCho===12?"blur(2px)":"blur(6px)"; ctx.drawImage(cv, 0, 0); ctx.restore(); }
         ctx.globalCompositeOperation = "source-over";
         /* 断面積関数（声門→唇）：推定断面（矢状径×1.35倍の楕円）の面積。狭窄は橙で示す */
         if (V3.areas && V3.areas.length) {
