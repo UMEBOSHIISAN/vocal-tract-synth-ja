@@ -1,17 +1,66 @@
 <!doctype html>
-<html lang="ja">
+<!--
+Vocal Tract Simulator — original software: UMEBOSHIISAN.
+MIT applies to original software; third-party/public-domain material has separate provenance.
+See THIRD_PARTY_NOTICES.md for scope, exclusions, and attribution.
+OWN_MIT_BEGIN
+MIT License
+
+Copyright (c) 2026 UMEBOSHIISAN
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+OWN_MIT_END
+
+Chimera demo data: Jameson Hodge, cd98192b421dcbbe0738798f6ef7f56ca9ed9ac3.
+https://github.com/jamesondh/chimera-vocal-synth
+CHIMERA_MIT_BEGIN
+MIT License
+
+Copyright (c) 2026 Jameson Hodge
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+CHIMERA_MIT_END
+-->
+<html lang="ja" translate="no">
   <head>
     <meta charset="utf-8" />
+    <meta name="google" content="notranslate" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="data:," />
     <title>声道シミュレータ日本語版</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&display=swap"
-      rel="stylesheet"
-    />
     <style>
       :root {
         --bg: #010304;
@@ -29,8 +78,8 @@
         --pink: #ff8ae2;
         --amber: #ffb454;
         --white: #eefaff;
-        --mono: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-        --sans: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
@@ -44,6 +93,17 @@
         padding: 14px 12px 40px;
       }
       .stage { max-width: 1060px; margin: 0 auto; }
+      a { color: var(--cyan); text-underline-offset: 0.18em; }
+      a:focus-visible, summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+      .welcome { margin-bottom: 18px; }
+      .welcome h1 { font-size: clamp(1.25rem, 3vw, 1.85rem); line-height: 1.4; margin: 12px 0 8px; letter-spacing: 0.02em; }
+      .welcome p, .quick-help li { max-width: 85ch; font-size: 0.875rem; line-height: 1.75; color: var(--ink-dim); margin: 8px 0; }
+      .welcome .safety-note { color: var(--amber); }
+      .locale-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; }
+      .locale-row button { min-width: 5rem; min-height: 44px; }
+      .quick-help { border: 1px solid var(--panel-edge-dim); padding: 10px 14px; background: #031017; }
+      .quick-help summary { cursor: pointer; font-size: 0.875rem; color: var(--cyan); }
+      .quick-help ul { padding-left: 22px; }
 
       /* ---------- device panel ---------- */
       .device {
@@ -114,9 +174,9 @@
       }
       .tract-wrap { position: relative; }
       svg.tract { width: 100%; height: auto; display: block; }
-      .ot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 6px 22px; margin: 8px 0; }
-      .ot-row { display: grid; grid-template-columns: 150px 1fr 56px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); }
-      .ot-row input { width: 100%; }
+      .ot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 6px 22px; margin: 8px 0; }
+      .ot-row { display: grid; grid-template-columns: minmax(0, 140px) minmax(0, 1fr) 48px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); }
+      .ot-row input { width: 100%; min-width: 0; }
       .ot-row .v { font-family: var(--mono); text-align: right; color: var(--ink); }
       #view3d { width: 100%; height: auto; display: block; background: #020c10; cursor: grab; touch-action: none; }
       #view3d[hidden] { display: none; }
@@ -167,7 +227,7 @@
       .phrase {
         display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px;
       }
-      .word-group { display: flex; gap: 4px; padding: 5px; border: 1px dashed #17434f; }
+      .word-group { display: flex; flex-wrap: wrap; max-width: 100%; min-width: 0; gap: 4px; padding: 5px; border: 1px dashed #17434f; }
       .mora {
         min-width: 46px; padding: 6px 4px 5px; text-align: center; cursor: pointer;
         background: #04141a; border: 1px solid var(--panel-edge-dim); color: var(--ink);
@@ -303,6 +363,7 @@
       .quality-grid input[type=range] { flex:1; min-width:80px; max-width:180px; accent-color:#5ee7ff; }
       .quality-grid select,.quality-grid input[type=number] { color:#e6f9fc; background:#0b252d; border:1px solid #38636d; border-radius:5px; padding:5px; max-width:100%; }
       .quality-grid input[type=number] { width:78px; }
+      #qSeed { width: 132px; }
       .quality-grid output { font-family:monospace; color:#ffd68c; }
       .quality-band { border-left:3px solid var(--band); padding-left:9px; }
       .quality-wave { width:100%; height:120px; background:#041219; border:1px solid #204550; border-radius:8px; }
@@ -312,6 +373,29 @@
   </head>
   <body>
     <main class="stage">
+      <header class="welcome">
+        <div class="locale-row">
+          <span class="ctl-lab">表示言語</span>
+          <div class="seg-ctl" role="group" aria-label="表示言語">
+            <button type="button" data-ui-lang="ja" aria-pressed="true" data-i18n-preserve>日本語</button>
+            <button type="button" data-ui-lang="en" aria-pressed="false" data-i18n-preserve>English</button>
+          </div>
+        </div>
+        <h1>声のしくみを、耳と目で試す。</h1>
+        <p>日本語の仮名・母音・歌を、声道の動きと合成音で試せます。英語表示でも発音データは日本語のままです。</p>
+        <p class="safety-note">音は自動再生しません。音を鳴らす操作の前に、端末の音量を下げてください。</p>
+        <details class="quick-help">
+          <summary>使い方・モデルの限界</summary>
+          <ul>
+            <li>まず「発音する」、または歌モードの「十二人の堂」を選んで再生。STOPで止められます。</li>
+            <li>自由入力はひらがな・カタカナに対応します。英語の音声認識や自然な英語TTSではありません。</li>
+            <li>手動調音ではスライダーを動かし「声を出す」で確認。WAVは現在の設定から生成し、試聴で選んだ一人だけにはなりません。</li>
+            <li>画面の波形・気流は相対表示です。人体形状、呼吸、空間は模式的・合成的な近似です。</li>
+          </ul>
+          <p>学習・実験用の近似モデルです。医療・診断・実在の声や寺院の再現を目的としたものではありません。</p>
+          <p><a href="README.md">日本語ガイド</a> · <a href="README.en.md" lang="en">English guide</a> · <a href="docs/sources.md">出典・限界</a> · <a href="THIRD_PARTY_NOTICES.md">ライセンス</a></p>
+        </details>
+      </header>
       <section class="device" aria-label="声道シミュレータ">
         <div class="faceplate">
           <span class="vt">VOCAL TRACT</span>
@@ -321,7 +405,7 @@
         </div>
 
         <div class="tabs" role="group" aria-label="表示モード">
-          <button class="tab" id="tab-pressure" aria-pressed="true"><span class="jp">音圧</span>SOUND PRESSURE</button>
+          <button class="tab" id="tab-pressure" aria-pressed="true"><span class="jp">波形</span>WAVEFORM</button>
           <button class="tab" id="tab-airflow" aria-pressed="false"><span class="jp">気流</span>AIRFLOW</button>
           <button class="tab" id="tab-measure" aria-pressed="false"><span class="jp">計測</span>MEASUREMENTS</button>
           <button class="tab" id="tab-3d" aria-pressed="false"><span class="jp">立体</span>3D WIREFRAME</button>
@@ -451,9 +535,9 @@
           </div>
 
           <div class="now-readout" aria-live="polite">
-            <div class="now-kana" id="nowKana">な</div>
+            <div class="now-kana" id="nowKana" data-i18n-preserve>な</div>
             <div class="now-side">
-              <div class="now-roma" id="nowRoma">NA</div>
+              <div class="now-roma" id="nowRoma" data-i18n-preserve>NA</div>
               <div class="now-kind" id="nowKind">待機中</div>
               <div class="now-next" id="nowNext">NEXT <b>—</b></div>
             </div>
@@ -462,7 +546,7 @@
         </div>
 
         <div class="scope">
-          <div class="scope-head"><span class="t" id="scopeTitle">音圧波形 — SOUND PRESSURE</span><span id="scopeRight">CH-1 · LIPS</span></div>
+          <div class="scope-head"><span class="t" id="scopeTitle">出力波形（相対） — OUTPUT WAVEFORM</span><span id="scopeRight">OUTPUT · RELATIVE</span></div>
           <canvas class="scope-canvas" id="scopeCanvas" width="980" height="92"></canvas>
           <div class="measure" id="measureBox">
             <div class="mrow"><span class="mlab">舌の高さ</span><span class="mbar bi"><i id="mb-th"></i></span><span class="mval" id="mv-th">0.00</span></div>
@@ -564,14 +648,14 @@
           <div class="preset-row" style="margin-top:0">
             <button class="preset-chip song-chip" data-song="furusato" aria-pressed="true">ふるさと（唱歌）</button>
             <button class="preset-chip song-chip" data-song="shoo" aria-pressed="false">SHOO BEE DOO</button>
-            <button class="preset-chip song-chip" data-song="honke" aria-pressed="false">本家デモ（スキャット）</button>
+            <button class="preset-chip song-chip" data-song="honke" aria-pressed="false">音階スキャット（練習）</button>
             <button class="preset-chip song-chip" data-song="twinkle" aria-pressed="false">きらきらぼし（Twinkle, twinkle）</button>
             <button class="preset-chip song-chip" data-song="madeofair" aria-pressed="false">Made of air（本家オリジナル）</button>
             <button class="preset-chip song-chip" data-song="hannya" aria-pressed="false">般若心経・全文（倍音ボイス）</button>
           </div>
           <div class="preset-row" id="twinkleVariantRow" hidden>
             <span class="ctl-lab">歌詞</span>
-            <button class="preset-chip" data-tvariant="jp" aria-pressed="true">日本語（きらきらぼし）</button>
+            <button class="preset-chip" data-tvariant="jp" aria-pressed="true">ソルフェージュ（ドレミ）</button>
             <button class="preset-chip" data-tvariant="en" aria-pressed="false">英語（本家の歌詞）</button>
           </div>
           <p class="parse-note" id="songNote"></p>
@@ -670,14 +754,14 @@
           <p class="parse-note" id="qualityStatus" role="status" aria-live="polite">まず原音と比較してください。下の出力波形・3Dスペクトルは部屋を通った合成音を表示します。</p>
           <p class="parse-note">理論・確認範囲は <a href="docs/sources.md">出典とモデルの限界</a>。音の自然さは聴感での確認が必要です。</p>
         </section>
-        <div class="phrase" id="phrase"></div>
+        <div class="phrase" id="phrase" data-i18n-preserve></div>
 
         <div class="transport">
           <button class="play-btn" id="playBtn">▶ 発音する</button>
           <button class="stop-btn" id="stopBtn">■ STOP</button>
           <button class="wav-btn" id="wavBtn">WAV 書き出し</button>
           <span class="parse-note" id="wavAuditionNote">WAVは全員の合唱を書き出します（ひとり聴きの選択は試聴のみ）。</span>
-          <button class="wav-btn" id="wavBatchBtn">WAV 一括書き出し（全12件）</button>
+          <button class="wav-btn" id="wavBatchBtn">WAV 一括書き出し</button>
           <button class="wav-btn" id="tubeBtn" aria-pressed="false" title="声の作り方を切り替えます。次の再生・書き出しから反映されます">音の作り方：共鳴3本</button>
           <span class="ctl-lab">速度</span>
           <div class="seg-ctl" id="speedCtl" role="group" aria-label="速度">
@@ -706,21 +790,571 @@
         </div>
 
         <p class="spec">
-          <b>音の作り方：</b>録音やサンプルは使っていません。声帯の振動（基本周波数 F0）を音源に、声道の共鳴を F1/F2/F3 のフォルマントで再現する<b>フォルマント合成</b>で、その場で音を生成しています。
-          鼻音（な・ま行）は軟口蓋を下げて鼻腔へ、破裂音（が行・た行）は閉鎖→破裂の気流まで含めてモデル化しています。
-          歌モードではモーラごとに F0 を旋律へ合わせ、母音を伸ばして長い音にビブラートを加えます。
-          「WAV 書き出し」は今選んでいるフレーズ／曲をオフラインでレンダリングし、44.1kHz・16bit の WAV ファイルとして保存します（DAW にそのまま取り込めます）。
-          「WAV 一括書き出し」は、なまむぎ・早口言葉×5・歌×6（ふるさと全3番・SHOO BEE DOO・本家デモ・Twinkle, twinkle の英語詞／きらきらぼし の日本語詞・Made of air）の全プリセットをまとめて1件ずつ書き出します。ファイル名は「フレーズ名_日時.wav」なので、Ableton / Studio One へ素材を集めるときにそのまま見分けられます。
-          <b>解剖パラメータ：</b>声の土台は「解剖パラメータ層」に集約しています。声道長（日本人成人男性の代表値 15.8cm／女性 13.8cm／子ども 10.8cm）から一様管モデル Fn=(2n-1)c/(4L) で中立共鳴（シュワー）を計算し、日本語5母音の実測平均フォルマントを声道長でスケーリングします。「う」は唇の丸めが弱い圧縮型 [ɯᵝ] として F2 を高めに取るなど、日本語の調音の特徴も反映しています。話者プリセットを切り替えると、フレーズ・自由入力・歌・WAV書き出しの全モードに同じ土台が効きます（歌の音程だけは楽譜どおりの絶対音高を保ち、話者差は声道側に効かせます）。数値の根拠と近似の範囲は「計測」タブに表示しています。
-          <b>声道長スライダー：</b>声道長は 10〜18cm まで連続可変です。プリセット間の長さでは、F0基準・声帯長・口腔比を3つの解剖アンカー（子ども／成人女性／成人男性）の間で線形補間した推定値を使い、中立共鳴とフォルマントは一様管モデルとスケーリング則でその場で計算し直します。
-          <b>デュエット：</b>第2声を別の話者プリセットの声道パラメータで独立に合成し、同時に鳴らします（ピッチシフトした再生ではありません）。発話では第2声側の F0 基準でプロソディも組み直し、歌では旋律は同じまま声道だけが変わります。WAV書き出し（一括含む）にもそのまま混ざり、ファイル名に _duet が付きます。
-          <b>手動調音：</b>再生スコアと同じ調音ポーズ（舌先・舌体・顎・唇・軟口蓋）をスライダーで直接動かして音を出せます。表示される F1/F2/F3 は、日本語5母音の実測アンカー間を舌体位置と顎開きの距離で補間した推定値です。
+          <b>合成と保存：</b>録音・声のサンプル・マイク入力は使いません。声源と共鳴をその場で計算します。WAVは44.1kHz・16bitで生成し、追加の合唱声がある場合はステレオです。バッチ保存にはブラウザ側の複数ダウンロード許可が必要な場合があります。
+          <b>近似モデル：</b>解剖・調音・呼吸・残響は学習用の近似です。表示される波形・気流は相対値で、校正された音圧や呼吸量ではありません。未照合の定数と実測ではない形状を、検証済みの生体データとは扱っていません。
+          <b>クレジット：</b>着想と一部のデモ楽譜は <a href="https://github.com/jamesondh/chimera-vocal-synth" target="_blank" rel="noopener">Chimera / Jameson Hodge</a>。このシミュレーターの音響エンジンは独自実装です。 <a href="THIRD_PARTY_NOTICES.md">第三者表記とコンテンツの範囲</a> · <a href="LICENSE">MIT License</a> · <a href="docs/sources.md">出典・モデルの限界</a>
         </p>
       </section>
     </main>
 
     <script>
       "use strict";
+      /* UI_LOCALE_CORE_BEGIN */
+      var UI_LOCALE_STORAGE_KEY = "vocal-tract-ui-language";
+      function chooseUILocale(search, storage) {
+        var requested = new URLSearchParams(search || "").get("lang");
+        if (requested === "ja" || requested === "en") return requested;
+        try {
+          var saved = storage && storage.getItem(UI_LOCALE_STORAGE_KEY);
+          if (saved === "ja" || saved === "en") return saved;
+        } catch (ignore) { /* Storage can be unavailable for local files. */ }
+        return "ja";
+      }
+      function createUITranslator(entries) {
+        var exact = new Map(), fragments = new Map();
+        entries.forEach(function (entry) {
+          if (!entry || typeof entry.ja !== "string" || !entry.ja || typeof entry.en !== "string" ||
+              (entry.mode !== "exact" && entry.mode !== "fragment")) throw new Error("invalid UI translation");
+          if (exact.has(entry.ja)) throw new Error("duplicate UI translation: " + entry.ja);
+          if (entry.mode === "fragment" && entry.ja.length < 2) throw new Error("UI fragment is too broad");
+          exact.set(entry.ja, entry.en);
+          if (entry.mode === "fragment") fragments.set(entry.ja, entry.en);
+        });
+        var keys = Array.from(fragments.keys()).sort(function (a,b) { return b.length-a.length; });
+        var pattern = keys.length ? new RegExp(keys.map(function (key) { return key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("|"), "g") : null;
+        return function (value, language) {
+          value = String(value);
+          if (language !== "en") return value;
+          if (/^第(\d+)倍音(?= ≈ )/.test(value)) return value.replace(/^第(\d+)倍音/, "Harmonic $1");
+          if (exact.has(value)) return exact.get(value);
+          var split = value.match(/^(\s*)([\s\S]*?)(\s*)$/);
+          if (exact.has(split[2])) return split[1] + exact.get(split[2]) + split[3];
+          return pattern ? value.replace(pattern, function (key) { return fragments.get(key); }) : value;
+        };
+      }
+      function uiLocaleTextState(previous, current, language, translate) {
+        var raw = previous && current === previous.output ? previous.raw : String(current);
+        return { raw: raw, output: translate(raw, language) };
+      }
+      /* UI_LOCALE_CORE_END */
+      /* UI_LOCALE_DOM_BEGIN */
+      function createUILocaleDOM(doc, entries, storage, search) {
+        var translate = createUITranslator(entries), language = chooseUILocale(search, storage);
+        var textStates = new WeakMap(), attributeStates = new WeakMap(), title = doc.title, initialized = false;
+        var copyAttributes = ["aria-label", "title", "placeholder"];
+        function preserveText(node) {
+          for (var el = node.parentElement; el; el = el.parentElement) {
+            if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "TEXTAREA" ||
+                el.isContentEditable || el.hasAttribute("data-i18n-preserve")) return true;
+          }
+          return false;
+        }
+        function apply(root) {
+          if (!root) return;
+          var stack = [root];
+          while (stack.length) {
+            var node = stack.pop();
+            if (node.nodeType === 3) {
+              if (preserveText(node)) continue;
+              var state = uiLocaleTextState(textStates.get(node), node.nodeValue, language, translate);
+              textStates.set(node, state);
+              if (node.nodeValue !== state.output) node.nodeValue = state.output;
+            } else if (node.nodeType === 1) {
+              if (node.tagName === "SCRIPT" || node.tagName === "STYLE" || node.tagName === "TEXTAREA" || node.isContentEditable) continue;
+              var states = attributeStates.get(node) || Object.create(null);
+              copyAttributes.forEach(function (name) {
+                if (!node.hasAttribute(name)) return;
+                var current = node.getAttribute(name), state = uiLocaleTextState(states[name], current, language, translate);
+                states[name] = state;
+                if (current !== state.output) node.setAttribute(name, state.output);
+              });
+              attributeStates.set(node, states);
+              for (var i = node.childNodes.length - 1; i >= 0; i--) stack.push(node.childNodes[i]);
+            }
+          }
+        }
+        function setLanguage(next, persist) {
+          if (next !== "ja" && next !== "en") return false;
+          language = next;
+          doc.documentElement.lang = next;
+          doc.title = translate(title, next);
+          apply(doc.body);
+          doc.querySelectorAll("[data-ui-lang]").forEach(function (button) {
+            button.setAttribute("aria-pressed", button.getAttribute("data-ui-lang") === next ? "true" : "false");
+          });
+          if (persist !== false) try { if (storage) storage.setItem(UI_LOCALE_STORAGE_KEY, next); } catch (ignore) {}
+          return true;
+        }
+        return {
+          init: function () {
+            if (initialized) return;
+            initialized = true;
+            doc.querySelectorAll("[data-ui-lang]").forEach(function (button) {
+              button.addEventListener("click", function () { setLanguage(button.getAttribute("data-ui-lang")); });
+            });
+            setLanguage(language, false);
+          },
+          getLanguage: function () { return language; }, setLanguage: setLanguage, apply: apply,
+          translate: function (text) { return translate(text, language); },
+          text: function (el, text) { if (el) { el.textContent = text; apply(el); } },
+          html: function (el, html) { if (el) { el.innerHTML = html; apply(el); } },
+          attribute: function (el, name, text) { if (el) { el.setAttribute(name, text); apply(el); } }
+        };
+      }
+      /* UI_LOCALE_DOM_END */
+      /* UI_TRANSLATIONS_BEGIN */
+      var UI_TRANSLATIONS = [
+        {"ja": "声道シミュレータ日本語版", "en": "Vocal Tract Simulator — Japanese", "mode": "exact"},
+        {"ja": "声道シミュレータ", "en": "Vocal tract simulator", "mode": "exact"},
+        {"ja": "声道", "en": "Vocal tract", "mode": "exact"},
+        {"ja": "日本人・成人男性 / 正中矢状断面  VTL 15.8cm", "en": "Japanese adult male / midsagittal section  VTL 15.8cm", "mode": "exact"},
+        {"ja": "表示モード", "en": "Display mode", "mode": "exact"},
+        {"ja": "音圧", "en": "Sound pressure", "mode": "exact"},
+        {"ja": "気流", "en": "Airflow", "mode": "exact"},
+        {"ja": "計測", "en": "Measurements", "mode": "exact"},
+        {"ja": "立体", "en": "3D", "mode": "exact"},
+        {"ja": "フォルマント周波数", "en": "Formant frequencies", "mode": "exact"},
+        {"ja": "声道の3Dワイヤーフレーム。ドラッグで回転。", "en": "3D wireframe of the vocal tract. Drag to rotate.", "mode": "exact"},
+        {"ja": "3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした", "en": "The 3D view reconstructs the existing sagittal shapes (tongue, jaw, lips, soft palate, and pharyngeal wall) as a three-dimensional ", "mode": "exact"},
+        {"ja": "近似", "en": "approximation", "mode": "exact"},
+        {"ja": "です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。遠い線ほど淡く描き、触っていない間はゆっくり左右に振って奥行きを見せます。顔と首には眼窩・鼻翼・耳介・頸椎（C1〜C7）を足しています（位置と大きさは解剖図を参考にした手置きの近似）。左の全体図には胸（肋骨・肺・横隔膜・気管支）を描き、声を出すあいだ横隔膜が上がり、息継ぎで下がって腹が前へ出ます（腹式呼吸の模式図。形と動きの量は実測ではありません）。舌には動きの残像が付き、読経モードでは息継ぎで肩が上がります。声帯の開閉と唇から広がる波面は、見えるように遅くした", "en": ". The left-to-right width is estimated from the sagittal diameter, not from MRI-measured cross-sectional areas. Drag to rotate. More distant lines are drawn fainter; when not being manipulated, the view slowly sways from side to side to show depth. The face and neck include eye sockets, nasal alae, outer ears, and cervical vertebrae (C1–C7); their positions and sizes are hand-placed approximations based on anatomical diagrams. The overview on the left shows the chest (ribs, lungs, diaphragm, and bronchi). The diaphragm rises during voicing and descends during inhalation as the abdomen moves forward. This is a schematic of diaphragmatic breathing; neither the shapes nor the amounts of movement are measured. The tongue leaves motion trails, and the shoulders rise with breaths in chant mode. Vocal fold opening and closing, and the wavefronts spreading from the lips, are slowed down for visibility as a ", "mode": "exact"},
+        {"ja": "表示上の演出", "en": "visual effect", "mode": "exact"},
+        {"ja": "で、実際の振動数・波長ではありません。右下の「いま鳴っている音の成分」は出力を実際に周波数分析した値です。", "en": ", not actual vibration rates or wavelengths. The “components of the current sound” at the lower right are obtained by frequency analysis of the actual output.", "mode": "exact"},
+        {"ja": "声道の正中矢状断面図。舌、顎、唇、軟口蓋が発音に合わせて動きます。", "en": "Midsagittal view of the vocal tract. The tongue, jaw, lips, and soft palate move with pronunciation.", "mode": "exact"},
+        {"ja": "待機中", "en": "Standby", "mode": "exact"},
+        {"ja": "再生すると「なまむぎ なまごめ なまたまご」を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。", "en": "Playback pronounces “namamugi namagome namatamago” one mora at a time. Tongue, jaw, lip, and soft palate movements are synchronized with changes in formants F1/F2/F3.", "mode": "exact"},
+        {"ja": "音圧波形 — SOUND PRESSURE", "en": "Sound pressure waveform — SOUND PRESSURE", "mode": "exact"},
+        {"ja": "舌の高さ", "en": "Tongue height", "mode": "exact"},
+        {"ja": "舌の前後", "en": "Tongue front–back", "mode": "exact"},
+        {"ja": "顎の開き", "en": "Jaw opening", "mode": "exact"},
+        {"ja": "唇の開き", "en": "Lip opening", "mode": "exact"},
+        {"ja": "鼻腔の開放", "en": "Nasal opening", "mode": "exact"},
+        {"ja": "推定 F1（調音）", "en": "Estimated F1 (articulation)", "mode": "exact"},
+        {"ja": "推定 F2（調音）", "en": "Estimated F2 (articulation)", "mode": "exact"},
+        {"ja": "音名 NOTE", "en": "Note name", "mode": "exact"},
+        {"ja": "音程 F0", "en": "Pitch F0", "mode": "exact"},
+        {"ja": "解剖パラメータ — ANATOMY（全モード共通の基盤）", "en": "Anatomical parameters — ANATOMY (shared foundation for all modes)", "mode": "exact"},
+        {"ja": "話者プリセット", "en": "Speaker preset", "mode": "exact"},
+        {"ja": "声道長 VTL", "en": "Vocal tract length VTL", "mode": "exact"},
+        {"ja": "中立管共鳴（推定）", "en": "Neutral tube resonances (estimated)", "mode": "exact"},
+        {"ja": "口腔長／咽頭長", "en": "Oral / pharyngeal length", "mode": "exact"},
+        {"ja": "声帯長（膜様部）", "en": "Vocal fold length (membranous part)", "mode": "exact"},
+        {"ja": "F0 基準（範囲）", "en": "Reference F0 (range)", "mode": "exact"},
+        {"ja": "適用中の日本語5母音フォルマント表", "en": "Current formant table for the five Japanese vowels", "mode": "exact"},
+        {"ja": "母音", "en": "Vowel", "mode": "exact"},
+        {"ja": "倍音唱法（般若心経）：", "en": "Overtone singing (Heart Sutra): ", "mode": "exact"},
+        {"ja": "構造＝声帯振動の高調波列に声道共鳴 F2 を一致させる（先行研究は F2・F3 の両方を同じ倍音の近くに寄せる“二重フォルマント”を報告。ここでは F2 の1本に簡略化した近似）。物理量＝F0 98Hz の整数倍への吸着（誤差は最大でも約±49Hz）と帯域幅の狭小化（F1 150／F2 25／F3 220 Hz。倍音を1本だけ分けるのは F2）と、狙った倍音の強調（音量比 F1/F2/F3 = 0.8/4.2/0.35。先行研究の“二重フォルマント”を並列共鳴器の音量比で近似）。根拠＝倍音唱法の基本原理（共鳴と高調波の一致・確立した音響理論）。", "en": "Structure: vocal tract resonance F2 is aligned with the harmonic series of vocal fold vibration. Prior research reports a “double formant,” bringing both F2 and F3 close to the same harmonic; this is a simplified approximation using F2 alone. Physical quantities: snapping to integer multiples of F0 = 98 Hz (maximum error about ±49 Hz), narrowing bandwidths (F1 150 / F2 25 / F3 220 Hz; F2 isolates a single harmonic), and emphasizing the target harmonic (F1/F2/F3 volume ratios = 0.8/4.2/0.35; approximating the reported “double formant” using the volume ratios of parallel resonators). Basis: the basic principle of overtone singing—alignment of resonances with harmonics, an established acoustic theory. ", "mode": "exact"},
+        {"ja": "発声：", "en": "Voicing: ", "mode": "exact"},
+        {"ja": "低い倍音声を保ちながら、撥音は鼻腔の響き、促音は短い閉鎖、長音は母音の持続として合成します。子音の長さ・強さや息継ぎは合成上の近似です。", "en": "While maintaining a low overtone voice, the moraic nasal is synthesized as nasal resonance, the geminate as a brief closure, and long vowels as sustained vowels. Consonant duration and strength, and breathing, are synthesis approximations. ", "mode": "exact"},
+        {"ja": "経文：", "en": "Text: ", "mode": "exact"},
+        {"ja": "玄奘訳系の漢文を日本で唱える読誦形です。", "en": "This is the Japanese liturgical recitation of a Classical Chinese text in Xuanzang’s translation tradition. Readings are based on ", "mode": "exact"},
+        {"ja": "曹洞宗・貞昌院版の経本", "en": "the Sōtō Zen Teishō-in sutra book", "mode": "exact"},
+        {"ja": "の読みと、", "en": " and ", "mode": "exact"},
+        {"ja": "曹洞宗東海管区の資料", "en": "materials from the Sōtō Zen Tōkai district", "mode": "exact"},
+        {"ja": "を参照。真言はサンスクリット語の音を漢字で写した部分で、日本の伝承の読みで合成し、", "en": ". The mantra represents Sanskrit sounds in Chinese characters. It is synthesized using the traditional Japanese reading, while the display also shows ", "mode": "exact"},
+        {"ja": "梵本のローマ字表記", "en": "a Romanized Sanskrit text", "mode": "exact"},
+        {"ja": "も表示します。", "en": ". ", "mode": "exact"},
+        {"ja": "法隆寺伝来の梵本写本", "en": "A Sanskrit manuscript transmitted through Hōryū-ji", "mode": "exact"},
+        {"ja": "が東京国立博物館に伝わります。", "en": " is preserved at the Tokyo National Museum. ", "mode": "exact"},
+        {"ja": "近似：", "en": "Approximations: ", "mode": "exact"},
+        {"ja": "日本の僧侶の読経の F0・帯域幅の公表データは用意できていないため、F0 は成人男性の下端付近、帯域幅は理論条件からの近似値です。倍音の聞こえ方は 2026-11-10 にオーナー確認済み（その後「もっと」の要望で F2 を強めた値も 2026-11-10 にオーナーが「いい感じ」と確認）。", "en": "Published F0 and bandwidth data for chanting by Japanese monks have not been obtained, so F0 is near the lower end for adult men, and the bandwidths are approximated from theoretical conditions. The owner checked the audibility of the overtones on 2026-11-10. After requesting “more,” the owner also described the increased F2 setting as “good” on 2026-11-10. ", "mode": "exact"},
+        {"ja": "3D の胸：", "en": "3D chest: ", "mode": "exact"},
+        {"ja": "肋骨・肺・横隔膜・気管支の形と大きさ、呼吸の動きの量は模式図で、実測値ではありません（音の計算には不使用）。", "en": "The shapes and sizes of the ribs, lungs, diaphragm, and bronchi, and the amounts of breathing movement, are schematic rather than measured. They are not used in sound calculations.", "mode": "exact"},
+        {"ja": "管モデル（実験・「音の作り方」ボタンで切り替え）：", "en": "Tube model (experimental; switch with the “Sound generation” button): ", "mode": "exact"},
+        {"ja": "構造＝声門から唇までの声道を、同じ長さの短い管をつないだ1本の音響管とみなす。物理量＝区間ごとの断面積の比で決まる反射、声門と唇での反射、管の中を往復する圧力波（Kelly–Lochbaum 型の進行波モデル＝確立した音響理論）。断面積＝上の表の実測平均寄せのフォルマントに共鳴が一致するよう、一様な管からのずれをコサイン3成分で逆算した", "en": "Structure: the vocal tract from glottis to lips is treated as a single acoustic tube made of equal-length short sections. Physical quantities: reflections determined by the ratios of adjacent cross-sectional areas, reflections at the glottis and lips, and pressure waves traveling back and forth inside the tube (a Kelly–Lochbaum-type traveling-wave model, an established acoustic theory). Cross-sectional areas are ", "mode": "exact"},
+        {"ja": "相対値", "en": "relative values", "mode": "exact"},
+        {"ja": "（摂動理論：Schroeder 1967／Mermelstein 1967）。MRI 実測の断面積ではなく、3D タブの形とも別物。近似＝声門流の波形（Rosenberg 型。割合は一次文献と未照合）、反射係数と損失（帯域幅を決める近似値）、唇の放射（1階差分）。未実装＝鼻腔への分岐（鼻音は口の管の形だけで近似）、摩擦・破裂の雑音（従来どおり管の外で足す）、倍音ボイスの帯域幅の絞り込み（管モデルでは効かない）。", "en": " back-calculated as three cosine components of deviation from a uniform tube so its resonances match the formants in the table above, which approximate measured averages (perturbation theory: Schroeder 1967 / Mermelstein 1967). They are not MRI-measured cross-sectional areas and are separate from the shapes in the 3D tab. Approximations: the glottal flow waveform (Rosenberg-type; the proportions have not been checked against primary literature), reflection coefficients and losses (approximate values determining bandwidth), and lip radiation (a first difference). Not implemented: a nasal branch (nasals are approximated using only the oral tube shape), friction and burst noise (added outside the tube as before), and bandwidth narrowing for the overtone voice (which has no effect in the tube model). ", "mode": "exact"},
+        {"ja": "聴感未確認。", "en": "Not yet checked by listening. ", "mode": "exact"},
+        {"ja": "既定は従来の共鳴3本方式のまま。", "en": "The default remains the original three-resonator method.", "mode": "exact"},
+        {"ja": "舌 TONGUE", "en": "TONGUE", "mode": "exact"},
+        {"ja": "顎 JAW", "en": "JAW", "mode": "exact"},
+        {"ja": "唇 LIPS", "en": "LIPS", "mode": "exact"},
+        {"ja": "軟口蓋 SOFT PALATE", "en": "SOFT PALATE", "mode": "exact"},
+        {"ja": "舌 前後", "en": "Tongue front–back ", "mode": "exact"},
+        {"ja": "舌 高低", "en": "Tongue height ", "mode": "exact"},
+        {"ja": "唇", "en": "Lips", "mode": "exact"},
+        {"ja": "開放", "en": "Open", "mode": "exact"},
+        {"ja": "操作", "en": "Controls", "mode": "exact"},
+        {"ja": "モード", "en": "Mode", "mode": "exact"},
+        {"ja": "なまむぎ", "en": "Namamugi", "mode": "exact"},
+        {"ja": "自由入力", "en": "Free input", "mode": "exact"},
+        {"ja": "歌う", "en": "Sing", "mode": "exact"},
+        {"ja": "手動調音", "en": "Manual articulation", "mode": "exact"},
+        {"ja": "話者（解剖）", "en": "Speaker (anatomy)", "mode": "exact"},
+        {"ja": "話者プリセット（解剖パラメータ）", "en": "Speaker presets (anatomical parameters)", "mode": "exact"},
+        {"ja": "成人男性", "en": "Adult male", "mode": "exact"},
+        {"ja": "成人女性", "en": "Adult female", "mode": "exact"},
+        {"ja": "子ども", "en": "Child", "mode": "exact"},
+        {"ja": "声道長（センチメートル）", "en": "Vocal tract length (centimeters)", "mode": "exact"},
+        {"ja": "プリセット間の長さは解剖アンカーから補間", "en": "Lengths between presets are interpolated from anatomical anchors", "mode": "exact"},
+        {"ja": "デュエット", "en": "Duet", "mode": "exact"},
+        {"ja": "デュエットの相手（第2声道）", "en": "Duet partner (second vocal tract)", "mode": "exact"},
+        {"ja": "なし", "en": "None", "mode": "exact"},
+        {"ja": "ひらがなで入力（カタカナも自動で読み替えます）", "en": "Enter hiragana (katakana is converted automatically)", "mode": "exact"},
+        {"ja": "早口言葉", "en": "Tongue twisters", "mode": "exact"},
+        {"ja": "かえるぴょこぴょこ", "en": "Kaeru pyoko-pyoko", "mode": "exact"},
+        {"ja": "となりのきゃくは", "en": "Tonari no kyaku wa", "mode": "exact"},
+        {"ja": "あかまきがみ", "en": "Akamakigami", "mode": "exact"},
+        {"ja": "たけやぶ やけた", "en": "Takeyabu yaketa", "mode": "exact"},
+        {"ja": "ばななのなぞは", "en": "Banana no nazo wa", "mode": "exact"},
+        {"ja": "曲を選ぶ — モーラごとに音程（F0）が旋律どおりに動き、声道も一緒に歌います", "en": "Choose a song — pitch (F0) follows the melody for each mora, and the vocal tract sings along", "mode": "exact"},
+        {"ja": "ふるさと（唱歌）", "en": "Furusato (school song)", "mode": "exact"},
+        {"ja": "きらきらぼし（Twinkle, twinkle）", "en": "Twinkle, twinkle (Kirakiraboshi)", "mode": "exact"},
+        {"ja": "Made of air（本家オリジナル）", "en": "Made of air (original by the upstream project)", "mode": "exact"},
+        {"ja": "般若心経・全文（倍音ボイス）", "en": "Heart Sutra — complete (overtone voice)", "mode": "exact"},
+        {"ja": "歌詞", "en": "Lyrics", "mode": "exact"},
+        {"ja": "英語（本家の歌詞）", "en": "English (original lyrics)", "mode": "exact"},
+        {"ja": "人数（合唱）", "en": "Ensemble size (chorus)", "mode": "exact"},
+        {"ja": "1人", "en": "1 singer", "mode": "exact"},
+        {"ja": "3人", "en": "3 singers", "mode": "exact"},
+        {"ja": "6人", "en": "6 singers", "mode": "exact"},
+        {"ja": "12人", "en": "12 singers", "mode": "exact"},
+        {"ja": "36人", "en": "36 singers", "mode": "exact"},
+        {"ja": "72人", "en": "72 singers", "mode": "exact"},
+        {"ja": "108人（大曼荼羅）", "en": "108 singers (Great Mandala)", "mode": "exact"},
+        {"ja": "合唱は声道の長さ・音程・入りの時間を少しずつずらして重ねます。36人以上では3重の輪を描き、最大12系統の合成声で全体の響きを作ります。人数は次の再生・WAV書き出しから反映します。", "en": "The chorus layers voices with slightly different vocal tract lengths, pitches, and entrance times. At 36 or more singers, three concentric rings are drawn, while up to 12 synthesis paths create the overall sound. The selected size takes effect on the next playback or WAV export.", "mode": "exact"},
+        {"ja": "読経の声域", "en": "Chant voicing", "mode": "exact"},
+        {"ja": "低音合唱 — 低音・五度・オクターブ", "en": "Low chorus — bass, fifths, and octaves", "mode": "exact"},
+        {"ja": "従来の同音読誦", "en": "Original unison recitation", "mode": "exact"},
+        {"ja": "般若心経の3人以上に適用。導師を元の高さに保ち、低音担当を加えます（標準時は約49・73.5・98Hz＋小さな個人差）。速さ・経文は変わりません。経験者の助言を参考にした音の演出で、宗派の正式な唱法の再現ではありません。変更すると停止し、次の再生とWAVへ反映します。", "en": "Applies to the Heart Sutra with 3 or more singers. The lead chanter stays at the original pitch, with added low voices (normally about 49, 73.5, and 98 Hz, plus small individual differences). Speed and sutra text are unchanged. This is a sound effect informed by an experienced practitioner’s advice, not a reproduction of any school’s official chanting style. Changing it stops playback and takes effect on the next playback and WAV export.", "mode": "exact"},
+        {"ja": "倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）", "en": "Overtone voice adjustments — changes take effect when you play again (controls for listening and isolating the cause of squeaky sounds)", "mode": "exact"},
+        {"ja": "初期値に戻す", "en": "Reset to defaults", "mode": "exact"},
+        {"ja": "調音パラメータを直接動かす — 断面図・推定フォルマント・音が連動します（値は再生スコアと同一の調音ポーズ）", "en": "Adjust articulation parameters directly — the cross-section, estimated formants, and sound move together (the values use the same articulation poses as the playback score)", "mode": "exact"},
+        {"ja": "舌先 前後", "en": "Tongue tip front–back", "mode": "exact"},
+        {"ja": "舌先 上下", "en": "Tongue tip up–down", "mode": "exact"},
+        {"ja": "舌体 前後", "en": "Tongue body front–back", "mode": "exact"},
+        {"ja": "舌体 上下", "en": "Tongue body up–down", "mode": "exact"},
+        {"ja": "唇の突出", "en": "Lip protrusion", "mode": "exact"},
+        {"ja": "軟口蓋の挙上", "en": "Soft palate elevation", "mode": "exact"},
+        {"ja": "ピッチ F0", "en": "Pitch F0", "mode": "exact"},
+        {"ja": "母音ポーズ", "en": "Vowel poses", "mode": "exact"},
+        {"ja": "中立", "en": "Neutral", "mode": "exact"},
+        {"ja": "声を出す", "en": "Start voicing", "mode": "exact"},
+        {"ja": "F1/F2/F3 は、日本語5母音の実測アンカー（現在の声道長でスケーリング済み）の間を舌体位置と顎開きの距離で補間した", "en": "F1/F2/F3 are ", "mode": "exact"},
+        {"ja": "推定値", "en": "estimates", "mode": "exact"},
+        {"ja": "です（実測ではありません）。計測タブの「推定 F1／F2（調音）」にも連動表示されます。WAV書き出しは今のポーズを約1.2秒の持続音として書き出します。", "en": " interpolated between measured anchors for the five Japanese vowels (scaled to the current vocal tract length), using distances in tongue body position and jaw opening. They are not measurements. The “Estimated F1/F2 (articulation)” fields in the Measurements tab update together with them. WAV export saves the current pose as a sustained sound of about 1.2 seconds.", "mode": "exact"},
+        {"ja": "声・倍音・合唱・空間 — SOUND LAB", "en": "Voice, harmonics, chorus, and space — SOUND LAB", "mode": "exact"},
+        {"ja": "音の比較プリセット", "en": "Sound comparison presets", "mode": "exact"},
+        {"ja": "原音で比較", "en": "Compare with original sound", "mode": "exact"},
+        {"ja": "十二人の堂 — おすすめ", "en": "Hall of Twelve — recommended", "mode": "exact"},
+        {"ja": "倍音2本", "en": "2 harmonics", "mode": "exact"},
+        {"ja": "倍音3本", "en": "3 harmonics", "mode": "exact"},
+        {"ja": "明瞭な小堂（合成）", "en": "Clear small hall (synthetic)", "mode": "exact"},
+        {"ja": "包まれる大堂（合成）", "en": "Enveloping large hall (synthetic)", "mode": "exact"},
+        {"ja": "変更すると再生を止めます。次の再生・WAVに同じ設定を使います。倍音ミキサーは人工的なスペクトル整形で、生体の二重フォルマントや実在寺院の再現ではありません。", "en": "Changes stop playback. The same settings are used for the next playback and WAV export. The harmonic mixer is artificial spectral shaping, not a reproduction of biological double formants or a real temple.", "mode": "exact"},
+        {"ja": "声源", "en": "Voice source ", "mode": "exact"},
+        {"ja": "従来（管方式は既定の声門流）", "en": "Original (default glottal flow in tube mode)", "mode": "exact"},
+        {"ja": "声門流パルス（近似）", "en": "Glottal flow pulse (approximation)", "mode": "exact"},
+        {"ja": "開く時間 / 周期", "en": "Opening time / period ", "mode": "exact"},
+        {"ja": "閉じる時間 / 周期", "en": "Closing time / period ", "mode": "exact"},
+        {"ja": "複数倍音ミキサー ON", "en": " Multi-harmonic mixer ON", "mode": "exact"},
+        {"ja": "倍音の混合率", "en": "Harmonic mix ", "mode": "exact"},
+        {"ja": "帯域幅（Hz）", "en": "Bandwidth (Hz) ", "mode": "exact"},
+        {"ja": "A 第", "en": "A: no. ", "mode": "exact"},
+        {"ja": "倍音Aの次数", "en": "Harmonic A order", "mode": "exact"},
+        {"ja": "倍音", "en": " harmonic ", "mode": "exact"},
+        {"ja": "倍音Aの重み", "en": "Harmonic A weight", "mode": "exact"},
+        {"ja": "B 第", "en": "B: no. ", "mode": "exact"},
+        {"ja": "倍音Bの次数", "en": "Harmonic B order", "mode": "exact"},
+        {"ja": "倍音Bの重み", "en": "Harmonic B weight", "mode": "exact"},
+        {"ja": "C 第", "en": "C: no. ", "mode": "exact"},
+        {"ja": "倍音Cの次数", "en": "Harmonic C order", "mode": "exact"},
+        {"ja": "倍音Cの重み", "en": "Harmonic C weight", "mode": "exact"},
+        {"ja": "重み0はOFF。同じ次数は合算し、範囲外の倍音は無効にします。別の音程の発振器を足すのではなく、その声の倍音を選びます。", "en": "A weight of 0 is OFF. Duplicate harmonic orders are combined, and out-of-range harmonics are disabled. This selects harmonics of the voice itself, rather than adding oscillators at other pitches.", "mode": "exact"},
+        {"ja": "独立したゆらぎ", "en": "Independent variation ", "mode": "exact"},
+        {"ja": "ゆらぎのseed", "en": "Variation seed ", "mode": "exact"},
+        {"ja": "空間", "en": "Space ", "mode": "exact"},
+        {"ja": "直接音のみ", "en": "Direct sound only", "mode": "exact"},
+        {"ja": "小堂 8×10×4m（仮想）", "en": "Small hall 8×10×4m (virtual)", "mode": "exact"},
+        {"ja": "大堂 14×20×7m（仮想）", "en": "Large hall 14×20×7m (virtual)", "mode": "exact"},
+        {"ja": "残響設定 RT60（秒）", "en": "Configured RT60 (seconds) ", "mode": "exact"},
+        {"ja": "反射・残響の混合率", "en": "Reflection / reverb mix ", "mode": "exact"},
+        {"ja": "高域の減衰時間比", "en": "High-frequency decay time ratio ", "mode": "exact"},
+        {"ja": "聴く位置（前→後）", "en": "Listening position (front → back) ", "mode": "exact"},
+        {"ja": "ゆらぎ100%は最大±12cent・振幅±8%の合成用設定。全員に同じLFOは使いません。空間は一次反射＋合成残響で、設定RT60は実測値ではありません。絶対音圧・HRTF・実寺院の最適性は未較正です。", "en": "Variation at 100% is a synthesis setting with up to ±12 cents of pitch and ±8% amplitude variation. The same LFO is not used for everyone. Space is modeled with first-order reflections and synthetic reverberation; the configured RT60 is not measured. Absolute sound pressure, HRTF, and suitability for real temples are not calibrated.", "mode": "exact"},
+        {"ja": "声源の一周期モデル。実測出力とは異なります。", "en": "One-period model of the voice source. It differs from the measured output.", "mode": "exact"},
+        {"ja": "声の聴き比べ（合成系統ごと・試聴のみ）", "en": "Compare voices (by synthesis path; audition only)", "mode": "exact"},
+        {"ja": "まず原音と比較してください。下の出力波形・3Dスペクトルは部屋を通った合成音を表示します。", "en": "Compare with the original sound first. The output waveform and 3D spectrum below show the synthesized sound after the room effect.", "mode": "exact"},
+        {"ja": "理論・確認範囲は", "en": "For the theory and scope of verification, see ", "mode": "exact"},
+        {"ja": "出典とモデルの限界", "en": "Sources and model limitations", "mode": "exact"},
+        {"ja": "。音の自然さは聴感での確認が必要です。", "en": ". Naturalness of the sound needs to be checked by listening.", "mode": "exact"},
+        {"ja": "▶ 発音する", "en": "▶ Pronounce", "mode": "exact"},
+        {"ja": "WAV 書き出し", "en": "Export WAV", "mode": "exact"},
+        {"ja": "WAVは全員の合唱を書き出します（ひとり聴きの選択は試聴のみ）。", "en": "WAV exports the full chorus (single-voice selection is for audition only).", "mode": "exact"},
+        {"ja": "WAV 一括書き出し（全12件）", "en": "Batch export WAV (all 12 items)", "mode": "exact"},
+        {"ja": "声の作り方を切り替えます。次の再生・書き出しから反映されます", "en": "Switches the sound generation method. Takes effect on the next playback or export", "mode": "exact"},
+        {"ja": "音の作り方：共鳴3本", "en": "Sound generation: 3 resonators", "mode": "exact"},
+        {"ja": "速度", "en": "Speed", "mode": "exact"},
+        {"ja": "ゆっくり", "en": "Slow", "mode": "exact"},
+        {"ja": "ふつう", "en": "Normal", "mode": "exact"},
+        {"ja": "はやい", "en": "Fast", "mode": "exact"},
+        {"ja": "もっとはやい", "en": "Faster", "mode": "exact"},
+        {"ja": "げきはや", "en": "Very fast", "mode": "exact"},
+        {"ja": "リピート", "en": "Repeat", "mode": "exact"},
+        {"ja": "単語だけ", "en": "Single words", "mode": "exact"},
+        {"ja": "なまむぎ（生麦）", "en": "Namamugi (raw barley)", "mode": "exact"},
+        {"ja": "なまごめ（生米）", "en": "Namagome (raw rice)", "mode": "exact"},
+        {"ja": "なまたまご（生卵）", "en": "Namatamago (raw egg)", "mode": "exact"},
+        {"ja": "母音の練習", "en": "Vowel practice", "mode": "exact"},
+        {"ja": "音の作り方：", "en": "Sound generation: ", "mode": "exact"},
+        {"ja": "録音やサンプルは使っていません。声帯の振動（基本周波数 F0）を音源に、声道の共鳴を F1/F2/F3 のフォルマントで再現する", "en": "No recordings or samples are used. Sound is generated in real time using ", "mode": "exact"},
+        {"ja": "フォルマント合成", "en": "formant synthesis", "mode": "exact"},
+        {"ja": "解剖パラメータ：", "en": "Anatomical parameters: ", "mode": "exact"},
+        {"ja": "声道長スライダー：", "en": "Vocal tract length slider: ", "mode": "exact"},
+        {"ja": "デュエット：", "en": "Duet: ", "mode": "exact"},
+        {"ja": "手動調音：", "en": "Manual articulation: ", "mode": "exact"},
+        {"ja": "歯茎鼻音 /n/", "en": "Alveolar nasal /n/", "mode": "fragment"},
+        {"ja": "両唇鼻音 /m/", "en": "Bilabial nasal /m/", "mode": "fragment"},
+        {"ja": "軟口蓋破裂音 /g/（有声）", "en": "Velar stop /g/ (voiced)", "mode": "fragment"},
+        {"ja": "軟口蓋破裂音 /k/（無声）", "en": "Velar stop /k/ (voiceless)", "mode": "fragment"},
+        {"ja": "歯茎破裂音 /t/（無声）", "en": "Alveolar stop /t/ (voiceless)", "mode": "fragment"},
+        {"ja": "歯茎破裂音 /d/（有声）", "en": "Alveolar stop /d/ (voiced)", "mode": "fragment"},
+        {"ja": "両唇破裂音 /p/（無声）", "en": "Bilabial stop /p/ (voiceless)", "mode": "fragment"},
+        {"ja": "両唇破裂音 /b/（有声）", "en": "Bilabial stop /b/ (voiced)", "mode": "fragment"},
+        {"ja": "歯茎摩擦音 /s/", "en": "Alveolar fricative /s/", "mode": "fragment"},
+        {"ja": "歯茎摩擦音 /z/（有声）", "en": "Alveolar fricative /z/ (voiced)", "mode": "fragment"},
+        {"ja": "歯茎硬口蓋摩擦音 /ɕ/", "en": "Alveolo-palatal fricative /ɕ/", "mode": "fragment"},
+        {"ja": "破擦音 /tɕ/", "en": "Affricate /tɕ/", "mode": "fragment"},
+        {"ja": "破擦音 /ts/", "en": "Affricate /ts/", "mode": "fragment"},
+        {"ja": "破擦音 /dʑ/（有声）", "en": "Affricate /dʑ/ (voiced)", "mode": "fragment"},
+        {"ja": "声門摩擦音 /h/", "en": "Glottal fricative /h/", "mode": "fragment"},
+        {"ja": "両唇摩擦音 /ɸ/", "en": "Bilabial fricative /ɸ/", "mode": "fragment"},
+        {"ja": "歯茎はじき音 /ɾ/", "en": "Alveolar tap /ɾ/", "mode": "fragment"},
+        {"ja": "硬口蓋接近音 /j/", "en": "Palatal approximant /j/", "mode": "fragment"},
+        {"ja": "両唇軟口蓋接近音 /w/", "en": "Labial–velar approximant /w/", "mode": "fragment"},
+        {"ja": "撥音 /N/", "en": "Moraic nasal /N/", "mode": "fragment"},
+        {"ja": "促音 /Q/（つまる音）", "en": "Geminate /Q/ (held closure)", "mode": "fragment"},
+        {"ja": "舌先を上の歯茎に当て、軟口蓋を下げて声を鼻へ抜く。口は母音の形のまま、舌先だけが仕事をする。", "en": "Place the tongue tip against the upper alveolar ridge and lower the soft palate so the voice passes through the nose. The mouth keeps the vowel shape; only the tongue tip does the work.", "mode": "exact"},
+        {"ja": "両唇を閉じて、軟口蓋を下げ、声を鼻へ抜く。唇の閉鎖と鼻への共鳴が「ま」の正体。", "en": "Close both lips and lower the soft palate so the voice passes through the nose. Lip closure and nasal resonance are what produce Japanese “ma.”", "mode": "exact"},
+        {"ja": "舌の奥（舌背）を軟口蓋に押し当てて息をせき止め、一気に開放する。開放の瞬間に母音へ移る。", "en": "Press the back of the tongue (the dorsum) against the soft palate to block the airflow, then release it suddenly. Move into the vowel at the moment of release.", "mode": "exact"},
+        {"ja": "舌の奥を軟口蓋に当てて息をせき止め、一気に開放する。「が」と違い声帯は振動しない無声音。", "en": "Place the back of the tongue against the soft palate to block the airflow, then release it suddenly. Unlike Japanese “ga,” this is voiceless: the vocal folds do not vibrate.", "mode": "exact"},
+        {"ja": "舌先を上の歯茎に当てて息をせき止め、一気に開放する。声帯は振動しない無声音。", "en": "Place the tongue tip against the upper alveolar ridge to block the airflow, then release it suddenly. This is voiceless: the vocal folds do not vibrate.", "mode": "exact"},
+        {"ja": "舌先を歯茎に当てて息をせき止め、一気に開放する。「た」と違い、閉鎖中も声帯が振動する有声音。", "en": "Place the tongue tip against the alveolar ridge to block the airflow, then release it suddenly. Unlike Japanese “ta,” this is voiced: the vocal folds keep vibrating during closure.", "mode": "exact"},
+        {"ja": "両唇を閉じて息をせき止め、一気に開放する。唇がはじける破裂音。", "en": "Close both lips to block the airflow, then release it suddenly. This is a stop made by releasing the lips.", "mode": "exact"},
+        {"ja": "両唇を閉じて息をせき止め、一気に開放する。閉じている間も声帯が小さく振動する有声音。", "en": "Close both lips to block the airflow, then release it suddenly. This is voiced: the vocal folds vibrate gently even during closure.", "mode": "exact"},
+        {"ja": "舌先を歯茎に近づけ、細い溝から息を擦らせて出す摩擦音。歯の裏に冷たい息が当たる。", "en": "Bring the tongue tip close to the alveolar ridge and force air through a narrow groove to make a fricative. Cool air strikes the backs of the teeth.", "mode": "exact"},
+        {"ja": "「す」の摩擦に声帯の振動を加えた有声摩擦音。口の形は「す」と同じ。", "en": "A voiced fricative that adds vocal fold vibration to the friction of Japanese “su.” The mouth shape is the same as for “su.”", "mode": "exact"},
+        {"ja": "舌を少し奥に引いて盛り上げ、唇を軽く丸めて息を擦らせる。「す」より太くこもった摩擦音。", "en": "Draw the tongue slightly back and raise it, lightly round the lips, and force air through the narrowing. This is a fuller, more muffled fricative than Japanese “su.”", "mode": "exact"},
+        {"ja": "舌先の閉鎖を、摩擦音「し」に続けて一気に開放する破擦音。止める＋擦るの合わせ技。", "en": "An affricate that suddenly releases a tongue-tip closure into the fricative of Japanese “shi”: a combination of stopping and friction.", "mode": "exact"},
+        {"ja": "舌先の閉鎖を、摩擦音「す」に続けて一気に開放する破擦音。", "en": "An affricate that suddenly releases a tongue-tip closure into the fricative of Japanese “su.”", "mode": "exact"},
+        {"ja": "「ち」の破擦音に声帯の振動を加えた有声音。閉鎖中から小さく声が鳴る。", "en": "A voiced sound that adds vocal fold vibration to the affricate of Japanese “chi.” Gentle voicing begins during closure.", "mode": "exact"},
+        {"ja": "声門（声帯の隙間）を狭めて息を擦らせる。口の形は次の母音の形をそのまま使う。", "en": "Narrow the glottis (the gap between the vocal folds) to create friction in the airflow. The mouth takes the shape of the following vowel.", "mode": "exact"},
+        {"ja": "上の歯を下唇に軽く当て、その隙間から息を擦らせる摩擦音。日本語の「ふ」は両唇で作るのが本来の形。", "en": "A fricative made by lightly touching the upper teeth to the lower lip and forcing air through the gap. Japanese “fu” is normally formed with both lips.", "mode": "exact"},
+        {"ja": "舌先が歯茎に1回だけ短く接触する弾音（フラップ）。接触は約30msの一瞬で、舌体は次の母音の構えのまま。英語の R や L とは違う。", "en": "A tap (flap) in which the tongue tip briefly touches the alveolar ridge once. Contact lasts only about 30 ms, while the tongue body keeps the posture for the following vowel. It differs from English R and L.", "mode": "exact"},
+        {"ja": "舌を「い」の位置に高く構えて、そのまま次の母音へ滑らせる半母音。", "en": "A semivowel made by holding the tongue high in the position for Japanese “i,” then gliding into the next vowel.", "mode": "exact"},
+        {"ja": "唇と舌の奥を「う」の形に構えて、次の母音へ滑らせる半母音。", "en": "A semivowel made by placing the lips and back of the tongue in the position for Japanese “u,” then gliding into the next vowel.", "mode": "exact"},
+        {"ja": "軟口蓋を下げ、声を鼻に響かせるだけで1モーラを成す撥音。口の形は前後の音につられて変わる。", "en": "A moraic nasal that occupies one mora by lowering the soft palate and resonating the voice through the nose. The mouth shape changes with the surrounding sounds.", "mode": "exact"},
+        {"ja": "次の子音の構えで息を止め、1モーラ分ためる促音。音は出ないが拍はある「詰まる音」。", "en": "A geminate made by holding the posture for the next consonant and blocking the airflow for one mora. It is a held closure: no sound, but it still has a beat.", "mode": "exact"},
+        {"ja": "顎を大きく開け、舌は低く寝かせる。口の中が一番広くなる母音。", "en": "Open the jaw wide and keep the tongue low and flat. This vowel gives the mouth its most open shape.", "mode": "exact"},
+        {"ja": "舌を高く前に押し上げ、唇は横に引く。顎はほぼ閉じたまま。", "en": "Raise the tongue high and forward and spread the lips sideways. The jaw stays almost closed.", "mode": "exact"},
+        {"ja": "舌を高く奥へ。日本語の「う」は唇を丸めず上下に圧縮する [ɯᵝ] 型で、欧米の /u/ より F2 が高め（基準話者で約1360Hz）になる。", "en": "Hold the tongue high and back. Japanese “u” is a compressed [ɯᵝ] vowel: the lips are compressed vertically rather than rounded. Its F2 is higher than that of Western /u/ (about 1360 Hz for the reference speaker).", "mode": "exact"},
+        {"ja": "舌は中くらいの高さで前寄り。顎は半開き。", "en": "Hold the tongue at mid height, toward the front. Keep the jaw half open.", "mode": "exact"},
+        {"ja": "舌は中くらい・奥寄り。唇は軽く丸める程度で、欧米の /o/ ほど強く突き出さない。", "en": "Hold the tongue at mid height, toward the back. Round the lips lightly, without protruding them as strongly as for Western /o/.", "mode": "exact"},
+        {"ja": "公表平均", "en": "Published average", "mode": "exact"},
+        {"ja": "子ども（7歳前後）", "en": "Child (around age 7)", "mode": "exact"},
+        {"ja": "近似（発達段階の平均像）", "en": "Approximation (average developmental profile)", "mode": "exact"},
+        {"ja": "カスタム", "en": "Custom", "mode": "exact"},
+        {"ja": "声道長スライダー（アンカー間補間）", "en": "Vocal tract length slider (interpolation between anchors)", "mode": "exact"},
+        {"ja": "アンカー間補間による推定", "en": "Estimated by interpolation between anchors", "mode": "fragment"},
+        {"ja": "成人男性（公表平均）", "en": "Adult male (published average)", "mode": "exact"},
+        {"ja": "成人女性（公表平均）", "en": "Adult female (published average)", "mode": "exact"},
+        {"ja": "子ども（7歳前後）（近似（発達段階の平均像））", "en": "Child (around age 7; approximation of the average developmental profile)", "mode": "exact"},
+        {"ja": "カスタム（声道長スライダー（アンカー間補間））", "en": "Custom (vocal tract length slider; interpolation between anchors)", "mode": "exact"},
+        {"ja": "中立（シュワー）", "en": "Neutral (schwa)", "mode": "exact"},
+        {"ja": "根拠：", "en": "Basis: ", "mode": "exact"},
+        {"ja": "声道長は日本人成人の公表平均の範囲（男 15.5〜16cm／女 13.5〜14cm）に基づく代表値。母音表は基準話者（成人男性）での日本語話者の実測平均に寄せ、他話者は一様スケーリング F×(15.8/VTL) で換算（近似）。中立管共鳴は一様管モデル Fn=(2n-1)c/(4L) による推定。声帯長は日本人成人の手術時実測の公表値（子どものみ近似）。口腔／咽頭比は発達解剖・性差の知見に基づく近似。声道長スライダーでプリセット間の長さにした場合は、F0基準・声帯長・口腔比を3プリセットのアンカー間で線形補間した推定値を使います。摩擦音・破裂音のノイズ中心周波数は前腔の長さに依存するため話者スケーリングの対象外（固定の近似）。", "en": "Vocal tract lengths are representative values based on published average ranges for Japanese adults (men 15.5–16 cm / women 13.5–14 cm). The vowel table approximates measured averages for Japanese speakers at the reference adult-male preset; other speakers are converted by uniform scaling F×(15.8/VTL), an approximation. Neutral tube resonances are estimated using the uniform-tube model Fn=(2n-1)c/(4L). Vocal fold lengths are published measurements taken during surgery on Japanese adults; only the child values are approximations. Oral/pharyngeal ratios are approximations based on developmental anatomy and sex differences. At slider lengths between presets, reference F0, vocal fold length, and oral fraction use estimates linearly interpolated between the three preset anchors. The noise center frequencies of fricatives and stops depend on front-cavity length, so they are not speaker-scaled; they remain fixed approximations. ", "mode": "exact"},
+        {"ja": "これらは公表されている日本人の平均データに基づく近似であり、個人の骨格そのものではありません。", "en": "These are approximations based on published average data for Japanese people, not any individual’s actual skeletal anatomy.", "mode": "exact"},
+        {"ja": "声道長", "en": "Vocal tract length", "mode": "exact"},
+        {"ja": "／ 中立共鳴 F1", "en": " / Neutral resonance F1", "mode": "exact"},
+        {"ja": "／ F0基準", "en": " / Reference F0", "mode": "exact"},
+        {"ja": "第2声：成人男性（VTL", "en": "Second voice: adult male (VTL", "mode": "exact"},
+        {"ja": "第2声：成人女性（VTL", "en": "Second voice: adult female (VTL", "mode": "exact"},
+        {"ja": "第2声：子ども（7歳前後）（VTL", "en": "Second voice: child around age 7 (VTL", "mode": "exact"},
+        {"ja": "）の声道で独立合成", "en": ") — synthesized independently using this vocal tract", "mode": "exact"},
+        {"ja": "）の声道で独立合成 ※主話者と同じ声道＝ユニゾン", "en": ") — synthesized independently using this vocal tract; same vocal tract as the main speaker = unison", "mode": "exact"},
+        {"ja": "に分解しました", "en": " parsed.", "mode": "exact"},
+        {"ja": "ひらがなを入力すると、モーラに分解してタイルに並びます。", "en": "Enter hiragana to split the text into morae and arrange them as tiles.", "mode": "exact"},
+        {"ja": "F2 帯域幅 (Hz)", "en": "F2 bandwidth (Hz)", "mode": "exact"},
+        {"ja": "F2 音量", "en": "F2 volume", "mode": "exact"},
+        {"ja": "F1 音量", "en": "F1 volume", "mode": "exact"},
+        {"ja": "F3 音量", "en": "F3 volume", "mode": "exact"},
+        {"ja": "子音の雑音 ×", "en": "Consonant noise ×", "mode": "exact"},
+        {"ja": "F2 ホップ速さ (s)", "en": "F2 hop time (s)", "mode": "exact"},
+        {"ja": "音源の高域上限 (Hz)", "en": "Source high-frequency cutoff (Hz)", "mode": "exact"},
+        {"ja": "1周期の声源モデル（近似・実測出力とは別）", "en": "One-period source model (approximation; not the measured output)", "mode": "exact"},
+        {"ja": "十二人の堂：個別の声色・発音のずれ・小堂の余韻。PLAYで開始（合成上の演出です）。", "en": "Hall of Twelve: individual timbres, timing differences in pronunciation, and the reverberation of a small hall. Press PLAY to start (a synthesis effect).", "mode": "exact"},
+        {"ja": "設定を反映しました。原音と比べて聴いてください（医学的・実空間の再現精度は未検証）。", "en": "Settings applied. Listen and compare with the original sound (medical accuracy and accuracy in reproducing real spaces have not been verified).", "mode": "exact"},
+        {"ja": "カスタム設定。次の再生とWAVに反映します。", "en": "Custom settings. They take effect on the next playback and WAV export.", "mode": "exact"},
+        {"ja": "管モデルを準備できません。共鳴3本方式に切り替えてください。", "en": "Unable to prepare the tube model. Please switch to the three-resonator method.", "mode": "exact"},
+        {"ja": "音声エンジンの準備に失敗しました。", "en": "Failed to prepare the audio engine.", "mode": "exact"},
+        {"ja": "書き出し中…", "en": "Exporting…", "mode": "exact"},
+        {"ja": "WAVを書き出しました。聴感は音量に注意して比較してください。", "en": "WAV exported. Compare by listening, taking care with the volume.", "mode": "exact"},
+        {"ja": "WAV書き出しに失敗しました。選択した方式の代わりに別の音を黙って出力してはいません。", "en": "WAV export failed. No other sound has been silently substituted for the selected method.", "mode": "exact"},
+        {"ja": "管モデルはこのブラウザで使えません", "en": "The tube model is unavailable in this browser", "mode": "exact"},
+        {"ja": "音の作り方：管モデル（実験）", "en": "Sound generation: tube model (experimental)", "mode": "exact"},
+        {"ja": "ふるさと", "en": "Furusato", "mode": "exact"},
+        {"ja": "Twinkle（英語詞）", "en": "Twinkle (English lyrics)", "mode": "exact"},
+        {"ja": "きらきらぼし", "en": "Kirakiraboshi", "mode": "exact"},
+        {"ja": "般若心経（倍音ボイス）", "en": "Heart Sutra (overtone voice)", "mode": "exact"},
+        {"ja": "声を止める", "en": "Stop voicing", "mode": "exact"},
+        {"ja": "気流 — AIRFLOW (口腔・鼻腔)", "en": "Airflow — AIRFLOW (oral / nasal)", "mode": "exact"},
+        {"ja": "計測値 — MEASUREMENTS", "en": "Measurements — MEASUREMENTS", "mode": "exact"},
+        {"ja": "横隔膜（声で上がる）", "en": "Diaphragm (rises during voicing)", "mode": "exact"},
+        {"ja": "横隔膜（吸って下がる）", "en": "Diaphragm (descends on inhalation)", "mode": "exact"},
+        {"ja": "肺", "en": "Lungs", "mode": "exact"},
+        {"ja": "気管分岐", "en": "Tracheal bifurcation", "mode": "exact"},
+        {"ja": "頸椎", "en": "Cervical vertebrae", "mode": "exact"},
+        {"ja": "読経モード（倍音唱法）", "en": "Chant mode (overtone singing)", "mode": "exact"},
+        {"ja": "舌尖", "en": "Tongue tip", "mode": "exact"},
+        {"ja": "軟口蓋", "en": "Soft palate", "mode": "exact"},
+        {"ja": "声帯", "en": "Vocal folds", "mode": "exact"},
+        {"ja": "喉頭蓋", "en": "Epiglottis", "mode": "exact"},
+        {"ja": "舌骨", "en": "Hyoid bone", "mode": "exact"},
+        {"ja": "鼻腔", "en": "Nasal cavity", "mode": "exact"},
+        {"ja": "咽頭後壁", "en": "Posterior pharyngeal wall", "mode": "exact"},
+        {"ja": "VIEW  3/4  読経（胸まで）", "en": "VIEW  3/4  Chant (including chest)", "mode": "exact"},
+        {"ja": "VIEW  3/4（胸まで）", "en": "VIEW  3/4 (including chest)", "mode": "exact"},
+        {"ja": "VIEW  独唱（全身）", "en": "VIEW  Solo (full body)", "mode": "exact"},
+        {"ja": "断面積関数（推定）  声門 → 唇", "en": "Cross-sectional area function (estimated)  Glottis → Lips", "mode": "exact"},
+        {"ja": "最狭部", "en": "Narrowest point", "mode": "exact"},
+        {"ja": "再生すると表示されます", "en": "Shown during playback", "mode": "exact"},
+        {"ja": "選んだ曲を1モーラずつ歌います。音程（F0）が旋律どおりに動き、長い音にはビブラートがかかります。舌・顎・唇・軟口蓋の動きも歌に連動します。上の F0 表示には今の音名も出ます。", "en": "Sings the selected song one mora at a time. Pitch (F0) follows the melody, with vibrato on long notes. Tongue, jaw, lip, and soft palate movements follow the singing. The F0 readout above also shows the current note name.", "mode": "exact"},
+        {"ja": "入力した文章を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。速度を ×2.5 まで上げると早口チャレンジになります。", "en": "Pronounces the entered text one mora at a time. Tongue, jaw, lip, and soft palate movements are synchronized with changes in formants F1/F2/F3. Increase the speed to ×2.5 for a tongue-twister challenge.", "mode": "exact"},
+        {"ja": "— おわり", "en": "— End", "mode": "exact"},
+        {"ja": "閉鎖", "en": "Closed", "mode": "exact"},
+        {"ja": "狭い", "en": "Narrow", "mode": "exact"},
+        {"ja": "経題から本文・真言・締めの経題まで、漢訳系の般若心経を日本の読誦形で唱えます。読みは曹洞宗・貞昌院版の経本を参照。真言はサンスクリット語の音を漢字で伝えた部分で、画面には梵文のローマ字表記も添えます。音声はG2（約98Hz）を基準にした倍音唱法の合成です。", "en": "Recites the Chinese-translation Heart Sutra in the Japanese liturgical style, from the opening title through the main text and mantra to the closing title. Readings refer to the Sōtō Zen Teishō-in sutra book. The mantra transmits Sanskrit sounds through Chinese characters; a Romanized Sanskrit text is also shown on screen. The voice is synthesized overtone singing based on G2 (about 98 Hz).", "mode": "exact"},
+        {"ja": "250〜300 Hz台", "en": "250 Hz to the 300s", "mode": "fragment"},
+        {"ja": " cm（参考：欧米男性の代表値 約17cm）", "en": " cm (reference: representative Western male value, about 17 cm)", "mode": "fragment"},
+        {"ja": " cm（口腔比 ", "en": " cm（oral fraction ", "mode": "fragment"},
+        {"ja": "日本人・成人男性 / 正中矢状断面  VTL ", "en": "Japanese adult male / midsagittal section  VTL ", "mode": "fragment"},
+        {"ja": "日本人・成人女性 / 正中矢状断面  VTL ", "en": "Japanese adult female / midsagittal section  VTL ", "mode": "fragment"},
+        {"ja": "日本人・子ども（7歳前後） / 正中矢状断面  VTL ", "en": "Japanese child (around age 7) / midsagittal section  VTL ", "mode": "fragment"},
+        {"ja": "日本人・カスタム / 正中矢状断面  VTL ", "en": "Japanese · custom / midsagittal section  VTL ", "mode": "fragment"},
+        {"ja": "）だけ発音", "en": "） — pronounce this sound only", "mode": "fragment"},
+        {"ja": "経文とふりがなの字数が一致しません: ", "en": "The character counts of the sutra text and reading do not match: ", "mode": "fragment"},
+        {"ja": " モーラ", "en": " morae", "mode": "fragment"},
+        {"ja": "／ 読み飛ばした文字：", "en": " / Skipped characters: ", "mode": "fragment"},
+        {"ja": "読み取れる仮名がありません（読み飛ばし：", "en": "No readable kana（skipped: ", "mode": "fragment"},
+        {"ja": "現在: ", "en": "Current: ", "mode": "fragment"},
+        {"ja": "試聴中：", "en": "Auditioning: ", "mode": "fragment"},
+        {"ja": "次の再生：", "en": "Next playback: ", "mode": "fragment"},
+        {"ja": "全員", "en": "All voices", "mode": "fragment"},
+        {"ja": "導師", "en": "Lead chanter", "mode": "fragment"},
+        {"ja": " ／ WAVは全員（試聴の選択を含めません）", "en": " / WAV includes all voices (audition selection is excluded)", "mode": "fragment"},
+        {"ja": "倍音ミキサーOFF（原音）", "en": "Harmonic mixer OFF (original sound)", "mode": "fragment"},
+        {"ja": "仮想室 ", "en": "Virtual room ", "mode": "fragment"},
+        {"ja": "m・設定RT60 ", "en": "m · configured RT60 ", "mode": "fragment"},
+        {"ja": "s・聴取距離 ", "en": "s · listening distance ", "mode": "fragment"},
+        {"ja": "空間OFF", "en": "Room effect OFF", "mode": "fragment"},
+        {"ja": "主声の目標: ", "en": "Main voice targets: ", "mode": "fragment"},
+        {"ja": " ／ 独立ゆらぎ ±", "en": " / Independent variation ±", "mode": "fragment"},
+        {"ja": "WAV 一括書き出し（全", "en": "Batch export WAV（", "mode": "fragment"},
+        {"ja": "一括書き出し完了（", "en": "Batch export complete（", "mode": "fragment"},
+        {"ja": "一括書き出し中… ", "en": "Batch exporting… ", "mode": "fragment"},
+        {"ja": "件）", "en": " items）", "mode": "fragment"},
+        {"ja": "手動調音 — 最も近い母音 /", "en": "Manual articulation — nearest vowel /", "mode": "fragment"},
+        {"ja": "推定フォルマント F1 ", "en": "Estimated formants: F1 ", "mode": "fragment"},
+        {"ja": " Hz（5母音アンカー間の補間推定）。軟口蓋を下げると鼻腔共鳴が混ざり、鼻音寄りの音になります。", "en": " Hz (estimated by interpolation between the five vowel anchors). Lowering the soft palate mixes in nasal resonance, producing a more nasal sound.", "mode": "fragment"},
+        {"ja": "全声＋空間の出力（実測・相対）  0 → ", "en": "All voices + room output (measured, relative)  0 → ", "mode": "fragment"},
+        {"ja": "母音 /", "en": "Vowel /", "mode": "fragment"},
+        {"ja": "拗音グライド — ", "en": "Palatalized glide — ", "mode": "fragment"},
+        {"ja": "子音 — ", "en": "Consonant — ", "mode": "fragment"},
+        {"ja": "2番の声", "en": "Voice 2", "mode": "fragment"},
+        {"ja": "3番の声", "en": "Voice 3", "mode": "fragment"},
+        {"ja": "4番の声", "en": "Voice 4", "mode": "fragment"},
+        {"ja": "5番の声", "en": "Voice 5", "mode": "fragment"},
+        {"ja": "6番の声", "en": "Voice 6", "mode": "fragment"},
+        {"ja": "7番の声", "en": "Voice 7", "mode": "fragment"},
+        {"ja": "8番の声", "en": "Voice 8", "mode": "fragment"},
+        {"ja": "9番の声", "en": "Voice 9", "mode": "fragment"},
+        {"ja": "10番の声", "en": "Voice 10", "mode": "fragment"},
+        {"ja": "11番の声", "en": "Voice 11", "mode": "fragment"},
+        {"ja": "12番の声", "en": "Voice 12", "mode": "fragment"},
+        {"ja": "VIEW  曼荼羅（3人）", "en": "VIEW  Mandala (3 singers)", "mode": "exact"},
+        {"ja": "VIEW  曼荼羅（6人）", "en": "VIEW  Mandala (6 singers)", "mode": "exact"},
+        {"ja": "VIEW  曼荼羅（12人）", "en": "VIEW  Mandala (12 singers)", "mode": "exact"},
+        {"ja": "VIEW  曼荼羅（36人）", "en": "VIEW  Mandala (36 singers)", "mode": "exact"},
+        {"ja": "VIEW  曼荼羅（72人）", "en": "VIEW  Mandala (72 singers)", "mode": "exact"},
+        {"ja": "VIEW  曼荼羅（108人）", "en": "VIEW  Mandala (108 singers)", "mode": "exact"},
+        {"ja": "1 モーラ", "en": "1 mora", "mode": "exact"},
+        {"ja": "唱歌『ふるさと』（高野辰之 作詞／岡野貞一 作曲）全3番・最後まで。旋律は原曲どおり（ハ長調、3拍子）：出だしは ", "en": "The complete three verses of the school song “Furusato” (lyrics by Tatsuyuki Takano; music by Teiichi Okano). The melody follows the original (C major, triple meter). It begins: ", "mode": "exact"},
+        {"ja": "に1モーラ2音のメリスマが入る原曲の歌い回しまで再現しています。", "en": " each receive a two-note-per-mora melisma, reproducing the original phrasing.", "mode": "exact"},
+        {"ja": "2番・3番も同じ旋律で歌い切ります。", "en": "Verses 2 and 3 use the same melody throughout.", "mode": "exact"},
+        {"ja": "を3回くり返すキャッチーなループ。旋律：", "en": " repeated three times in a catchy loop. Melody: ", "mode": "exact"},
+        {"ja": "（最後は長めに伸ばしてビブラート）。", "en": " (the final note is held longer, with vibrato).", "mode": "exact"},
+        {"ja": "。旋律：", "en": ". Melody: ", "mode": "exact"},
+        {"ja": "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在するデモ曲『Twinkle, twinkle』の楽譜データをそのまま転記（bpm 100、[MIDI・拍] の列、14音・全16拍）。推定や補完はしていません。英語詞は本家の歌詞「", "en": "The score data for the demo song “Twinkle, twinkle” is copied directly from DEMO_SONGS in the upstream Chimera repository (crates/chimera/src/phonetics/songs.rs): 100 BPM, a sequence of [MIDI note, beats], 14 notes and 16 beats in total. Nothing was estimated or filled in. The English version uses the original lyrics “", "mode": "exact"},
+        {"ja": "」の14音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。日本語詞は唱歌「きらきらぼし」1番の歌い出しに切り替えられます。本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。", "en": "”, mapping each of their 14 syllables to one note and replacing them with Japanese morae for singing. Because this synthesizer pronounces Japanese morae, syllable sounds are approximate, but pitches and beats follow the original data. You can switch to the opening of the first verse of the Japanese school song “Kirakiraboshi.” The original speaker-specific octave setting (male −1) is not applied: this implementation keeps every song’s melody at its notated pitches.", "mode": "exact"},
+        {"ja": "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在する、本家オリジナルのデモ曲『Made of air』をそのまま転記（bpm 84、[MIDI・拍] の列、19音・全16拍）。推定や補完はしていません。歌詞「", "en": "The upstream project’s original demo song “Made of air” is copied directly from DEMO_SONGS in the upstream Chimera repository (crates/chimera/src/phonetics/songs.rs): 84 BPM, a sequence of [MIDI note, beats], 19 notes and 16 beats in total. Nothing was estimated or filled in. The lyrics “", "mode": "exact"},
+        {"ja": "」の19音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。", "en": "” are mapped one syllable per note across their 19 syllables and replaced with Japanese morae for singing. Because this synthesizer pronounces Japanese morae, syllable sounds are approximate, but pitches and beats follow the original data.", "mode": "exact"},
+        {"ja": "は音節ごとに音が分かれている本家データの割り当てそのままです。", "en": " follow the upstream data’s assignment, with a separate note for each syllable.", "mode": "exact"},
+        {"ja": "本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。これで本家 DEMO_SONGS の2曲（Made of air／Twinkle, twinkle）が揃いました。", "en": "The original speaker-specific octave setting (male −1) is not applied: this implementation keeps every song’s melody at its notated pitches. Both songs in the original DEMO_SONGS collection—Made of air and Twinkle, twinkle—are now included.", "mode": "exact"},
+        {"ja": "倍音 ≈ ", "en": " harmonic ≈ ", "mode": "fragment"},
+        {"ja": " なまむぎ", "en": " Namamugi", "mode": "fragment"},
+        {"ja": " かえるぴょこぴょこ", "en": " Kaeru pyoko-pyoko", "mode": "fragment"},
+        {"ja": " となりのきゃくは", "en": " Tonari no kyaku wa", "mode": "fragment"},
+        {"ja": " あかまきがみ", "en": " Akamakigami", "mode": "fragment"},
+        {"ja": " たけやぶ やけた", "en": " Takeyabu yaketa", "mode": "fragment"},
+        {"ja": " ばななのなぞは", "en": " Banana no nazo wa", "mode": "fragment"},
+        {"ja": " ふるさと", "en": " Furusato", "mode": "fragment"},
+        {"ja": " Twinkle（英語詞）", "en": " Twinkle (English lyrics)", "mode": "fragment"},
+        {"ja": " きらきらぼし", "en": " Kirakiraboshi", "mode": "fragment"},
+        {"ja": " 般若心経（倍音ボイス）", "en": " Heart Sutra (overtone voice)", "mode": "fragment"},
+        {"ja": "表示言語", "en": "Interface language", "mode": "exact"},
+        {"ja": "声のしくみを、耳と目で試す。", "en": "Explore how voices work—by listening and looking.", "mode": "exact"},
+        {"ja": "日本語の仮名・母音・歌を、声道の動きと合成音で試せます。英語表示でも発音データは日本語のままです。", "en": "Explore Japanese kana, vowels and songs with moving articulators and synthesized audio. English changes the interface, not the Japanese pronunciation data.", "mode": "exact"},
+        {"ja": "学習・実験用の近似モデルです。医療・診断・実在の声や寺院の再現を目的としたものではありません。", "en": "An approximate model for learning and experimentation—not a medical or diagnostic tool, or a reconstruction of a real voice or temple.", "mode": "exact"},
+        {"ja": "使い方・モデルの限界", "en": "Quick start and model limitations", "mode": "exact"},
+        {"ja": "まず「発音する」、または歌モードの「十二人の堂」を選んで再生。STOPで止められます。", "en": "Start with Pronounce. For the choir, select Sing, choose Hall of Twelve — recommended, then press ▶ Pronounce. STOP ends playback.", "mode": "exact"},
+        {"ja": "自由入力はひらがな・カタカナに対応します。英語の音声認識や自然な英語TTSではありません。", "en": "Free input accepts hiragana and katakana. This is not speech recognition or natural English text-to-speech.", "mode": "exact"},
+        {"ja": "手動調音ではスライダーを動かし「声を出す」で確認。WAVは現在の設定から生成し、試聴で選んだ一人だけにはなりません。", "en": "In Manual mode, adjust the sliders and choose Start voice. WAV uses the current settings and includes the complete ensemble, not only an auditioned singer.", "mode": "exact"},
+        {"ja": "画面の波形・気流は相対表示です。人体形状、呼吸、空間は模式的・合成的な近似です。", "en": "Waveform and airflow displays are relative. Body geometry, breathing and rooms are schematic or synthetic approximations.", "mode": "exact"},
+        {"ja": "出典・限界", "en": "Sources and limitations", "mode": "exact"},
+        {"ja": "ライセンス", "en": "License", "mode": "exact"},
+        {"ja": "波形", "en": "Waveform", "mode": "exact"},
+        {"ja": "出力波形（相対） — OUTPUT WAVEFORM", "en": "Output waveform (relative)", "mode": "exact"},
+        {"ja": "発音する", "en": "Pronounce", "mode": "exact"},
+        {"ja": "唱歌「ふるさと」全3番。高野辰之作詞・岡野貞一作曲。旋律を日本語モーラで合成します。実際の歌手の発声・方言・表情を再現するものではありません。", "en": "All three verses of Furusato, with words by Tatsuyuki Takano and music by Teiichi Okano. The melody is synthesized with Japanese morae; it does not reconstruct a real singer, dialect or expression.", "mode": "exact"},
+        {"ja": "しゅー・びー・どーを使う短いスキャット練習です。合成音の音程・母音・ビブラートを試せます。", "en": "A short scat exercise using shoo, bee and doo. Explore synthesized pitch, vowels and vibrato.", "mode": "exact"},
+        {"ja": "独立したハ長調アルペジオのスキャット練習です。音高と拍はこの練習用に定義しました。従来の内部IDだけを互換用に保ちます。", "en": "An independent C-major arpeggio scat exercise. Its pitches and beats were defined for this exercise. Only the legacy internal ID is retained for compatibility.", "mode": "exact"},
+        {"ja": "ChimeraのMITライセンスの楽譜データを使用。音高・拍はそのままです。英語音節は日本語モーラで近似します。もう一方はドレミのソルフェージュで、許諾未確認の現代日本語訳詞は含みません。話者別のオクターブ移動は適用しません。", "en": "Uses note data from Chimera under MIT, with the original pitches and beats. English syllables are approximated with Japanese morae. The other variant uses solfege, not an uncleared modern Japanese lyric translation. Speaker-specific octave offsets are not applied.", "mode": "exact"},
+        {"ja": "Jameson HodgeによるChimeraのオリジナル曲。MITライセンスの音高・拍データを使用し、英語音節を日本語モーラで近似します。自然な英語発音の再現ではありません。話者別のオクターブ移動は適用しません。", "en": "An original Chimera song by Jameson Hodge. MIT-licensed pitch/beat data are retained, with English syllables approximated using Japanese morae. This is not natural English pronunciation. Speaker-specific octave offsets are not applied.", "mode": "exact"},
+        {"ja": "日本語ガイド", "en": "Japanese guide", "mode": "exact"},
+        {"ja": "音階スキャット（練習）", "en": "Scale scat (exercise)", "mode": "exact"},
+        {"ja": "ソルフェージュ（ドレミ）", "en": "Solfege (do–re–mi)", "mode": "exact"},
+        {"ja": "音階スキャット", "en": "Scale scat", "mode": "exact"},
+        {"ja": "Twinkle（ソルフェージュ）", "en": "Twinkle (solfege)", "mode": "exact"},
+        {"ja": "合成と保存：", "en": "Synthesis and saving: ", "mode": "exact"},
+        {"ja": "録音・声のサンプル・マイク入力は使いません。声源と共鳴をその場で計算します。WAVは44.1kHz・16bitで生成し、追加の合唱声がある場合はステレオです。バッチ保存にはブラウザ側の複数ダウンロード許可が必要な場合があります。", "en": "No recordings, voice samples or microphone input are used. Sources and resonances are computed locally. WAV output is 44.1 kHz / 16-bit and is stereo when extra choir voices are present. Your browser may require permission for multiple batch downloads.", "mode": "exact"},
+        {"ja": "近似モデル：", "en": "Approximate models: ", "mode": "exact"},
+        {"ja": "解剖・調音・呼吸・残響は学習用の近似です。表示される波形・気流は相対値で、校正された音圧や呼吸量ではありません。未照合の定数と実測ではない形状を、検証済みの生体データとは扱っていません。", "en": "Anatomy, articulation, breathing and reverberation are educational approximations. Waveforms and airflow are relative, not calibrated sound pressure or respiratory volume. Unverified constants and illustrative geometry are not validated physiological data.", "mode": "exact"},
+        {"ja": "クレジット：", "en": "Credits: ", "mode": "exact"},
+        {"ja": "着想と一部のデモ楽譜は", "en": "Inspiration and some demo note data: ", "mode": "exact"},
+        {"ja": "。このシミュレーターの音響エンジンは独自実装です。", "en": ". This simulator uses an independently implemented acoustic engine. ", "mode": "exact"},
+        {"ja": "第三者表記とコンテンツの範囲", "en": "Third-party notices and content scope", "mode": "exact"},
+        {"ja": "出典・モデルの限界", "en": "Sources and model limitations", "mode": "exact"},
+        {"ja": " 音階スキャット", "en": " Scale scat", "mode": "fragment"},
+        {"ja": " Twinkle（ソルフェージュ）", "en": " Twinkle (solfege)", "mode": "fragment"},
+        {"ja": "音は自動再生しません。音を鳴らす操作の前に、端末の音量を下げてください。", "en": "No audio autoplays. Turn down your device volume before any playback action.", "mode": "exact"},
+        {"ja": "WAV 一括書き出し", "en": "Batch export WAV", "mode": "exact"},
+        {"ja": "WAVを生成して保存を要求しました。保存先を確認してください。", "en": "WAV generated and a download requested. Check your saved files.", "mode": "exact"},
+        {"ja": "一括WAVを中止しました（生成・保存要求 ", "en": "Batch stopped (generated/download requested: ", "mode": "fragment"},
+        {"ja": "）。失敗後の続行はしていません。", "en": "). No files after the failure were submitted.", "mode": "fragment"},
+        {"ja": "一括WAVを生成・保存要求しました（", "en": "Batch generated/download requested (", "mode": "fragment"},
+        {"ja": "件）。保存先を確認してください。", "en": " files). Check your saved files.", "mode": "fragment"}
+      ];
+      /* UI_TRANSLATIONS_END */
+      function uiStorage() { try { return window.localStorage; } catch (ignore) { return null; } }
+      var UI18N = createUILocaleDOM(document, UI_TRANSLATIONS, uiStorage(), window.location.search);
+      function uiText(el, text) { UI18N.text(el, text); }
+      function uiHTML(el, html) { UI18N.html(el, html); }
+      function canvasText(ctx, text, x, y, maxWidth) {
+        text = UI18N.translate(text);
+        if (maxWidth === undefined) return ctx.fillText(text, x, y);
+        return ctx.fillText(text, x, y, maxWidth);
+      }
+      function canvasMeasure(ctx, text) { return ctx.measureText(UI18N.translate(text)); }
       /* ============================================================
          声道シミュレータ日本語版
          ジェスチャスコア（モーラ→子音＋母音の調音目標）から
@@ -1031,7 +1665,7 @@
         p: "両唇破裂音 /p/（無声）", b: "両唇破裂音 /b/（有声）",
         s: "歯茎摩擦音 /s/", z: "歯茎摩擦音 /z/（有声）",
         sh: "歯茎硬口蓋摩擦音 /ɕ/", ch: "破擦音 /tɕ/", ts: "破擦音 /ts/", j: "破擦音 /dʑ/（有声）",
-        h: "声門摩擦音 /h/", f: "唇歯摩擦音 /ɸ/",
+        h: "声門摩擦音 /h/", f: "両唇摩擦音 /ɸ/",
         r: "歯茎はじき音 /ɾ/", y: "硬口蓋接近音 /j/", w: "両唇軟口蓋接近音 /w/",
         N: "撥音 /N/", Q: "促音 /Q/（つまる音）"
       };
@@ -1111,7 +1745,7 @@
         furusato: {
           title: "ふるさと", file: "furusato", beat: 0.52,
           lyrics: "うさぎおいし かのやま こぶなつりし かのかわ ゆめはいまも めぐりて わすれがたき ふるさと いかにいます ちちはは つつがなしや ともがき あめにかぜに つけても おもいいずる ふるさと こころざしを はたして いつのひにか かえらん やまはあおき ふるさと みずはきよき ふるさと",
-          desc: "唱歌『ふるさと』（高野辰之 作詞／岡野貞一 作曲）全3番・最後まで。旋律は原曲どおり（ハ長調、3拍子）：出だしは ド ド ド レ ミ レ ミ ミ ファ ソー。3行目「ゆめは いまも めぐりて」は、い・め・ぐ・りに1モーラ2音のメリスマが入る原曲の歌い回しまで再現しています。2番・3番も同じ旋律で歌い切ります。",
+          desc: "唱歌「ふるさと」全3番。高野辰之作詞・岡野貞一作曲。旋律を日本語モーラで合成します。実際の歌手の発声・方言・表情を再現するものではありません。",
           verses: [
             "うさぎおいし かのやま こぶなつりし かのかわ ゆめはいまも めぐりて わすれがたき ふるさと",
             "いかにいます ちちはは つつがなしや ともがき あめにかぜに つけても おもいいずる ふるさと",
@@ -1145,58 +1779,28 @@
         shoo: {
           title: "SHOO BEE DOO", file: "shoo-bee-doo", beat: 0.42,
           lyrics: "しゅー びー どー しゅー びー どー しゅー びー どー",
-          desc: "しゅー・びー・どーを3回くり返すキャッチーなループ。旋律：ミ ソ ラ ／ ソ ラ ド′ ／ ラ ソ ミ（最後は長めに伸ばしてビブラート）。",
+          desc: "しゅー・びー・どーを使う短いスキャット練習です。合成音の音程・母音・ビブラートを試せます。",
           notes: [
             { t: "しゅー", m: 64, b: 1 }, { t: "びー", m: 67, b: 1 }, { t: "どー", m: 69, b: 1 },
             { t: "しゅー", m: 67, b: 1 }, { t: "びー", m: 69, b: 1 }, { t: "どー", m: 72, b: 1 },
             { t: "しゅー", m: 69, b: 1 }, { t: "びー", m: 67, b: 1 }, { t: "どー", m: 64, b: 2.5 }
           ]
         },
-        /* 本家デモ（スキャット）：本家 Chimera のデモ動画の画面録画（約6秒）から抽出。
-           音節は画面表示、F0 は録画音声の自己相関推定（オクターブ誤差の可能性あり）。
-           本家 repo（jamesondh/chimera-vocal-synth）の DEMO_SONGS は
-           "Made of air" / "Twinkle, twinkle" の2曲のみで、このスキャットの楽譜データは
-           repo 内に存在しないことを確認済み。そのため抽出値を採用する。
-           beat は8分音符＝0.31秒（BPM95前後）として b を8分単位で記述。
-           3.56秒付近の短いシ♭（「ばー」の直前）は grace（助走音）として
-           「ば」のモーラを借りて再現する。
-           録画は冒頭フレーズのみ——デモ全体ではない。 */
+        /* Independent synthetic C-major arpeggio exercise; no recorded demo data. */
         honke: {
-          title: "本家デモ（スキャット）", file: "honke-demo-scat", beat: 0.31,
-          lyrics: "は ほ ほ ほ へー ほ へ へ へ びー ばー でー でー でー ぼっ ほ",
-          desc: "本家 Chimera（jamesondh/chimera-vocal-synth）のデモ動画で歌われるスキャットを再現。音節：HA → HO → HEY → HO → HE → BEE → BAH・DEE → BOP → HO。旋律：ド／シ♭×3／ファ（長）／シ♭・シ×3／ファ（長）／（シ♭の助走つき）ド（長）／レ×3／ソ（長）／ド。8分音符≒0.31秒（BPM95前後）のノリです。※これは本人の画面録画（約6秒）だけから起こした冒頭フレーズのみの再現で、デモ全体ではありません。F0 は録画音声の自己相関による推定のためオクターブ誤差の可能性があり、短いシ♭は前後の音域に寄せて配置しました（3.56秒付近の短いシ♭は「ばー」への助走音として付けています）。本家 repo のデモ曲データ（Made of air／Twinkle, twinkle の2曲のみ）にこのスキャットの楽譜は無かったため、抽出値をそのまま採用しています。",
+          title: "音階スキャット（練習）", file: "scale-scat", beat: 0.4,
+          lyrics: "は ほ へー ほ はー",
+          desc: "独立したハ長調アルペジオのスキャット練習です。音高と拍はこの練習用に定義しました。従来の内部IDだけを互換用に保ちます。",
           notes: [
-            { t: "は", m: 48, b: 1.25 }, { rest: 0.75 },
-            { t: "ほ", m: 46, b: 0.5 }, { t: "ほ", m: 46, b: 0.5 }, { t: "ほ", m: 46, b: 0.5 }, { rest: 0.75 },
-            { t: "へー", m: 53, b: 1.5 }, { rest: 0.25 },
-            { t: "ほ", m: 46, b: 0.5 },
-            { t: "へ", m: 47, b: 0.5 }, { t: "へ", m: 47, b: 0.5 }, { t: "へ", m: 47, b: 0.5 }, { rest: 0.5 },
-            { t: "びー", m: 53, b: 1.5 }, { rest: 0.5 },
-            { t: "ば", m: 46, b: 0.35, grace: true },
-            { t: "ばー", m: 48, b: 1.65 },
-            { t: "でー", m: 50, b: 0.5 }, { t: "でー", m: 50, b: 0.5 }, { t: "でー", m: 50, b: 0.5 }, { rest: 0.5 },
-            { t: "ぼっ", m: 55, b: 1 }, { rest: 1.25 },
-            { t: "ほ", m: 48, b: 1 }
+            { t: "は", m: 48, b: 1 }, { t: "ほ", m: 52, b: 1 },
+            { t: "へー", m: 55, b: 2 }, { t: "ほ", m: 52, b: 1 }, { t: "はー", m: 48, b: 2 }
           ]
         },
-        /* Twinkle, twinkle（きらきらぼし）：本家 repo（jamesondh/chimera-vocal-synth）
-           crates/chimera/src/phonetics/songs.rs の DEMO_SONGS に実在する楽譜データを
-           そのまま転記したもの。推定・補完は一切なし。
-           本家データ：name "Twinkle, twinkle"（traditional / public domain）、
-           bpm 100.0、lyrics "Twinkle twinkle little star, how I wonder what you are."、
-           notes は [MIDIノート, 拍] の列（成人女性の音域で記載）、
-           octave は話者ごとのオクターブずらし（male -1.0 / female 0.0 / child 0.0）。
-           beat は bpm から 60/100 = 0.6 秒。14音・全16拍。
-           歌詞は2方式を切り替えられる：
-           ・英語（本家）：本家の英語音節（Twin-kle twin-kle lit-tle star / how I won-der
-             what you are = 14音節）を1音ずつ対応させ、日本語モーラに置き換えて歌う
-             （このシンセは日本語モーラで発音するため、音節の音価は近似になる。
-             音高と拍は本家データどおり）。
-           ・日本語：唱歌「きらきらぼし」1番の歌い出し「きらきらひかる おそらのほしよ」
-             （14モーラ）が同じ14音に1モーラずつ対応する。
-           なお本家の octave 指定（男声 −1）は、この実装の歌モードが全曲共通で
-           「旋律は楽譜の記載音高のまま保持し、話者差は声道側にだけ効かせる」設計の
-           ため適用せず、音高は本家データの記載どおりに歌う。 */
+        /* Twinkle pitch/beat data: Chimera DEMO_SONGS, MIT notice embedded above.
+           English syllables are approximated with Japanese morae.
+           The jp compatibility variant is solfege, not a modern Japanese lyric translation.
+           Neither locale selection nor lyric variant changes the upstream notes/beat values.
+           Upstream speaker-dependent octave offsets are intentionally not applied. */
         twinkle: {
           title: "きらきらぼし（Twinkle, twinkle）", beat: 0.6,
           repoNotes: [
@@ -1211,13 +1815,13 @@
                      "はう", "あい", "わん", "だー", "わっと", "ゆー", "あー"]
             },
             jp: {
-              file: "kirakira-boshi",
-              lyrics: "きらきらひかる おそらのほしよ",
-              syll: ["き", "ら", "き", "ら", "ひ", "か", "る",
-                     "お", "そ", "ら", "の", "ほ", "し", "よ"]
+              file: "twinkle-solfege",
+              lyrics: "ど ど そ そ ら ら そ ふぁ ふぁ み み れ れ ど",
+              syll: ["ど", "ど", "そ", "そ", "ら", "ら", "そ",
+                     "ふぁ", "ふぁ", "み", "み", "れ", "れ", "ど"]
             }
           },
-          desc: "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在するデモ曲『Twinkle, twinkle』の楽譜データをそのまま転記（bpm 100、[MIDI・拍] の列、14音・全16拍）。推定や補完はしていません。英語詞は本家の歌詞「Twinkle twinkle little star, how I wonder what you are.」の14音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。日本語詞は唱歌「きらきらぼし」1番の歌い出しに切り替えられます。本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。"
+          desc: "ChimeraのMITライセンスの楽譜データを使用。音高・拍はそのままです。英語音節は日本語モーラで近似します。もう一方はドレミのソルフェージュで、許諾未確認の現代日本語訳詞は含みません。話者別のオクターブ移動は適用しません。"
         },
         /* Made of air：Twinkle, twinkle と同じく本家 repo の DEMO_SONGS に実在する
            楽譜データをそのまま転記したもの（推定・補完なし）。これで本家の
@@ -1242,7 +1846,7 @@
           lyrics: "ぶりず いん ぶりず あうと あい あむ めいど おぶ えあー たん あんど りぷす あんど すろーと しん ぐ え に うえあ",
           syll: ["ぶりず", "いん", "ぶりず", "あうと", "あい", "あむ", "めいど", "おぶ", "えあー",
                  "たん", "あんど", "りぷす", "あんど", "すろーと", "しん", "ぐ", "え", "に", "うえあ"],
-          desc: "本家 Chimera の repo（crates/chimera/src/phonetics/songs.rs の DEMO_SONGS）に実在する、本家オリジナルのデモ曲『Made of air』をそのまま転記（bpm 84、[MIDI・拍] の列、19音・全16拍）。推定や補完はしていません。歌詞「Breathe in, breathe out, I am made of air. Tongue and lips and throat, singing anywhere.」の19音節を1音ずつ対応させ、日本語モーラに置き換えて歌います（このシンセは日本語モーラで発音するため音節の音価は近似ですが、音高と拍は本家データどおりです）。sing-ing／an-y-where は音節ごとに音が分かれている本家データの割り当てそのままです。本家データにある話者ごとのオクターブ指定（男声 −1）は、本実装の歌モードが全曲共通で旋律を記載音高のまま保持する設計のため適用していません。これで本家 DEMO_SONGS の2曲（Made of air／Twinkle, twinkle）が揃いました。"
+          desc: "Jameson HodgeによるChimeraのオリジナル曲。MITライセンスの音高・拍データを使用し、英語音節を日本語モーラで近似します。自然な英語発音の再現ではありません。話者別のオクターブ移動は適用しません。"
         }
       };
       var currentSong = null;
@@ -2267,7 +2871,7 @@
           var b = document.createElement("button");
           b.className = "mora"; b.type = "button";
           b.setAttribute("aria-label", m.kana + "（" + m.roma + "）だけ発音");
-          b.innerHTML = '<span class="k">' + m.kana + '</span><span class="r">' + m.roma + "</span>";
+          uiHTML(b, '<span class="k">' + m.kana + '</span><span class="r">' + m.roma + "</span>");
           b.addEventListener("click", function () { play(moraItem(m.gi), "mora"); });
           grp.appendChild(b);
           tileEls.push(b);
@@ -2313,12 +2917,12 @@
       function updateAnatPanel() {
         var nf = neutralF();
         var oc = CUR.vtl * CUR.oralFrac, ph = pharynxCm();
-        document.getElementById("an-spk").textContent = CUR.label + "（" + CUR.note + "）";
-        document.getElementById("an-vtl").textContent = CUR.vtl.toFixed(1) + " cm（参考：欧米男性の代表値 約17cm）";
+        uiText(document.getElementById("an-spk"), CUR.label + "（" + CUR.note + "）");
+        uiText(document.getElementById("an-vtl"), CUR.vtl.toFixed(1) + " cm（参考：欧米男性の代表値 約17cm）");
         document.getElementById("an-neutral").textContent = "F1 " + nf[0] + " / F2 " + nf[1] + " / F3 " + nf[2] + " Hz ＝ (2n-1)·c/(4L), c=350m/s";
-        document.getElementById("an-ratio").textContent = oc.toFixed(1) + " cm / " + ph.toFixed(1) + " cm（口腔比 " + CUR.oralFrac.toFixed(2) + "）";
+        uiText(document.getElementById("an-ratio"), oc.toFixed(1) + " cm / " + ph.toFixed(1) + " cm（口腔比 " + CUR.oralFrac.toFixed(2) + "）");
         document.getElementById("an-fold").textContent = CUR.foldLen.toFixed(1) + " mm（" + CUR.foldMemb.toFixed(1) + " mm）";
-        document.getElementById("an-f0").textContent = CUR.f0Base + " Hz（" + CUR.f0Range + "）";
+        uiText(document.getElementById("an-f0"), CUR.f0Base + " Hz（" + CUR.f0Range + "）");
         var rows = "";
         ["a", "i", "u", "e", "o"].forEach(function (v) {
           var f = vowelF(v);
@@ -2326,18 +2930,16 @@
         });
         var nf2 = neutralF();
         rows += "<tr><td class='k'>中立（シュワー）</td><td>" + nf2[0] + "</td><td>" + nf2[1] + "</td><td>" + nf2[2] + "</td></tr>";
-        document.getElementById("an-ftab").innerHTML = rows;
-        document.getElementById("an-note").innerHTML =
-          "<b>根拠：</b>声道長は日本人成人の公表平均の範囲（男 15.5〜16cm／女 13.5〜14cm）に基づく代表値。" +
+        uiHTML(document.getElementById("an-ftab"), rows);
+        uiHTML(document.getElementById("an-note"), "<b>根拠：</b>声道長は日本人成人の公表平均の範囲（男 15.5〜16cm／女 13.5〜14cm）に基づく代表値。" +
           "母音表は基準話者（成人男性）での日本語話者の実測平均に寄せ、他話者は一様スケーリング F×(15.8/VTL) で換算（近似）。" +
           "中立管共鳴は一様管モデル Fn=(2n-1)c/(4L) による推定。声帯長は日本人成人の手術時実測の公表値（子どものみ近似）。" +
           "口腔／咽頭比は発達解剖・性差の知見に基づく近似。" +
           "声道長スライダーでプリセット間の長さにした場合は、F0基準・声帯長・口腔比を3プリセットのアンカー間で線形補間した推定値を使います。" +
           "摩擦音・破裂音のノイズ中心周波数は前腔の長さに依存するため話者スケーリングの対象外（固定の近似）。" +
-          "<b>これらは公表されている日本人の平均データに基づく近似であり、個人の骨格そのものではありません。</b>";
-        document.getElementById("speakerInfo").innerHTML =
-          "声道長 <b>" + CUR.vtl.toFixed(1) + "cm</b> ／ 中立共鳴 F1 <b>" + nf[0] + "Hz</b> ／ F0基準 <b>" + CUR.f0Base + "Hz</b>";
-        document.getElementById("faceSub").textContent = "日本人・" + CUR.label + " / 正中矢状断面  VTL " + CUR.vtl.toFixed(1) + "cm";
+          "<b>これらは公表されている日本人の平均データに基づく近似であり、個人の骨格そのものではありません。</b>");
+        uiHTML(document.getElementById("speakerInfo"), "声道長 <b>" + CUR.vtl.toFixed(1) + "cm</b> ／ 中立共鳴 F1 <b>" + nf[0] + "Hz</b> ／ F0基準 <b>" + CUR.f0Base + "Hz</b>");
+        uiText(document.getElementById("faceSub"), "日本人・" + CUR.label + " / 正中矢状断面  VTL " + CUR.vtl.toFixed(1) + "cm");
       }
       /* 声道長スライダー用：3プリセット（子ども10.8／女性13.8／男性15.8cm）をアンカーに、
          F0基準・声帯長・口腔比を VTL で線形補間した推定話者を作る（区間外は端の区間で外挿し、
@@ -2406,8 +3008,8 @@
           var info = document.getElementById("duetInfo");
           if (!duetKey) { info.textContent = ""; return; }
           var sp = ANAT.speakers[duetKey];
-          info.innerHTML = "第2声：" + sp.label + "（VTL <b>" + sp.vtl.toFixed(1) + "cm</b>）の声道で独立合成" +
-            (duetKey === speakerKey ? " ※主話者と同じ声道＝ユニゾン" : "");
+          uiHTML(info, "第2声：" + sp.label + "（VTL <b>" + sp.vtl.toFixed(1) + "cm</b>）の声道で独立合成" +
+            (duetKey === speakerKey ? " ※主話者と同じ声道＝ユニゾン" : ""));
         });
       });
 
@@ -2487,12 +3089,12 @@
         var errTxt = res.errors.join(" ").replace(/&/g, "&amp;").replace(/</g, "&lt;");
         if (res.morae.length) {
           var html = "<b>" + res.morae.length + " モーラ</b>に分解しました";
-          if (res.errors.length) html += ' <span class="warn">／ 読み飛ばした文字：' + errTxt + "</span>";
-          note.innerHTML = html;
+          if (res.errors.length) html += ' <span class="warn">／ 読み飛ばした文字：<span data-i18n-preserve>' + errTxt + "</span></span>";
+          uiHTML(note, html);
         } else {
-          note.innerHTML = res.errors.length
-            ? '<span class="warn">読み取れる仮名がありません（読み飛ばし：' + errTxt + "）</span>"
-            : "ひらがなを入力すると、モーラに分解してタイルに並びます。";
+          uiHTML(note, res.errors.length
+            ? '<span class="warn">読み取れる仮名がありません（読み飛ばし：<span data-i18n-preserve>' + errTxt + "</span>）</span>"
+            : "ひらがなを入力すると、モーラに分解してタイルに並びます。");
         }
         return res.morae.length > 0;
       }
@@ -2531,11 +3133,11 @@
       (function () {
         var grid = document.getElementById("otGrid");
         function show() {
-          document.getElementById("otVals").textContent = "現在: " + OT_CTL.map(function (c) { return c.k + "=" + c.get(ANAT.overtone); }).join(" / ");
+          uiText(document.getElementById("otVals"), "現在: " + OT_CTL.map(function (c) { return c.k + "=" + c.get(ANAT.overtone); }).join(" / "));
         }
         OT_CTL.forEach(function (c) {
           var row = document.createElement("label"); row.className = "ot-row";
-          row.innerHTML = '<span>' + c.lab + '</span><input type="range" min="' + c.min + '" max="' + c.max + '" step="' + c.step + '" value="' + c.get(ANAT.overtone) + '"><span class="v"></span>';
+          uiHTML(row, '<span>' + c.lab + '</span><input type="range" min="' + c.min + '" max="' + c.max + '" step="' + c.step + '" value="' + c.get(ANAT.overtone) + '"><span class="v"></span>');
           var inp = row.querySelector("input"), vv = row.querySelector(".v");
           vv.textContent = inp.value;
           inp.addEventListener("input", function () { c.set(ANAT.overtone, parseFloat(inp.value)); vv.textContent = inp.value; show(); });
@@ -2555,7 +3157,7 @@
         document.querySelectorAll(".song-chip").forEach(function (b) {
           b.setAttribute("aria-pressed", b.dataset.song === key ? "true" : "false");
         });
-        document.getElementById("songNote").textContent = currentSong.def.desc;
+        uiText(document.getElementById("songNote"), currentSong.def.desc);
         document.getElementById("an-overtone").hidden = !currentSong.def.overtone;
         document.getElementById("otCtl").hidden = !currentSong.def.overtone;
         var twRow = document.getElementById("twinkleVariantRow");
@@ -2605,18 +3207,18 @@
         if(graphs.length)setVoiceAudition(graphs,active?listenVoice:-1);
         var panel=document.getElementById("auditionPanel");if(panel)panel.hidden=appMode!=="song"||choN<2;
         document.querySelectorAll("[data-listen]").forEach(function(b){var i=+b.dataset.listen;b.disabled=i>=count;b.setAttribute("aria-pressed",listenVoice===i?"true":"false");});
-        var status=document.getElementById("auditionStatus");if(status)status.textContent=(playing?"試聴中：":"次の再生：")+(listenVoice<0?"全員":listenVoice===0?"導師":String(listenVoice+1)+"番の声")+" ／ WAVは全員（試聴の選択を含めません）";
+        var status=document.getElementById("auditionStatus");if(status)uiText(status, (playing?"試聴中：":"次の再生：")+(listenVoice<0?"全員":listenVoice===0?"導師":String(listenVoice+1)+"番の声")+" ／ WAVは全員（試聴の選択を含めません）");
       }
       /* AUDITION_UI_END */
       (function(){
         var host=document.getElementById("auditionButtons");
         for(var i=-1;i<12;i++){
-          var b=document.createElement("button");b.type="button";b.className="preset-chip";b.dataset.listen=String(i);b.textContent=i<0?"全員":i===0?"導師":String(i+1);
+          var b=document.createElement("button");b.type="button";b.className="preset-chip";b.dataset.listen=String(i);uiText(b, i<0?"全員":i===0?"導師":String(i+1));
           b.addEventListener("click",function(){listenVoice=+this.dataset.listen;applyListening();});host.appendChild(b);
         }
         applyListening();
       })();
-      function qualityMessage(text,failed) { var el=document.getElementById("qualityStatus");if(el){el.textContent=text;el.classList.toggle("warn",!!failed);} }
+      function qualityMessage(text,failed) { var el=document.getElementById("qualityStatus");if(el){uiText(el, text);el.classList.toggle("warn",!!failed);} }
       function qualitySoundActive() { return !!(AC&&N&&(playing||manOn||AC.currentTime<(N.scene.tailUntil||0))); }
       function qualityDisplayBands() {
         var q=qualitySoundActive()?N.q:qualityConfig(ANAT.quality),f0=typeof dispF0==="number"&&dispF0>20?dispF0:CUR.f0Base;
@@ -2625,7 +3227,7 @@
       function drawQualityPreview() {
         var cv=document.getElementById("qualityWave");if(!cv)return;
         var q=(playing||manOn)&&N?N.q:qualityConfig(ANAT.quality),cx=cv.getContext("2d"),W=cv.width,H=cv.height;
-        cx.clearRect(0,0,W,H);cx.fillStyle="#8cdce6";cx.font="13px sans-serif";cx.fillText("1周期の声源モデル（近似・実測出力とは別）",16,20);
+        cx.clearRect(0,0,W,H);cx.fillStyle="#8cdce6";cx.font="13px sans-serif";canvasText(cx, "1周期の声源モデル（近似・実測出力とは別）",16,20);
         cx.strokeStyle="#254c58";cx.beginPath();cx.moveTo(16,H-20);cx.lineTo(W-16,H-20);cx.stroke();cx.beginPath();
         for(var i=0;i<W-32;i++){var ph=i/(W-33),v=(q.source==="pulse"||tubeOn)?qPulse(ph,q.source==="pulse"?q.open:ANAT.tube.open,q.source==="pulse"?q.close:ANAT.tube.close):ph;
           var x=i+16,y=H-20-v*(H-50);if(i)cx.lineTo(x,y);else cx.moveTo(x,y);}
@@ -2634,11 +3236,11 @@
         var bands=harmonicPlan(q.partials,f0,AC?AC.sampleRate:44100).bands;
         var desc=bands.length?bands.map(function(b){return "H"+b.order+(qualitySoundActive()||appMode==="manual"?" ≈ "+Math.round(b.frequency)+"Hz":"");}).join(" / "):"倍音ミキサーOFF（原音）";
         var room=q.room.on?"仮想室 "+q.room.size.join("×")+"m・設定RT60 "+q.room.rt.toFixed(2)+"s・聴取距離 "+roomPlan(q,44100).directDistance.toFixed(1)+"m":"空間OFF";
-        document.getElementById("qualityReadout").textContent="主声の目標: "+desc+" ／ 独立ゆらぎ ±"+(12*q.human.amount).toFixed(1)+"cent ／ "+room;
+        uiText(document.getElementById("qualityReadout"), "主声の目標: "+desc+" ／ 独立ゆらぎ ±"+(12*q.human.amount).toFixed(1)+"cent ／ "+room);
       }
       function syncQualityUI() {
         var q=qualityConfig(ANAT.quality),p=q.partials,r=q.room;
-        function put(id,v,text){var el=document.getElementById(id);el.value=v;var out=document.getElementById(id+"V");if(out)out.textContent=text===undefined?String(v):text;}
+        function put(id,v,text){var el=document.getElementById(id);el.value=v;var out=document.getElementById(id+"V");if(out)uiText(out, text===undefined?String(v):text);}
         put("qSource",q.source);put("qOpen",q.open,q.open.toFixed(2));put("qClose",q.close,q.close.toFixed(2));
         document.getElementById("qOpen").disabled=document.getElementById("qClose").disabled=q.source!=="pulse";
         document.getElementById("qPartials").checked=p.on;put("qMix",Math.round(p.mix*100),Math.round(p.mix*100)+"%");put("qWidth",p.width,p.width+" Hz");
@@ -2748,56 +3350,81 @@
               return Promise.all(Gs.map(tubeFlush));
             }).then(function () { return off.startRendering(); }).then(function (buffer) {
               var url = URL.createObjectURL(encodeWav(buffer));
-              var a = document.createElement("a");
-              a.href = url; a.download = nameBase + (engineTube?"_tube":"_formant") + (qc.partials.on?"_multi":"") + (qc.human.amount?"_human":"") + (qc.room.on?"_room":"") + "_" + stampNow() + ".wav";
-              document.body.appendChild(a); a.click(); a.remove();
-              setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+              var a;
+              try {
+                a = document.createElement("a");
+                a.href = url; a.download = nameBase + (engineTube?"_tube":"_formant") + (qc.partials.on?"_multi":"") + (qc.human.amount?"_human":"") + (qc.room.on?"_room":"") + "_" + stampNow() + ".wav";
+                document.body.appendChild(a); a.click();
+              } finally {
+                try { if (a) a.remove(); }
+                finally { setTimeout(function () { URL.revokeObjectURL(url); }, 4000); }
+              }
               resolve(true);
-            }, function () { resolve(false); });
+            }).catch(function () { resolve(false); });
           } catch (e) { resolve(false); }
         });
       }
+      /* WAV_UI_CORE_BEGIN */
+      var wavBusy = false;
+      function claimWavExport() {
+        if (wavBusy) return false;
+        wavBusy = true;
+        document.getElementById("wavBtn").disabled = true;
+        document.getElementById("wavBatchBtn").disabled = true;
+        return true;
+      }
+      function releaseWavExport() {
+        wavBusy = false;
+        var single = document.getElementById("wavBtn"), batch = document.getElementById("wavBatchBtn");
+        single.disabled = false; batch.disabled = false;
+        uiText(single, "WAV 書き出し"); uiText(batch, "WAV 一括書き出し");
+      }
+      /* WAV_UI_CORE_END */
       function renderWav() {
-        var raw, nameBase, raw2 = null, extra = null, chant = false;
-        var sp2 = duetKey ? ANAT.speakers[duetKey] : null;
-        if (appMode === "song") {
-          if (!currentSong) setSong("furusato");
-          raw = buildSongScore(currentSong);
-          if (sp2) raw2 = buildSongScoreAs(currentSong, sp2);
-          nameBase = currentSong.def.file;
-          chant = !!currentSong.def.kyo;
-          if (choN > 1) {
-            extra = [];
-            var extraCount = choExtraCount(choN, !!sp2);
-            for (var ci = 1; ci <= extraCount; ci++) extra.push({ segs: choScore(currentSong, ci), vtl: CUR.vtl + ANAT.chorus.vtl[ci - 1], delay: ANAT.chorus.delay[ci - 1] / 1000, pan: ANAT.chorus.pan[ci - 1] });
+        if (!claimWavExport()) return Promise.resolve(false);
+        function failed() { qualityMessage("WAV書き出しに失敗しました。選択した方式の代わりに別の音を黙って出力してはいません。", true); return false; }
+        try {
+          var raw, nameBase, raw2 = null, extra = null, chant = false;
+          var sp2 = duetKey ? ANAT.speakers[duetKey] : null;
+          if (appMode === "song") {
+            if (!currentSong) setSong("furusato");
+            raw = buildSongScore(currentSong);
+            if (sp2) raw2 = buildSongScoreAs(currentSong, sp2);
+            nameBase = currentSong.def.file;
+            chant = !!currentSong.def.kyo;
+            if (choN > 1) {
+              extra = [];
+              var extraCount = choExtraCount(choN, !!sp2);
+              for (var ci = 1; ci <= extraCount; ci++) extra.push({ segs: choScore(currentSong, ci), vtl: CUR.vtl + ANAT.chorus.vtl[ci - 1], delay: ANAT.chorus.delay[ci - 1] / 1000, pan: ANAT.chorus.pan[ci - 1] });
+            }
+          } else if (appMode === "manual") {
+            /* 手動調音：今のポーズを約1.2秒の持続音として書き出す（デュエット対象外） */
+            var ef = estimateF(manualPose);
+            raw = [{ dur: 1.2, type: "vowel", mora: -1, phase: "vowel", vowel: nearestVowel(manualPose), pose: manualPose,
+                     f: ef, fFrom: ef, gains: { v: 0.85, g: [1, 0.5, 0.22], nas: (1 - manualPose.vel) * 0.7, noise: 0 },
+                     f0a: manF0, f0b: manF0, flow: 1 }];
+            nameBase = "manual_" + nearestVowel(manualPose);
+          } else if (appMode === "free") {
+            if (!applyFreeText()) { releaseWavExport(); return Promise.resolve(false); }
+            raw = buildScore(phraseItems(), true);
+            if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
+            var t = document.getElementById("freeInput").value.replace(/[\s　、。（）「」\/\\:*?"<>|]/g, "").slice(0, 10);
+            nameBase = t || "free";
+          } else {
+            raw = buildScore(phraseItems(), true);
+            if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
+            nameBase = "namamugi";
           }
-        } else if (appMode === "manual") {
-          /* 手動調音：今のポーズを約1.2秒の持続音として書き出す（デュエット対象外） */
-          var ef = estimateF(manualPose);
-          raw = [{ dur: 1.2, type: "vowel", mora: -1, phase: "vowel", vowel: nearestVowel(manualPose), pose: manualPose,
-                   f: ef, fFrom: ef, gains: { v: 0.85, g: [1, 0.5, 0.22], nas: (1 - manualPose.vel) * 0.7, noise: 0 },
-                   f0a: manF0, f0b: manF0, flow: 1 }];
-          nameBase = "manual_" + nearestVowel(manualPose);
-        } else if (appMode === "free") {
-          if (!applyFreeText()) return;
-          raw = buildScore(phraseItems(), true);
-          if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
-          var t = document.getElementById("freeInput").value.replace(/[\s　、。（）「」\/\\:*?"<>|]/g, "").slice(0, 10);
-          nameBase = t || "free";
-        } else {
-          raw = buildScore(phraseItems(), true);
-          if (sp2) raw2 = buildScoreAs(phraseItems(), true, sp2);
-          nameBase = "namamugi";
-        }
-        if (raw2) nameBase += "_duet";
-        if (extra) nameBase += "_chorus" + choN;
-        if (extra && chant && choVoicing === "low") nameBase += "_low";
-        var btn = document.getElementById("wavBtn");
-        btn.disabled = true; btn.textContent = "書き出し中…";
-        renderAndDownload(raw, nameBase, raw2, extra, chant).then(function (ok) {
-          btn.disabled = false; btn.textContent = "WAV 書き出し";
-          qualityMessage(ok?"WAVを書き出しました。聴感は音量に注意して比較してください。":"WAV書き出しに失敗しました。選択した方式の代わりに別の音を黙って出力してはいません。",!ok);
-        });
+          if (raw2) nameBase += "_duet";
+          if (extra) nameBase += "_chorus" + choN;
+          if (extra && chant && choVoicing === "low") nameBase += "_low";
+          uiText(document.getElementById("wavBtn"), "書き出し中…");
+          return Promise.resolve(renderAndDownload(raw, nameBase, raw2, extra, chant)).then(function (ok) {
+            if (!ok) return failed();
+            qualityMessage("WAVを生成して保存を要求しました。保存先を確認してください。", false);
+            return true;
+          }, failed).finally(releaseWavExport);
+        } catch (error) { releaseWavExport(); return Promise.resolve(failed()); }
       }
       document.getElementById("wavBtn").addEventListener("click", renderWav);
       Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (b) {
@@ -2805,24 +3432,20 @@
           stop();
           choN = +b.dataset.cho;listenVoice=-1;applyListening();
           Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
-          ensureCtx(); choPrepare();
+          /* Selection only: graphs are prepared by the next playback/export. */
         });
       });
       /* 音の作り方の切り替え（共鳴3本 ⇔ 管モデル）。次の再生・書き出しから反映 */
       document.getElementById("tubeBtn").addEventListener("click", function () {
-        var btn = this;
-        function upd(fail) {
-          btn.setAttribute("aria-pressed", tubeOn ? "true" : "false");
-          btn.textContent = fail ? "管モデルはこのブラウザで使えません" : (tubeOn ? "音の作り方：管モデル（実験）" : "音の作り方：共鳴3本");
-        }
-        if (tubeOn) { tubeOn = false; upd(false); return; }
-        ensureCtx();
-        if (!N2) N2 = buildGraph(AC, null);
-        Promise.all([tubeAttach(AC, N), tubeAttach(AC, N2)]).then(function (r) { tubeOn = !!(r[0] && r[1]); upd(!tubeOn); if (tubeOn) choPrepare(); });
+        stop();
+        tubeOn = !tubeOn;
+        this.setAttribute("aria-pressed", tubeOn ? "true" : "false");
+        uiText(this, tubeOn ? "音の作り方：管モデル（実験）" : "音の作り方：共鳴3本");
+        /* Defer capability checks/preparation to an actual playback or export. */
       });
 
       /* ---------- WAV 一括書き出し ----------
-         プリセット（なまむぎ／早口言葉×5／歌×6）を1つずつレンダリングして
+         プリセット（フレーズ／早口言葉／曲・歌詞バリアント）を1つずつレンダリングして
          順番にダウンロードする。DAW 用のボーカル素材集め用。
          ファイル名は「フレーズ名_日時.wav」。 */
       function batchTargets() {
@@ -2837,8 +3460,8 @@
             list.push(add(chip.textContent.trim(), buildScore(items, true), sp2 ? buildScoreAs(items, true, sp2) : null));
           }
         });
-        [["ふるさと", "furusato", null], ["SHOO BEE DOO", "shoo", null], ["本家デモ", "honke", null],
-         ["Twinkle（英語詞）", "twinkle", "en"], ["きらきらぼし", "twinkle", "jp"],
+        [["ふるさと", "furusato", null], ["SHOO BEE DOO", "shoo", null], ["音階スキャット", "honke", null],
+         ["Twinkle（英語詞）", "twinkle", "en"], ["Twinkle（ソルフェージュ）", "twinkle", "jp"],
          ["Made of air", "madeofair", null], ["般若心経（倍音ボイス）", "hannya", null]].forEach(function (pair) {
           var sd = buildSongData(pair[1], pair[2] || undefined);
           list.push(add(pair[0], buildSongScore(sd), sp2 ? buildSongScoreAs(sd, sp2) : null));
@@ -2846,26 +3469,28 @@
         return list;
       }
       function renderBatchWav() {
-        var btn = document.getElementById("wavBatchBtn");
-        var single = document.getElementById("wavBtn");
-        var list = batchTargets();
-        var i = 0;
-        btn.disabled = true; single.disabled = true;
-        function finish() {
-          btn.disabled = false; single.disabled = false;
-          btn.textContent = "WAV 一括書き出し（全" + list.length + "件）";
+        if (!claimWavExport()) return Promise.resolve(false);
+        var list = [], i = 0, btn = document.getElementById("wavBatchBtn");
+        function failed() {
+          qualityMessage("一括WAVを中止しました（生成・保存要求 " + i + "/" + (list.length || "?") + "）。失敗後の続行はしていません。", true);
+          return false;
         }
         function next() {
-          if (i >= list.length) { btn.textContent = "一括書き出し完了（" + list.length + "件）"; setTimeout(finish, 1600); return; }
+          if (i >= list.length) {
+            qualityMessage("一括WAVを生成・保存要求しました（" + i + "件）。保存先を確認してください。", false);
+            return Promise.resolve(true);
+          }
           var item = list[i];
-          btn.textContent = "一括書き出し中… " + (i + 1) + "/" + list.length + " " + item.label;
-          var safe = item.label.replace(/[\s\/\\:*?"<>|]/g, "_");
-          renderAndDownload(item.raw, safe + (item.raw2 ? "_duet" : ""), item.raw2).then(function () {
+          uiText(btn, "一括書き出し中… " + (i + 1) + "/" + list.length + " " + item.label);
+          var safe = item.label.replace(/[\s/\\:*?"<>|]/g, "_");
+          return Promise.resolve(renderAndDownload(item.raw, safe + (item.raw2 ? "_duet" : ""), item.raw2)).then(function (ok) {
+            if (!ok) return failed();
             i++;
-            setTimeout(next, 450);
+            return new Promise(function (resolve) { setTimeout(resolve, 450); }).then(next);
           });
         }
-        next();
+        try { list = batchTargets(); return next().catch(failed).finally(releaseWavExport); }
+        catch (error) { releaseWavExport(); return Promise.resolve(failed()); }
       }
       document.getElementById("wavBatchBtn").addEventListener("click", renderBatchWav);
 
@@ -2934,14 +3559,32 @@
       function manUiOff() {
         manOn = false;
         var b = document.getElementById("manSoundBtn");
-        if (b) { b.setAttribute("aria-pressed", "false"); b.textContent = "声を出す"; }
+        if (b) { b.setAttribute("aria-pressed", "false"); uiText(b, "声を出す"); }
         document.getElementById("liveInd").classList.remove("on");
         document.getElementById("liveTxt").textContent = "STANDBY";
       }
-      function setManSound(on) {
+      function setManSound(on, ready) {
         if (on) {
-          stop();
-          ensureCtx();
+          if (ready !== undefined && ready !== playTicket) return;
+          if (ready === undefined) {
+            stop();
+            ensureCtx();
+            if (tubeOn && !N.tube) {
+              var ticket = playTicket;
+              document.getElementById("liveTxt").textContent = "PREPARING";
+              Promise.resolve().then(function () {
+                if (ticket !== playTicket) return false;
+                return tubeAttach(AC, N);
+              }).then(function (ok) {
+                if (ticket !== playTicket) return;
+                if (!ok) { stop(); qualityMessage("管モデルを準備できません。共鳴3本方式に切り替えてください。", true); return; }
+                setManSound(true, ticket);
+              }, function () {
+                if (ticket === playTicket) { stop(); qualityMessage("音声エンジンの準備に失敗しました。", true); }
+              });
+              return;
+            }
+          }
           var now = AC.currentTime;
           silenceParams(now);
           N.vtl=CUR.vtl;prepareQualityScene(AC,ANAT.quality);prepareQualityVoice(N,ANAT.quality,0,now,600,tubeOn);
@@ -2951,7 +3594,7 @@
           N.master.gain.cancelScheduledValues(now);
           N.master.gain.setTargetAtTime(0.85, now, 0.05);
           var b = document.getElementById("manSoundBtn");
-          b.setAttribute("aria-pressed", "true"); b.textContent = "声を止める";
+          b.setAttribute("aria-pressed", "true"); uiText(b, "声を止める");
           document.getElementById("liveInd").classList.add("on");
           document.getElementById("liveTxt").textContent = "MANUAL";
         } else {
@@ -2994,8 +3637,8 @@
         manDispKey = key;
         nowKana.textContent = VKANA[nv];
         nowRoma.textContent = nv.toUpperCase() + " 〜";
-        nowKind.textContent = "手動調音 — 最も近い母音 /" + nv + "/";
-        nowMemo.textContent = "推定フォルマント F1 " + f[0] + " Hz／F2 " + f[1] + " Hz／F3 " + f[2] + " Hz（5母音アンカー間の補間推定）。軟口蓋を下げると鼻腔共鳴が混ざり、鼻音寄りの音になります。";
+        uiText(nowKind, "手動調音 — 最も近い母音 /" + nv + "/");
+        uiText(nowMemo, "推定フォルマント F1 " + f[0] + " Hz／F2 " + f[1] + " Hz／F3 " + f[2] + " Hz（5母音アンカー間の補間推定）。軟口蓋を下げると鼻腔共鳴が混ざり、鼻音寄りの音になります。");
         nowNext.innerHTML = "NEXT <b>—</b>";
       }
       manSyncSliders();
@@ -3013,9 +3656,9 @@
         });
         scopeCanvas.style.display = mode === "measure" ? "none" : "block";
         measureBox.classList.toggle("show", mode === "measure");
-        if (mode === "pressure") { scopeTitle.textContent = "音圧波形 — SOUND PRESSURE"; scopeRight.textContent = "CH-1 · LIPS"; }
-        if (mode === "airflow") { scopeTitle.textContent = "気流 — AIRFLOW (口腔・鼻腔)"; scopeRight.textContent = "ml/s · MODEL"; }
-        if (mode === "measure") { scopeTitle.textContent = "計測値 — MEASUREMENTS"; scopeRight.textContent = "ARTICULATORS"; }
+        if (mode === "pressure") { uiText(scopeTitle, "出力波形（相対） — OUTPUT WAVEFORM"); scopeRight.textContent = "OUTPUT · RELATIVE"; }
+        if (mode === "airflow") { uiText(scopeTitle, "気流 — AIRFLOW (口腔・鼻腔)"); scopeRight.textContent = "RELATIVE · MODEL"; }
+        if (mode === "measure") { uiText(scopeTitle, "計測値 — MEASUREMENTS"); scopeRight.textContent = "ARTICULATORS"; }
       }
       ["pressure", "airflow", "measure"].forEach(function (m) {
         document.getElementById("tab-" + m).addEventListener("click", function () { setTab(m); });
@@ -3163,7 +3806,7 @@
         if (vp.ring) return;
         var s = g3Proj(x, y, z, vp);
         ctx.strokeStyle = "rgba(238,250,255,0.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s[0], s[1]); ctx.lineTo(s[0] + dx, s[1] + dy); ctx.stroke();
-        ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; ctx.fillText(txt, dx < 0 ? s[0] + dx - 8 - ctx.measureText(txt).width : s[0] + dx + 4, s[1] + dy + 4);
+        ctx.fillStyle = "rgba(238,250,255,0.9)"; ctx.font = "13px sans-serif"; canvasText(ctx, txt, dx < 0 ? s[0] + dx - 8 - canvasMeasure(ctx, txt).width : s[0] + dx + 4, s[1] + dy + 4);
       }
       var cvH3 = 760;
       /* 胸（胸郭・肺・横隔膜・気管〜気管支）：声の動力源を見せる模式図。形と大きさは実測ではなく近似で、音の計算には使っていない。
@@ -3386,7 +4029,7 @@
           g3Line(ctx, vp, [[236, 596, -150], [268, 612, -80], [306, 618, 0], [336, 612, 70]], "rgba(255,138,60,0.5)", 1.4);
           var jz = []; for (var kj = 0; kj < 36; kj++) { var tj = kj / 36 * Math.PI * 2; var jx = 318 + 10 * Math.cos(tj), jy = 592 + 26 * Math.sin(tj) + 8, jzz = 40 * Math.cos(tj) * 0.9; jz.push([jx, jy, jzz]); }
           jz.forEach(function (q) { var sq = g3Proj(q[0], q[1], q[2], vp); ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.beginPath(); ctx.arc(sq[0], sq[1], 2.2, 0, 7); ctx.fill(); }); /* 数珠 */
-          if (vp.labels) { ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.font = "14px sans-serif"; ctx.fillText("読経モード（倍音唱法）", 20, cvH3 - 18); }
+          if (vp.labels) { ctx.fillStyle = "rgba(255,214,140,0.85)"; ctx.font = "14px sans-serif"; canvasText(ctx, "読経モード（倍音唱法）", 20, cvH3 - 18); }
         }
         if (vp.labels) {
           g3Label(ctx, vp, p.tx, p.ty, 0, "舌尖", -60, -34);
@@ -3598,7 +4241,7 @@
             var q = g3Proj(330 + (R + 290) * Math.cos(an), fy, (R + 290) * Math.sin(an), base), isCur = idx === cur, fs = Math.max(7, Math.round((isCur ? 24 : 15) * Math.max(0.6, Math.min(1.5, 1 - q[2] / 2600))));
             ctx.font = fs + "px 'Hiragino Mincho ProN','Yu Mincho',serif";
             ctx.fillStyle = isCur ? "rgba(255,214,120,0.98)" : "rgba(150,222,240," + Math.max(0.16, Math.min(0.6, 0.38 - q[2] / 4200)).toFixed(2) + ")";
-            ctx.fillText(KY[idx].k, q[0], q[1]);
+            canvasText(ctx, KY[idx].k, q[0], q[1]);
           }
           ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
         }
@@ -3680,7 +4323,7 @@
           }
           if(n===12){
             var label=g3Proj(228,0,0,vpi);ctx.save();ctx.globalCompositeOperation="source-over";ctx.font="20px sans-serif";ctx.textAlign="center";
-            ctx.fillStyle=V3.voiced?"#ffd68c":"rgba(143,210,223,0.7)";ctx.fillText(i===0?"導師":String(i+1),label[0],label[1]-8);ctx.restore();
+            ctx.fillStyle=V3.voiced?"#ffd68c":"rgba(143,210,223,0.7)";canvasText(ctx, i===0?"導師":String(i+1),label[0],label[1]-8);ctx.restore();
           }
           ctx.restore();V3.voiced=savedVoiced;V3.glow=savedGlow;
         }
@@ -3792,7 +4435,7 @@
           ctx.restore();
           ctx.strokeStyle = "rgba(94,231,255,0.35)"; ctx.lineWidth = 1; ctx.strokeRect(i * W + 6, 6, W - 12, cv.height - 12);
           ctx.globalCompositeOperation = "source-over"; ctx.fillStyle = "rgba(94,231,255,0.7)"; ctx.font = "16px 'Share Tech Mono', monospace";
-          ctx.fillText(vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
+          canvasText(ctx, vp.label, i * W + 20, 32); ctx.globalCompositeOperation = "lighter";
         });
         /* 発光のにじみ：描いた線画をぼかして重ねる（対応していないブラウザでは何も起きない） */
         if (!reduced && "filter" in ctx) { ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = nCho === 12 ? 0.24 : nCho > 12 ? 0.27 : 0.55; ctx.filter = nCho===12?"blur(2px)":"blur(6px)"; ctx.drawImage(cv, 0, 0); ctx.restore(); }
@@ -3803,12 +4446,12 @@
           ctx.fillStyle = "rgba(2,12,16,0.92)"; ctx.fillRect(gx - 8, gy - 22, gw + 16, gh + 40);
           ctx.strokeStyle = "rgba(94,231,255,0.3)"; ctx.strokeRect(gx - 8, gy - 22, gw + 16, gh + 40);
           ctx.fillStyle = "rgba(94,231,255,0.75)"; ctx.font = "13px sans-serif";
-          ctx.fillText("断面積関数（推定）  声門 → 唇", gx, gy - 6);
+          canvasText(ctx, "断面積関数（推定）  声門 → 唇", gx, gy - 6);
           ctx.beginPath(); A.forEach(function (a, i) { var x = gx + gw * i / (A.length - 1), y = gy + gh - gh * a / mx; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
           ctx.strokeStyle = "#5ee7ff"; ctx.lineWidth = 2; ctx.stroke();
           var mi = 0; A.forEach(function (a, i) { if (a < A[mi]) mi = i; });
           ctx.fillStyle = "#ffb03c"; ctx.beginPath(); ctx.arc(gx + gw * mi / (A.length - 1), gy + gh - gh * A[mi] / mx, 4, 0, 7); ctx.fill();
-          ctx.fillText("最狭部", gx + gw * mi / (A.length - 1) + 8, gy + gh - gh * A[mi] / mx - 4);
+          canvasText(ctx, "最狭部", gx + gw * mi / (A.length - 1) + 8, gy + gh - gh * A[mi] / mx - 4);
         }
         /* 経文：いま読んでいる句を漢字とふりがなで出し、読んでいる字を金色にする（読経モードのみ） */
         if (monk && currentSong.def.kyo) {
@@ -3818,18 +4461,18 @@
             if (activeToken !== undefined) { cur = activeToken; V3.kyoCur = cur; }
           }
           var showI = cur >= 0 ? cur : (playing && V3.kyoCur !== undefined ? V3.kyoCur : 0), phI = KY[showI].ph, row = KY.filter(function (c) { return c.ph === phI; });
-          ctx.font = "30px serif"; var wds = row.map(function (c) { return Math.max(34, ctx.measureText(c.k).width + 8); }), tw = wds.reduce(function (a, b) { return a + b; }, 0), x0 = W * 0.5 - tw / 2 + 20;
+          ctx.font = "30px serif"; var wds = row.map(function (c) { return Math.max(34, canvasMeasure(ctx, c.k).width + 8); }), tw = wds.reduce(function (a, b) { return a + b; }, 0), x0 = W * 0.5 - tw / 2 + 20;
           ctx.textAlign = "center";
           row.forEach(function (c, i) {
             var on = KY.indexOf(c) === cur, xc = x0 + wds[i] / 2;
-            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.55)"; ctx.font = "30px serif"; ctx.fillText(c.k, xc, 84);
-            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.45)"; ctx.font = "12px sans-serif"; ctx.fillText(c.r, xc, 52);
+            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.55)"; ctx.font = "30px serif"; canvasText(ctx, c.k, xc, 84);
+            ctx.fillStyle = on ? "#ffd68c" : "rgba(238,250,255,0.45)"; ctx.font = "12px sans-serif"; canvasText(ctx, c.r, xc, 52);
             x0 += wds[i];
           });
           if (KY[showI].mantra) {
             ctx.font = "15px serif";
             ctx.fillStyle = "rgba(255,214,140,0.82)";
-            ctx.fillText(currentSong.def.mantra, W * 0.5, 108);
+            canvasText(ctx, currentSong.def.mantra, W * 0.5, 108);
           }
           ctx.textAlign = "left";
         }
@@ -3840,8 +4483,8 @@
           ctx.fillStyle = "rgba(2,12,16,0.92)"; ctx.fillRect(gx2 - 8, gy2 - 22, gw2 + 16, gh2 + 40);
           ctx.strokeStyle = "rgba(94,231,255,0.3)"; ctx.lineWidth = 1; ctx.strokeRect(gx2 - 8, gy2 - 22, gw2 + 16, gh2 + 40);
           ctx.fillStyle = "rgba(94,231,255,0.75)"; ctx.font = "13px sans-serif";
-          ctx.fillText("全声＋空間の出力（実測・相対）  0 → " + Math.round(FMAX) + " Hz", gx2, gy2 - 6);
-          if (!(N && N.analyser && qualitySoundActive())) { ctx.fillStyle = "rgba(238,250,255,0.5)"; ctx.fillText("再生すると表示されます", gx2 + 8, gy2 + gh2 / 2 + 4); return; }
+          canvasText(ctx, "全声＋空間の出力（実測・相対）  0 → " + Math.round(FMAX) + " Hz", gx2, gy2 - 6);
+          if (!(N && N.analyser && qualitySoundActive())) { ctx.fillStyle = "rgba(238,250,255,0.5)"; canvasText(ctx, "再生すると表示されます", gx2 + 8, gy2 + gh2 / 2 + 4); return; }
           if (!V3.spec) V3.spec = new Float32Array(N.analyser.frequencyBinCount);
           N.analyser.getFloatFrequencyData(V3.spec);
           var hz = AC.sampleRate / N.analyser.fftSize, nb = Math.min(V3.spec.length, Math.ceil(FMAX / hz));
@@ -3852,15 +4495,15 @@
           ["F1", "F2", "F3"].forEach(function (nm, j) {
             if (!(dispF[j] > 0 && dispF[j] < FMAX)) return;
             ctx.strokeStyle = "rgba(238,250,255,0.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(fx(dispF[j]), gy2 + 2); ctx.lineTo(fx(dispF[j]), gy2 + gh2); ctx.stroke();
-            ctx.fillStyle = "rgba(238,250,255,0.8)"; ctx.fillText(nm, fx(dispF[j]) + 3, gy2 + 12);
+            ctx.fillStyle = "rgba(238,250,255,0.8)"; canvasText(ctx, nm, fx(dispF[j]) + 3, gy2 + 12);
           });
-          selected.forEach(function(b,i){if(b.frequency>=FMAX)return;var color=["#ffd68c","#5ee7ff","#e8a4ff"][i];ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fx(b.frequency),gy2+4);ctx.lineTo(fx(b.frequency),gy2+gh2);ctx.stroke();ctx.fillStyle=color;ctx.fillText("H"+b.order,Math.min(fx(b.frequency)+3,gx2+gw2-30),gy2+14+i*13);});
+          selected.forEach(function(b,i){if(b.frequency>=FMAX)return;var color=["#ffd68c","#5ee7ff","#e8a4ff"][i];ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fx(b.frequency),gy2+4);ctx.lineTo(fx(b.frequency),gy2+gh2);ctx.stroke();ctx.fillStyle=color;canvasText(ctx, "H"+b.order,Math.min(fx(b.frequency)+3,gx2+gw2-30),gy2+14+i*13);});
           if (!selected.length && monk && dispF0 > 20) {
             var kH = Math.max(1, Math.round(dispF[1] / dispF0)), fh = kH * dispF0;
             if (fh < FMAX) {
               ctx.fillStyle = "#ffb03c"; ctx.beginPath(); ctx.arc(fx(fh), gy2 + gh2 + 8, 4, 0, 7); ctx.fill();
-              var tx2 = "第" + kH + "倍音 ≈ " + Math.round(fh) + " Hz", twd = ctx.measureText(tx2).width;
-              ctx.fillText(tx2, Math.min(fx(fh) + 8, gx2 + gw2 - twd), gy2 + gh2 + 13);
+              var tx2 = "第" + kH + "倍音 ≈ " + Math.round(fh) + " Hz", twd = canvasMeasure(ctx, tx2).width;
+              canvasText(ctx, tx2, Math.min(fx(fh) + 8, gx2 + gw2 - twd), gy2 + gh2 + 13);
             }
           }
         })();
@@ -3945,37 +4588,39 @@
             var first = SEQ[0];
             nowKana.textContent = first ? first.kana : "—";
             nowRoma.textContent = first ? (first.roma || "—") : "—";
-            nowKind.textContent = "待機中";
-            nowMemo.textContent = appMode === "song"
+            uiText(nowKind, "待機中");
+            uiText(nowMemo, appMode === "song"
               ? "選んだ曲を1モーラずつ歌います。音程（F0）が旋律どおりに動き、長い音にはビブラートがかかります。舌・顎・唇・軟口蓋の動きも歌に連動します。上の F0 表示には今の音名も出ます。"
               : appMode === "free"
               ? "入力した文章を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。速度を ×2.5 まで上げると早口チャレンジになります。"
-              : "再生すると「なまむぎ なまごめ なまたまご」を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。";
+              : "再生すると「なまむぎ なまごめ なまたまご」を1モーラずつ発音します。舌・顎・唇・軟口蓋の動きと、フォルマント F1/F2/F3 の変化が連動します。");
             nowNext.innerHTML = "NEXT <b>—</b>";
           }
           return;
         }
         if (seg.vowel && seg.mora < 0) {
           nowKana.textContent = VKANA[seg.vowel]; nowRoma.textContent = seg.vowel.toUpperCase();
-          nowKind.textContent = "母音 /" + seg.vowel + "/";
-          nowMemo.textContent = VOWEL_MEMO[seg.vowel];
+          uiText(nowKind, "母音 /" + seg.vowel + "/");
+          uiText(nowMemo, VOWEL_MEMO[seg.vowel]);
           nowNext.innerHTML = "NEXT <b>—</b>";
           return;
         }
         var m = SEQ[seg.mora];
         markTiles(seg.mora);
         nowKana.textContent = m.kana; nowRoma.textContent = m.roma;
+        var kindLabel;
         if (seg.phase === "cons") {
           var ck = seg.type === "glide" ? "y" : m.cons;
-          nowKind.textContent = (seg.type === "glide" && m.yoon ? "拗音グライド — " : "子音 — ") + CONS_NAME[ck];
-          nowMemo.textContent = CONS_MEMO[ck];
+          kindLabel = (seg.type === "glide" && m.yoon ? "拗音グライド — " : "子音 — ") + CONS_NAME[ck];
+          uiText(nowMemo, CONS_MEMO[ck]);
         } else {
-          nowKind.textContent = "母音 /" + m.vowel + "/ — " + m.kana;
-          nowMemo.textContent = VOWEL_MEMO[m.vowel];
+          kindLabel = "母音 /" + m.vowel + "/ — " + m.kana;
+          uiText(nowMemo, VOWEL_MEMO[m.vowel]);
         }
-        if (seg.noteName) nowKind.textContent += " ♪ " + seg.noteName + " " + Math.round(seg.noteFreq) + " Hz";
+        if (seg.noteName) kindLabel += " ♪ " + seg.noteName + " " + Math.round(seg.noteFreq) + " Hz";
+        uiText(nowKind, kindLabel);
         var nx = SEQ[seg.mora + 1];
-        nowNext.innerHTML = nx ? "NEXT <b>→ " + nx.kana + " " + nx.roma + "</b>" : "NEXT <b>— おわり</b>";
+        uiHTML(nowNext, nx ? "NEXT <b data-i18n-preserve>→ " + nx.kana + " " + nx.roma + "</b>" : "NEXT <b>— おわり</b>");
       }
       function fmt(n) { return (n >= 0 ? "+" : "") + n.toFixed(2); }
       function updateMeters(p) {
@@ -3989,7 +4634,7 @@
         $("mb-nas").style.width = ((1 - p.vel) * 100).toFixed(0) + "%"; $("mv-nas").textContent = (1 - p.vel).toFixed(2);
         $("lgTx").textContent = fmt((p.bx - 350) / 58);
         $("lgTy").textContent = fmt((344 - p.by) / 62);
-        $("lgLip").textContent = p.lipClose > 0.5 ? "閉鎖" : (lipOpen > 0.55 ? "開放" : "狭い");
+        uiText($("lgLip"), p.lipClose > 0.5 ? "閉鎖" : (lipOpen > 0.55 ? "開放" : "狭い"));
         var ef = estimateF(p);
         $("mb-ef1").style.width = Math.max(0, Math.min(100, (ef[0] - 150) / 8.5)).toFixed(0) + "%"; $("mv-ef1").textContent = ef[0] + " Hz";
         $("mb-ef2").style.width = Math.max(0, Math.min(100, (ef[1] - 400) / 22)).toFixed(0) + "%"; $("mv-ef2").textContent = ef[1] + " Hz";
@@ -4123,6 +4768,7 @@
         if (tabMode !== "measure") drawScope(poseCur, elapsed);
         requestAnimationFrame(frame);
       }
+      UI18N.init();
       renderTract(poseCur);
       requestAnimationFrame(frame);
     </script>

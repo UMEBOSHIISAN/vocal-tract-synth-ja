@@ -1,0 +1,1168 @@
+{
+  "schema_version": "vocal-release-verification.v1",
+  "measured_at": "2026-11-14T19:45:35.189582+09:00",
+  "source_file": "index.html",
+  "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494",
+  "verification": "self-verified",
+  "browser": {
+    "protocolVersion": "1.3",
+    "product": "Chrome/157.0.8103.52",
+    "revision": "@0985600c06a688b9c669e74afde7dacd5aaed047",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+    "jsVersion": "15.7.112.23"
+  },
+  "node": "v24.22.1",
+  "node_tests": {
+    "argv": [
+      "node",
+      "--test",
+      "tests/chant-register.test.cjs",
+      "tests/distribution.test.cjs",
+      "tests/ensemble-audition.test.cjs",
+      "tests/ensemble-playback.test.cjs",
+      "tests/ensemble-visual.test.cjs",
+      "tests/ensemble12.test.cjs",
+      "tests/i18n.test.cjs",
+      "tests/playback-loop.test.cjs",
+      "tests/quality-core.test.cjs",
+      "tests/quality-routing.test.cjs",
+      "tests/startup-export.test.cjs",
+      "tests/wav-export-state.test.cjs"
+    ],
+    "exit_code": 0,
+    "tests": 63,
+    "pass": 63,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "inline_syntax": {
+    "inline_scripts_compiled": 1,
+    "result": "PASS"
+  },
+  "diff_check_exit_code": 0,
+  "startup": {
+    "file_ui": {
+      "language": "en",
+      "locale": "en",
+      "context": false,
+      "browserTranslated": false,
+      "injectedFontCount": 0,
+      "externalResources": [],
+      "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494"
+    },
+    "localhost_http": {
+      "language": "en",
+      "context": false,
+      "externalResources": [],
+      "browserTranslated": false,
+      "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494"
+    }
+  },
+  "layout": {
+    "unique_cases": 96,
+    "failures": 0,
+    "viewports_css_px": [
+      320,
+      390,
+      1280
+    ],
+    "languages": [
+      "ja",
+      "en"
+    ],
+    "modes": [
+      "phrase",
+      "free",
+      "manual",
+      "song"
+    ],
+    "tabs": [
+      "pressure",
+      "airflow",
+      "measure",
+      "3d"
+    ],
+    "maximum_illustrated_choir": 108,
+    "scope": "emulated layout/root and visible controls, not physical devices or all canvas-label bounds",
+    "raw_matrix_sha256": "8246dd6f62d1ede86ab9cf8a670d5cf358b78a93e905a4305aacd80ee172d639"
+  },
+  "native_live": {
+    "manual-tube": {
+      "state": "running",
+      "time": 0.3308843537414966,
+      "playing": false,
+      "manual": true,
+      "voices": 0,
+      "mainTube": true,
+      "workletAttached": true,
+      "output": {
+        "samples": 8192,
+        "rms": 0.09701480463238084,
+        "peak": 0.24220424890518188,
+        "nonfinite": 0,
+        "clip": 0
+      },
+      "muteConnections": [
+        "AnalyserNode"
+      ],
+      "sampleRate": 44100,
+      "quality": {
+        "source": "classic",
+        "open": 0.4,
+        "close": 0.16,
+        "partials": {
+          "on": false,
+          "orders": [
+            6,
+            10,
+            14
+          ],
+          "levels": [
+            1,
+            1,
+            1
+          ],
+          "mix": 0.8,
+          "width": 40
+        },
+        "human": {
+          "amount": 0,
+          "seed": 20261111
+        },
+        "room": {
+          "on": false,
+          "rt": 1.4,
+          "wet": 0.24,
+          "damp": 0.5,
+          "listener": 0.65,
+          "size": [
+            8,
+            10,
+            4
+          ]
+        }
+      },
+      "vtl": 15.8
+    },
+    "manual-formant": {
+      "state": "running",
+      "time": 1.4628571428571429,
+      "playing": false,
+      "manual": true,
+      "voices": 0,
+      "mainTube": false,
+      "workletAttached": true,
+      "output": {
+        "samples": 8192,
+        "rms": 0.08209113763902734,
+        "peak": 0.2530515193939209,
+        "nonfinite": 0,
+        "clip": 0
+      },
+      "muteConnections": [
+        "AnalyserNode"
+      ],
+      "sampleRate": 44100,
+      "quality": {
+        "source": "classic",
+        "open": 0.4,
+        "close": 0.16,
+        "partials": {
+          "on": false,
+          "orders": [
+            6,
+            10,
+            14
+          ],
+          "levels": [
+            1,
+            1,
+            1
+          ],
+          "mix": 0.8,
+          "width": 40
+        },
+        "human": {
+          "amount": 0,
+          "seed": 20261111
+        },
+        "room": {
+          "on": false,
+          "rt": 1.4,
+          "wet": 0.24,
+          "damp": 0.5,
+          "listener": 0.65,
+          "size": [
+            8,
+            10,
+            4
+          ]
+        }
+      },
+      "vtl": 15.8
+    },
+    "choir-tube": {
+      "state": "running",
+      "time": 71.53487528344671,
+      "playing": true,
+      "manual": false,
+      "voices": 12,
+      "mainTube": true,
+      "workletAttached": true,
+      "output": {
+        "samples": 8192,
+        "rms": 0.04326298207191304,
+        "peak": 0.19886773824691772,
+        "nonfinite": 0,
+        "clip": 0
+      },
+      "muteConnections": [
+        "AnalyserNode"
+      ],
+      "sampleRate": 44100,
+      "quality": {
+        "source": "pulse",
+        "open": 0.4,
+        "close": 0.12,
+        "partials": {
+          "on": true,
+          "orders": [
+            4,
+            6,
+            10
+          ],
+          "levels": [
+            1,
+            0.7,
+            0.45
+          ],
+          "mix": 0.55,
+          "width": 40
+        },
+        "human": {
+          "amount": 0.65,
+          "seed": 20261111
+        },
+        "room": {
+          "on": true,
+          "rt": 1.4,
+          "wet": 0.22,
+          "damp": 0.5,
+          "listener": 0.65,
+          "size": [
+            8,
+            10,
+            4
+          ]
+        }
+      },
+      "vtl": 15.8,
+      "voicesDetails": [
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        },
+        {
+          "engineTube": true,
+          "workletAttached": true
+        }
+      ],
+      "localeRoundTrip": {
+        "en": "Vowel /a/ — か ♪ G2 98 Hz",
+        "ja": "母音 /a/ — か ♪ G2 98 Hz",
+        "enAgain": "Vowel /a/ — か ♪ G2 98 Hz",
+        "contextSame": true,
+        "animationSame": true,
+        "ticketSame": true,
+        "keySame": true,
+        "playing": true
+      }
+    },
+    "choir-formant": {
+      "state": "running",
+      "time": 73.16027210884354,
+      "playing": true,
+      "manual": false,
+      "voices": 12,
+      "mainTube": false,
+      "workletAttached": true,
+      "output": {
+        "samples": 8192,
+        "rms": 0.005550163602362735,
+        "peak": 0.04564926028251648,
+        "nonfinite": 0,
+        "clip": 0
+      },
+      "muteConnections": [
+        "AnalyserNode"
+      ],
+      "sampleRate": 44100,
+      "quality": {
+        "source": "pulse",
+        "open": 0.4,
+        "close": 0.12,
+        "partials": {
+          "on": true,
+          "orders": [
+            4,
+            6,
+            10
+          ],
+          "levels": [
+            1,
+            0.7,
+            0.45
+          ],
+          "mix": 0.55,
+          "width": 40
+        },
+        "human": {
+          "amount": 0.65,
+          "seed": 20261111
+        },
+        "room": {
+          "on": true,
+          "rt": 1.4,
+          "wet": 0.22,
+          "damp": 0.5,
+          "listener": 0.65,
+          "size": [
+            8,
+            10,
+            4
+          ]
+        }
+      },
+      "vtl": 15.8,
+      "voicesDetails": [
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        },
+        {
+          "engineTube": false,
+          "workletAttached": true
+        }
+      ]
+    }
+  },
+  "native_offline": {
+    "renders": [
+      {
+        "id": 1,
+        "label": "manual-tube-ui",
+        "recipe": "Fresh default quality and manual pose/F0; actual single-export button",
+        "mode": "manual",
+        "vtl": 15.8,
+        "manualF0": 118,
+        "quality": {
+          "source": "classic",
+          "open": 0.4,
+          "close": 0.16,
+          "partials": {
+            "on": false,
+            "orders": [
+              6,
+              10,
+              14
+            ],
+            "levels": [
+              1,
+              1,
+              1
+            ],
+            "mix": 0.8,
+            "width": 40
+          },
+          "human": {
+            "amount": 0,
+            "seed": 20261111
+          },
+          "room": {
+            "on": false,
+            "rt": 1.4,
+            "wet": 0.24,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "selectedTube": true,
+        "sampleRate": 44100,
+        "frames": 54243,
+        "duration": 1.23,
+        "channels": [
+          {
+            "samples": 54243,
+            "rms": 0.10652038328035363,
+            "peak": 0.2720978260040283,
+            "nonfinite": 0,
+            "clip": 0
+          }
+        ],
+        "differenceRms": null,
+        "workletNodes": 1
+      },
+      {
+        "id": 2,
+        "label": "manual-formant-ui",
+        "recipe": "Same default manual pose/F0, formant selected; actual single-export button",
+        "mode": "manual",
+        "vtl": 15.8,
+        "manualF0": 118,
+        "quality": {
+          "source": "classic",
+          "open": 0.4,
+          "close": 0.16,
+          "partials": {
+            "on": false,
+            "orders": [
+              6,
+              10,
+              14
+            ],
+            "levels": [
+              1,
+              1,
+              1
+            ],
+            "mix": 0.8,
+            "width": 40
+          },
+          "human": {
+            "amount": 0,
+            "seed": 20261111
+          },
+          "room": {
+            "on": false,
+            "rt": 1.4,
+            "wet": 0.24,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "selectedTube": false,
+        "sampleRate": 44100,
+        "frames": 54243,
+        "duration": 1.23,
+        "channels": [
+          {
+            "samples": 54243,
+            "rms": 0.10539707835304665,
+            "peak": 0.34177708625793457,
+            "nonfinite": 0,
+            "clip": 0
+          }
+        ],
+        "differenceRms": null,
+        "workletNodes": 0
+      },
+      {
+        "id": 3,
+        "label": "12voice-tube-short-fixture",
+        "recipe": "Hall of Twelve preset, first1.2s of each actual chant score, normal app envelopes/delays/room tail retained; no post-processing normalization or fades",
+        "mode": "song",
+        "vtl": 15.8,
+        "manualF0": null,
+        "quality": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "selectedTube": true,
+        "sampleRate": 44100,
+        "frames": 132962,
+        "duration": 3.0150113378684806,
+        "channels": [
+          {
+            "samples": 132962,
+            "rms": 0.0388616407429356,
+            "peak": 0.32868462800979614,
+            "nonfinite": 0,
+            "clip": 0
+          },
+          {
+            "samples": 132962,
+            "rms": 0.03799897015020335,
+            "peak": 0.25362372398376465,
+            "nonfinite": 0,
+            "clip": 0
+          }
+        ],
+        "differenceRms": 0.03038744086830254,
+        "workletNodes": 12
+      },
+      {
+        "id": 4,
+        "label": "12voice-formant-short-fixture",
+        "recipe": "Same twelve1.2s score excerpts and selected Hall of Twelve quality, formant route; normal app envelopes/delays/room tail, no post-processing",
+        "mode": "song",
+        "vtl": 15.8,
+        "manualF0": null,
+        "quality": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "selectedTube": false,
+        "sampleRate": 44100,
+        "frames": 132962,
+        "duration": 3.0150113378684806,
+        "channels": [
+          {
+            "samples": 132962,
+            "rms": 0.015710869086627374,
+            "peak": 0.19890427589416504,
+            "nonfinite": 0,
+            "clip": 0
+          },
+          {
+            "samples": 132962,
+            "rms": 0.013618939678640094,
+            "peak": 0.23074066638946533,
+            "nonfinite": 0,
+            "clip": 0
+          }
+        ],
+        "differenceRms": 0.009607319970532768,
+        "workletNodes": 0
+      }
+    ],
+    "offlineVoices": [
+      {
+        "id": 1,
+        "voiceIndex": 0,
+        "vtl": 15.8,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 2,
+        "voiceIndex": 0,
+        "vtl": 15.8,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 0,
+        "vtl": 15.8,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 1,
+        "vtl": 16.3,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 2,
+        "vtl": 15.3,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 3,
+        "vtl": 16.7,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 4,
+        "vtl": 14.9,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 5,
+        "vtl": 16.1,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 6,
+        "vtl": 15.5,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 7,
+        "vtl": 17,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 8,
+        "vtl": 14.600000000000001,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 9,
+        "vtl": 16.5,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 10,
+        "vtl": 15.100000000000001,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 3,
+        "voiceIndex": 11,
+        "vtl": 15.950000000000001,
+        "engineTube": true,
+        "workletAttached": true,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 0,
+        "vtl": 15.8,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 1,
+        "vtl": 16.3,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 2,
+        "vtl": 15.3,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 3,
+        "vtl": 16.7,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 4,
+        "vtl": 14.9,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 5,
+        "vtl": 16.1,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 6,
+        "vtl": 15.5,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 7,
+        "vtl": 17,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 8,
+        "vtl": 14.600000000000001,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 9,
+        "vtl": 16.5,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 10,
+        "vtl": 15.100000000000001,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      },
+      {
+        "id": 4,
+        "voiceIndex": 11,
+        "vtl": 15.950000000000001,
+        "engineTube": false,
+        "workletAttached": false,
+        "auditionNodeAbsent": true
+      }
+    ],
+    "selectedAuditionAtTubeExport": 6,
+    "errors": [],
+    "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494"
+  },
+  "saved_wav": {
+    "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494",
+    "files": [
+      {
+        "case": "manual-formant-ui",
+        "file": "manual_e_formant_20261114-192754.wav",
+        "bytes": 108530,
+        "sha256": "753aac9c07d67cb1906fdc9061d77586ef4750530d461a7ce6057813c0c1a00b",
+        "channels": 1,
+        "frames": 54243,
+        "sample_rate": 44100,
+        "duration": 1.23,
+        "pcm16_stats": [
+          {
+            "rms": 0.1053853629548621,
+            "peak": 0.341766357421875,
+            "clipped_samples": 0
+          }
+        ],
+        "difference_rms": null
+      },
+      {
+        "case": "manual-tube-ui",
+        "file": "manual_e_tube_20261114-192754.wav",
+        "bytes": 108530,
+        "sha256": "d2f4db5daef55ec72e9d43430a260432eb9b5d0ffbacdf81fe9ebc01d0e6d358",
+        "channels": 1,
+        "frames": 54243,
+        "sample_rate": 44100,
+        "duration": 1.23,
+        "pcm16_stats": [
+          {
+            "rms": 0.10650702925454544,
+            "peak": 0.2720947265625,
+            "clipped_samples": 0
+          }
+        ],
+        "difference_rms": null
+      },
+      {
+        "case": "12voice-formant-short-fixture",
+        "file": "qa-12-formant-short_formant_multi_human_room_20261114-192907.wav",
+        "bytes": 531892,
+        "sha256": "1868e7fb968c3c3dda96d748eef54a74d22b5eb97f504508389ab34531d80e6f",
+        "channels": 2,
+        "frames": 132962,
+        "sample_rate": 44100,
+        "duration": 3.0150113378684806,
+        "pcm16_stats": [
+          {
+            "rms": 0.015705182571423497,
+            "peak": 0.198883056640625,
+            "clipped_samples": 0
+          },
+          {
+            "rms": 0.013613195479234412,
+            "peak": 0.230712890625,
+            "clipped_samples": 0
+          }
+        ],
+        "difference_rms": 0.009603116934564681
+      },
+      {
+        "case": "12voice-tube-short-fixture",
+        "file": "qa-12-tube-short_tube_multi_human_room_20261114-192906.wav",
+        "bytes": 531892,
+        "sha256": "5e9cc851ca4ac0d662f6a05973fc8908753c6f9c0c2239d96a6566094be557a3",
+        "channels": 2,
+        "frames": 132962,
+        "sample_rate": 44100,
+        "duration": 3.0150113378684806,
+        "pcm16_stats": [
+          {
+            "rms": 0.03885373831015756,
+            "peak": 0.32867431640625,
+            "clipped_samples": 0
+          },
+          {
+            "rms": 0.03799106111974675,
+            "peak": 0.25360107421875,
+            "clipped_samples": 0
+          }
+        ],
+        "difference_rms": 0.03038165356072638
+      }
+    ]
+  },
+  "native_injected_encoder_failure": {
+    "busy": false,
+    "singleDisabled": false,
+    "batchDisabled": false,
+    "singleLabel": "Export WAV",
+    "batchLabel": "Batch export WAV",
+    "status": "WAV export failed. No other sound has been silently substituted for the selected method.",
+    "errors": [],
+    "saved_file_count_unchanged": true,
+    "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494"
+  },
+  "unsupported_input_feedback": {
+    "ok": false,
+    "note": "No readable kana（skipped: < x & 漢 >）",
+    "inputPreserved": true,
+    "noInjectedElement": true
+  },
+  "audition": {
+    "one": {
+      "selected": 6,
+      "gains": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "all": {
+      "selected": -1,
+      "gains": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "replacement_demo_live_smoke": {
+    "source_sha256": "995d95a0f510151443f97f85748ded0e4fee35036babbbf9eaf6fe44032d0494",
+    "cases": [
+      {
+        "state": "running",
+        "time": 0.3947392290249433,
+        "playing": true,
+        "manual": false,
+        "voices": 1,
+        "mainTube": false,
+        "workletAttached": false,
+        "output": {
+          "samples": 8192,
+          "rms": 0.01850802065125964,
+          "peak": 0.07655715942382812,
+          "nonfinite": 0,
+          "clip": 0
+        },
+        "muteConnections": [
+          "AnalyserNode"
+        ],
+        "quality": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "variant": "jp",
+        "sampleRate": 44100,
+        "song": "honke"
+      },
+      {
+        "state": "running",
+        "time": 0.8301133786848073,
+        "playing": true,
+        "manual": false,
+        "voices": 1,
+        "mainTube": false,
+        "workletAttached": false,
+        "output": {
+          "samples": 8192,
+          "rms": 0.056348010141228755,
+          "peak": 0.22024768590927124,
+          "nonfinite": 0,
+          "clip": 0
+        },
+        "muteConnections": [
+          "AnalyserNode"
+        ],
+        "quality": {
+          "source": "pulse",
+          "open": 0.4,
+          "close": 0.12,
+          "partials": {
+            "on": true,
+            "orders": [
+              4,
+              6,
+              10
+            ],
+            "levels": [
+              1,
+              0.7,
+              0.45
+            ],
+            "mix": 0.55,
+            "width": 40
+          },
+          "human": {
+            "amount": 0.65,
+            "seed": 20261111
+          },
+          "room": {
+            "on": true,
+            "rt": 1.4,
+            "wet": 0.22,
+            "damp": 0.5,
+            "listener": 0.65,
+            "size": [
+              8,
+              10,
+              4
+            ]
+          }
+        },
+        "variant": "jp",
+        "sampleRate": 44100,
+        "song": "twinkle"
+      }
+    ],
+    "errors": []
+  },
+  "limits": [
+    "Headless Chrome on one host; viewport emulation is not physical mobile-device testing",
+    "Live samples are final-analyser windows before a test-only zero-gain hardware sink, not speaker/microphone recordings or human listening",
+    "Twelve-voice exports use 1.2-second score excerpts plus normal app delays/envelopes/room tails; not full-song acceptance",
+    "No post-processing normalization or additional fades; figures do not establish equal loudness, naturalness, phonetic or medical accuracy",
+    "Layout checks cover root overflow and measured controls, not all canvas annotation bounds; small 3D annotations may overlap/clip",
+    "Safari, Firefox, physical iOS/Android, complete native batch downloads, all presets/full-duration/background-tab combinations were not tested here",
+    "MIT scope and third-party provenance remain separate; no worldwide content-rights clearance is asserted"
+  ]
+}
