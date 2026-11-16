@@ -10,6 +10,9 @@ test('file names map to the five kinds, including decomposed kana',()=>{
  assert.equal(c.narashiKind('法鼓(ほっく)カッ.m4a'),'kak');assert.equal(c.narashiKind('法鼓(ほっく)ドン.m4a'.normalize('NFD')),'don');
  assert.equal(c.narashiKind('法鼓(ほっく)出頭太鼓.m4a'),'shutto');assert.equal(c.narashiKind('法鼓(ほっく)雷鳴(らいめい).m4a'),'raimei');
  assert.equal(c.narashiKind('振鈴(しんれい).m4a'),'rin');assert.equal(c.narashiKind('memo.wav'),null);
+ const names=html.match(/var NARA_BUNDLED = (\[[^\]]+\]);/);assert.ok(names);
+ const kinds=JSON.parse(names[1]).map(n=>{assert.ok(fs.existsSync(path.join(__dirname,'..','audio','narashimono',n+'.m4a')),'bundled file missing: '+n);return c.narashiKind(n);});
+ assert.deepEqual(kinds.sort(),['don','kak','raimei','rin','shutto'],'each bundled recording maps to its own kind');
 });
 test('single strokes are cut one per hit and a stroke swallowed by the next is dropped',()=>{
  const hits=c.narashiHits(tone(20,[[1,.8],[5,.8],[9,.8],[9.4,.8],[14,.8]],.35),sr);

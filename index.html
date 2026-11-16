@@ -595,7 +595,8 @@
           <div id="naraBox">
             <span class="free-lab">鳴らし物（法鼓・振鈴）— 般若心経に重ねる実録音</span>
             <div class="preset-row">
-              <label class="preset-chip" for="naraFiles" tabindex="0">音源を読み込む（5ファイルまとめて選択）</label>
+              <button class="preset-chip" id="naraBundled" type="button">同梱の録音を使う</button>
+              <label class="preset-chip" for="naraFiles" tabindex="0">自分の音源を読み込む（まとめて選択）</label>
               <input id="naraFiles" type="file" accept="audio/*,.m4a,.wav,.mp3,.flac" multiple hidden>
               <button class="preset-chip" id="naraOn" aria-pressed="false" type="button" disabled>鳴らし物：OFF</button>
               <button class="preset-chip" id="naraClear" type="button" hidden>保存した音源を消す</button>
@@ -621,8 +622,8 @@
               <label class="free-lab" for="naraVol">音量</label>
               <input id="naraVol" type="range" min="0" max="1" step="0.05" value="0.7">
             </div>
-            <p class="parse-note" id="naraStatus">音源は未読み込みです。ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。</p>
-            <p class="parse-note">振鈴＝起床の合図、法鼓の雷鳴・出頭太鼓＝入堂、ドン＝読経の拍子、カッ（角打ち）＝打ち上げ、の順に並べます。根拠にした資料と、資料に無くこの版で決めた点は <a href="docs/narashimono.md">鳴らし物の出典と割り当て</a> に分けて書いています。録音そのものはこのページに含めていません（選んだファイルはこのブラウザ内だけに保存します）。変更は次の再生とWAVへ反映します。</p>
+            <p class="parse-note" id="naraStatus">音源は未読み込みです。「同梱の録音を使う」を押すか、ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。</p>
+            <p class="parse-note">振鈴＝起床の合図、法鼓の雷鳴・出頭太鼓＝入堂、ドン＝読経の拍子、カッ（角打ち）＝打ち上げ、の順に並べます。根拠にした資料と、資料に無くこの版で決めた点は <a href="docs/narashimono.md">鳴らし物の出典と割り当て</a> に分けて書いています。同梱の録音（<code>audio/narashimono/</code>）はオーナーの友人による生録音です。読み込んだ音源はこのブラウザ内に保存します。変更は次の再生とWAVへ反映します。</p>
           </div>
           <div id="otCtl" hidden>
             <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
@@ -2151,7 +2152,7 @@
       function choPeak(n) { return 1.5 / Math.pow(n, 0.8); }
 
       /* ---------- 鳴らし物（法鼓・振鈴の実録音） ----------
-         録音は同梱しない。利用者が選んだファイルを切り出し、読経に重ねる。
+         同梱の録音（audio/narashimono/）か、利用者が選んだファイルを切り出し、読経に重ねる。
          並べ方の根拠と、資料に無くこの版で決めた点は docs/narashimono.md を参照。 */
       var NARA = { on: false, intro: "short", beat: "char", finish: true, vol: 0.7, smp: {}, live: [], used: false };
       var NARA_KINDS = [
@@ -2313,10 +2314,10 @@
         on.disabled = !have.length; on.setAttribute("aria-pressed", NARA.on ? "true" : "false");
         on.textContent = NARA.on ? "鳴らし物：ON" : "鳴らし物：OFF";
         document.getElementById("naraClear").hidden = !have.length;
-        el.textContent = (msg ? msg + " " : "") + (have.length
+        el.textContent = msg && !have.length ? msg : (msg ? msg + " " : "") + (have.length
           ? "読み込み済み：" + have.map(function (k) { var s = NARA.smp[k[0]]; return k[1] + "（" + (k[0] === "kak" || k[0] === "don" ? s.cuts.length + "打" : (s.cuts[0].b - s.cuts[0].a).toFixed(1) + "秒") + "）"; }).join("・") +
             (have.length < NARA_KINDS.length ? "。未読み込み：" + NARA_KINDS.filter(function (k) { return have.indexOf(k) < 0; }).map(function (k) { return k[1]; }).join("・") : "")
-          : "音源は未読み込みです。ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。");
+          : "音源は未読み込みです。「同梱の録音を使う」を押すか、ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。");
       }
       function narashiDb(mode, fn) {
         return new Promise(function (resolve) {
@@ -2343,6 +2344,29 @@
           return true;
         }, function () { return false; });
       }
+      var NARA_BUNDLED = ["shinrei", "hokku-raimei", "hokku-shutto", "hokku-kak", "hokku-don"];
+      /* 同梱の録音を読む。file:// で開いたページからは読めないブラウザがあるので、だめなら手で選んでもらう。 */
+      function narashiLoadBundled() {
+        narashiStatus("同梱の録音を読み込み中…");
+        return Promise.all(NARA_BUNDLED.map(function (name) {
+          var kind = narashiKind(name);
+          return fetch("audio/narashimono/" + name + ".m4a").then(function (r) {
+            if (!r.ok) throw new Error("http " + r.status);
+            return r.arrayBuffer();
+          }).then(function (data) {
+            return narashiDecode(kind, data).then(function (ok) {
+              if (ok) narashiDb("readwrite", function (st) { st.put(data, kind); });
+              return ok;
+            });
+          }).catch(function () { return false; });
+        })).then(function (res) {
+          var n = res.filter(Boolean).length;
+          stop(); if (n) NARA.on = true;
+          narashiStatus(n === res.length ? "" : n ? "同梱の録音のうち " + (res.length - n) + " 本を読めませんでした。"
+            : "同梱の録音を自動では読めませんでした（ページをファイルから直接開いたときに起きます）。「自分の音源を読み込む」で audio/narashimono フォルダの5つを選んでください。");
+          return n;
+        });
+      }
       function narashiLoadFiles(files) {
         var jobs = [], skipped = [];
         Array.prototype.forEach.call(files, function (f) {
@@ -2363,6 +2387,7 @@
       (function () {
         if (typeof document === "undefined" || !document.getElementById("naraFiles")) return;
         document.getElementById("naraFiles").addEventListener("change", function () { narashiLoadFiles(this.files); this.value = ""; });
+        document.getElementById("naraBundled").addEventListener("click", function () { narashiLoadBundled(); });
         document.getElementById("naraOn").addEventListener("click", function () { stop(); NARA.on = !NARA.on; narashiStatus(); });
         document.getElementById("naraClear").addEventListener("click", function () {
           stop(); NARA.smp = {}; NARA.on = false;
