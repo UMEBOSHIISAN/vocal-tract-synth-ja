@@ -4021,6 +4021,65 @@
         }
         ctx.restore();
       }
+      /* 人数ごとの形（1人・3人・6人）。配置と図形は表示上の演出で、音の計算には使っていない。
+         音に結びつけているのは2点だけ：声部の高さの比（低音合唱の 2:3:4。同音読誦では全員 4）と、出力を周波数分析した倍音の強さ。 */
+      function g3VoicePart(i) {
+        var low = currentSong && currentSong.def.kyo && typeof choVoicing !== "undefined" && choVoicing === "low";
+        return !low || i === 0 ? 4 : [2, 3, 4][(i - 1) % 3];
+      }
+      function g3Interval(a, b) {
+        var hi = Math.max(a, b), lo = Math.min(a, b), r = hi / lo;
+        return (Math.abs(r - 2) < 0.01 ? "オクターブ" : Math.abs(r - 1.5) < 0.01 ? "五度" : Math.abs(r - 4 / 3) < 0.01 ? "四度" : "同音") + " " + (hi === lo ? "1:1" : hi === 4 && lo === 2 ? "2:1" : hi + ":" + lo);
+      }
+      var G3_PART = { 2: [18, "255,150,90"], 3: [190, "94,231,255"], 4: [44, "255,214,140"] };
+      /* k 番目の倍音の強さ（0〜1）。3D 右下のグラフと同じ実測の配列から読む。鳴っていなければ 0 */
+      function g3HarmLevel(k) {
+        if (!(V3.spec && AC && N && N.analyser && dispF0 > 20 && typeof qualitySoundActive === "function" && qualitySoundActive())) return 0;
+        var b = Math.round(k * dispF0 / (AC.sampleRate / N.analyser.fftSize)), m = -200;
+        for (var j = b - 2; j <= b + 2; j++) if (j > 0 && j < V3.spec.length && V3.spec[j] > m) m = V3.spec[j];
+        return Math.max(0, Math.min(1, (m + 88) / 58));
+      }
+      function g3FormFloor(ctx, base, R, fy, n) {
+        var TAU = Math.PI * 2, t = reduced ? 0 : Date.now() / 1000, g = V3.glow || 0, i, k, q;
+        function P3(r, a, hgt) { return [330 + r * Math.cos(a), fy - (hgt || 0), r * Math.sin(a)]; }
+        function ring(r, m, a0, hgt) { var o = []; for (var u = 0; u <= m; u++) o.push(P3(r, a0 + TAU * u / m, hgt)); return o; }
+        function wave(A, B, loops, rgb, label) { /* 2点のあいだの定常波（山の数＝声部の数字） */
+          var amp = 16 + 60 * g, up = [], dn = [], mv = [], c = Math.cos(t * 5.2);
+          for (var u = 0; u <= 48; u++) { var s = u / 48, e = Math.sin(Math.PI * loops * s) * amp, x = A[0] + (B[0] - A[0]) * s, z = A[2] + (B[2] - A[2]) * s; up.push([x, fy - 4 - Math.abs(e), z]); dn.push([x, fy - 4, z]); mv.push([x, fy - 4 - Math.abs(e * c), z]); }
+          g3Line(ctx, base, dn, "rgba(" + rgb + ",0.35)", 1); g3Line(ctx, base, up, "rgba(" + rgb + ",0.28)", 1); g3Line(ctx, base, mv, "rgba(" + rgb + "," + (0.5 + 0.45 * g).toFixed(2) + ")", 2);
+          if (label) { var m2 = g3Proj((A[0] + B[0]) / 2, fy - 90, (A[2] + B[2]) / 2, base); ctx.save(); ctx.globalCompositeOperation = "source-over"; ctx.font = "15px sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "rgba(" + rgb + ",0.95)"; ctx.fillText(label, m2[0], m2[1]); ctx.restore(); }
+        }
+        if (n === 1) { /* 独唱：円相と蓮台 */
+          g3Line(ctx, base, ring(R * 0.98, 96, 0), "rgba(255,214,140,0.7)", 3.2);
+          g3Line(ctx, base, ring(R * 0.9, 96, 0), "rgba(255,214,140,0.3)", 1);
+          for (q = 0; q < 36; q++) { var ra = TAU * q / 36 + t / 40, r0 = R * (q % 2 ? 0.62 : 0.7); g3Line(ctx, base, [P3(r0, ra), P3(R * 0.9, ra)], "rgba(255,206,120," + (q % 2 ? 0.2 : 0.42) + ")", 1); }
+          for (var tier = 0; tier < 3; tier++) {
+            var m = 10 + tier * 4, rb = 120 + tier * 62, top = 74 - tier * 22, col = tier === 0 ? "rgba(255,222,160,0.85)" : tier === 1 ? "rgba(255,170,150,0.6)" : "rgba(94,231,255,0.4)";
+            for (q = 0; q < m; q++) {
+              var pa = TAU * (q + tier * 0.5) / m, w = TAU / m * 0.5, pet = [];
+              for (k = 0; k <= 10; k++) { var s = k / 10, bulge = Math.sin(Math.PI * s); pet.push(P3(rb + 96 * bulge, pa + (s - 0.5) * 2 * w * (1 - 0.35 * bulge), top * bulge * (1 + 0.08 * Math.sin(t * 1.3 + q)))); }
+              g3Line(ctx, base, pet, col, tier === 0 ? 1.6 : 1.1);
+            }
+          }
+        } else if (n === 3) { /* 三人：三角と、声部の高さの比を表す弦 */
+          var S3 = [0, 1, 2].map(function (j) { return P3(R, TAU * j / 3); });
+          g3Line(ctx, base, S3.concat([S3[0]]), "rgba(255,214,140,0.5)", 1.4);
+          g3Line(ctx, base, [0, 1, 2, 0].map(function (j) { return P3(R * 0.5, TAU * j / 3 + Math.PI); }), "rgba(94,231,255,0.4)", 1.1);
+          for (i = 0; i < 3; i++) g3Line(ctx, base, ring(R, 72, 0).map(function (pt) { return [pt[0] + R * Math.cos(TAU * i / 3) * 0.5, fy, pt[2] + R * Math.sin(TAU * i / 3) * 0.5]; }), "rgba(" + G3_PART[g3VoicePart(i)][1] + ",0.22)", 1);
+          for (i = 0; i < 3; i++) { var j2 = (i + 1) % 3, a = g3VoicePart(i), b = g3VoicePart(j2); wave(S3[i], S3[j2], Math.max(a, b), G3_PART[Math.min(a, b)][1], g3Interval(a, b)); }
+          var tq = []; for (k = 0; k <= 90; k++) { var ta = TAU * k / 90, tr = R * 0.2 * (1 + 0.55 * Math.cos(3 * ta + t * 0.6)); tq.push(P3(tr, ta + t * 0.1, 3)); }
+          g3Line(ctx, base, tq, "rgba(255,222,160,0.8)", 1.6);
+        } else if (n === 6) { /* 六人：六角・六芒星・七つの円、向かい合う同じ声部を結ぶ弦 */
+          var S6 = [0, 1, 2, 3, 4, 5].map(function (j) { return P3(R, TAU * j / 6); });
+          g3Line(ctx, base, S6.concat([S6[0]]), "rgba(255,214,140,0.55)", 1.5);
+          g3Line(ctx, base, [S6[0], S6[2], S6[4], S6[0]], "rgba(94,231,255,0.45)", 1.2);
+          g3Line(ctx, base, [S6[1], S6[3], S6[5], S6[1]], "rgba(255,150,90,0.45)", 1.2);
+          g3Line(ctx, base, ring(R * 0.5, 60, 0), "rgba(255,214,140,0.3)", 1);
+          for (i = 0; i < 6; i++) g3Line(ctx, base, ring(R * 0.5, 60, 0).map(function (pt) { return [pt[0] + R * 0.5 * Math.cos(TAU * i / 6), fy, pt[2] + R * 0.5 * Math.sin(TAU * i / 6)]; }), "rgba(160,235,255,0.2)", 1);
+          for (i = 0; i < 3; i++) { var pa6 = g3VoicePart(i), pb6 = g3VoicePart(i + 3); wave(S6[i], S6[i + 3], Math.max(pa6, pb6), G3_PART[Math.min(pa6, pb6)][1], null); }
+          for (k = 0; k < 7; k++) { var hh = 40 + k * 95, hr = R * 0.2 * (1 - k / 9), hx = []; for (q = 0; q <= 6; q++) hx.push(P3(hr, TAU * q / 6 + t * 0.25 * (k % 2 ? 1 : -1) + k * 0.2, hh)); g3Line(ctx, base, hx, "rgba(255,222,160," + ((0.2 + 0.6 * g) * (1 - k / 8)).toFixed(2) + ")", 1.3); }
+        }
+      }
       /* 曼荼羅表示（合唱）：人数ぶんの頭を輪に並べ、全員が中心を向く。床に同心円・四角・放射線・蓮弁の図形を描く。
          12人までは実際の各声のスコア時刻から口・息継ぎを描く（生理実測ではない模式図）。配置と図形は表示上の演出で、音の計算には使っていない */
       function g3Mandala(ctx, vp, p) {
@@ -4035,21 +4094,25 @@
         g3Line(ctx, base, ringPts(R + 330, 96, 0), "rgba(255,206,120,0.28)", 1);
         g3Line(ctx, base, ringPts(R + 250, 72, 0), gold, 1.6);
         g3Line(ctx, base, ringPts(R + 225, 72, 0), cyan, 1);
+        var form = n === 1 || n === 3 || n === 6;
+        if (form) g3FormFloor(ctx, base, R, fy, n);
+        if (!form) {
         g3Line(ctx, base, ringPts(R + 225, 4, Math.PI / 4), gold, 1.2);
         g3Line(ctx, base, ringPts(R + 225, 4, 0), cyan, 1);
         g3Line(ctx, base, ringPts(R * 0.62, 72, 0), gold, 1.2);
         g3Line(ctx, base, ringPts(R * 0.3, 48, 0), cyan, 1);
-        for (var q = 0; q < 8; q++) { /* 中心の蓮弁（8枚） */
+        }
+        for (var q = 0; !form && q < 8; q++) { /* 中心の蓮弁（8枚） */
           var a = TAU * q / 8, pet = [];
           for (var u = 0; u <= 12; u++) { var t = u / 12, rr = R * 0.3 * Math.sin(Math.PI * t), aa = a + (t - 0.5) * 0.7; pet.push([330 + rr * Math.cos(aa), fy, rr * Math.sin(aa)]); }
           g3Line(ctx, base, pet, gold, 1.2);
         }
-        for (var q2 = 0; q2 < 16; q2++) { /* 外側の蓮弁（16枚） */
+        for (var q2 = 0; !form && q2 < 16; q2++) { /* 外側の蓮弁（16枚） */
           var a16 = TAU * (q2 + 0.5) / 16, pet2 = [];
           for (var u2 = 0; u2 <= 10; u2++) { var t2 = u2 / 10, r2 = R * (0.34 + 0.26 * Math.sin(Math.PI * t2)), a2b = a16 + (t2 - 0.5) * 0.36; pet2.push([330 + r2 * Math.cos(a2b), fy, r2 * Math.sin(a2b)]); }
           g3Line(ctx, base, pet2, q2 % 2 ? gold : cyan, 1);
         }
-        for (var gq = 0; gq < 4; gq++) { /* 四方の門（外の四角の各辺の中央） */
+        for (var gq = 0; !form && gq < 4; gq++) { /* 四方の門（外の四角の各辺の中央） */
           var ga = TAU * gq / 4, gd = (R + 225) * Math.SQRT1_2, gc = Math.cos(ga), gs = Math.sin(ga);
           g3Line(ctx, base, [[0, -70], [55, -70], [55, -125], [95, -125], [95, 125], [55, 125], [55, 70], [0, 70]].map(function (rt) { return [330 + (gd + rt[0]) * gc - rt[1] * gs, fy, (gd + rt[0]) * gs + rt[1] * gc]; }), gold, 1.3);
         }
@@ -4068,7 +4131,7 @@
         }
         for (var i = 0; i < n; i++) {
           var ang = TAU * i / n, th = ang + Math.PI;
-          g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
+          if (!form) g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
           var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw, det: det,
             ring: { c: Math.cos(th), s: Math.sin(th), px: Rs * Math.cos(ang) - (solo ? 50 : 0), pz: Rs * Math.sin(ang) } };
           var v=playing&&anim&&anim.voices?anim.voices[i]:null;
@@ -4086,6 +4149,26 @@
           g3Scene(ctx,vpi,ds.pose);g3Body(ctx,Object.assign({},vpi,{yo:38}),ds.lung);
           /* 光背（頭の後ろの輪）と、口から中心へ向かう声の光（演出）。色は人ごとに少しずつ変える */
           var gl = V3.glow || 0, hue = 38 + (i * 137) % 60 - 30, hal = [], hal2 = [], tm = reduced ? 0 : Date.now() / 1100;
+          if (n === 3 || n === 6) { /* 声部ごとの色と、足もとの花（花びらの数＝声部の数字） */
+            var part = g3VoicePart(i), prgb = G3_PART[part][1], ros = []; hue = G3_PART[part][0];
+            for (var rk = 0; rk <= 72; rk++) { var rth = TAU * rk / 72, rrad = (n === 3 ? 150 : 120) * (1 + 0.32 * Math.cos(part * rth + tm)); ros.push([330 + R * Math.cos(ang) + rrad * Math.cos(rth), fy - 2, R * Math.sin(ang) + rrad * Math.sin(rth)]); }
+            g3Line(ctx, base, ros, "rgba(" + prgb + "," + (0.3 + 0.5 * gl).toFixed(2) + ")", 1.5);
+            if (n === 6 && V3.voiced && !reduced) for (var wk = 0; wk < 2; wk++) { /* 声が出ている人から広がる波紋 */
+              var wph = (Date.now() / 2600 + wk / 2 + i * 0.17) % 1, wr = [];
+              for (var wj = 0; wj <= 48; wj++) { var wa = TAU * wj / 48; wr.push([330 + R * Math.cos(ang) + R * 1.1 * wph * Math.cos(wa), fy - 1, R * Math.sin(ang) + R * 1.1 * wph * Math.sin(wa)]); }
+              g3Line(ctx, base, wr, "rgba(" + prgb + "," + (0.42 * (1 - wph)).toFixed(2) + ")", 1.2);
+            }
+          }
+          if (solo) { /* 倍音の光背：背中の後ろの放射線1本が倍音1本。長さと明るさは出力の実測、金色はいま狙っている倍音 */
+            var tgtK = dispF0 > 20 ? Math.round(dispF[1] / dispF0) : -1, NH = 32, bx0 = 70, by0 = 330;
+            for (var sk = 1; sk <= NH; sk++) {
+              var lv = g3HarmLevel(sk), sa = TAU * (sk - 0.5) / NH, sr0 = 215, sr1 = 250 + 360 * lv, on = sk === tgtK;
+              g3Line(ctx, vpi, [[bx0, by0 - sr0 * Math.cos(sa), sr0 * Math.sin(sa)], [bx0, by0 - sr1 * Math.cos(sa), sr1 * Math.sin(sa)]], on ? "rgba(255,214,120," + (0.55 + 0.45 * lv).toFixed(2) + ")" : "rgba(120,220,255," + (0.14 + 0.6 * lv).toFixed(2) + ")", on ? 3.4 : 1.4);
+            }
+            var bk1 = [], bk2 = [];
+            for (var bq = 0; bq <= 64; bq++) { var ba = TAU * bq / 64; bk1.push([bx0, by0 - 215 * Math.cos(ba), 215 * Math.sin(ba)]); bk2.push([bx0, by0 - 610 * Math.cos(ba), 610 * Math.sin(ba)]); }
+            g3Line(ctx, vpi, bk1, "rgba(255,214,140,0.5)", 1.6); g3Line(ctx, vpi, bk2, "rgba(255,214,140,0.16)", 1);
+          }
           for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + (178 + 6 * Math.sin(tm * 2 + i)) * Math.cos(ha), (178 + 6 * Math.sin(tm * 2 + i)) * Math.sin(ha)]); }
           g3Line(ctx, vpi, hal, "hsla(" + hue + ",100%,72%," + (0.22 + 0.5 * gl).toFixed(2) + ")", 2.2);
           g3Line(ctx, vpi, hal2, "hsla(" + hue + ",100%,80%," + (0.1 + 0.25 * gl).toFixed(2) + ")", 1);
@@ -4202,7 +4285,7 @@
         var nCho = (appMode === "song" && choN > 1) ? choN : 1, soloMan = appMode === "song" && choN <= 1 && monk;
         var VIEWS = [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }];
         if (nCho > 1 || soloMan) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: soloMan ? 318 : 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000),
-          pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : nCho===12 ? 0.5 : 0.72))), label: soloMan ? "VIEW  独唱（全身）" : "VIEW  曼荼羅（" + nCho + "人）" };
+          pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : nCho===12 ? 0.5 : 0.72))), label: soloMan ? "VIEW  独唱 — 倍音の光背と蓮台" : nCho === 3 ? "VIEW  三人 — 三角と音程の弦" : nCho === 6 ? "VIEW  六人 — 六角と波紋" : "VIEW  曼荼羅（" + nCho + "人）" };
         VIEWS.forEach(function (vp, i) {
           ctx.save(); ctx.beginPath(); ctx.rect(i * W + 6, 6, W - 12, cv.height - 12); ctx.clip();
           if (vp.mandala) g3Mandala(ctx, vp, p); else g3Scene(ctx, vp, p);

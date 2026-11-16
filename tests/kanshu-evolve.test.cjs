@@ -39,3 +39,11 @@ test("anatomy view is wired: tab, canvas, note, and a per-frame call",()=>{
  for(const s of ['id="tab-ana"','id="viewAna"','id="noteAna"','if (anaOn) renderAna(poseCur, nowMs);','data-song="sweep"'])assert.ok(html.includes(s),s);
  assert.match(html,/模式図/);
 });
+test("per-count forms: voice parts follow the low-chant ratios and name the interval",()=>{
+ const d=vm.createContext({currentSong:{def:{kyo:[1]}},choVoicing:"low"});
+ vm.runInContext(html.match(/function g3VoicePart\(i\)[\s\S]*?(?=      var G3_PART)/)[0],d);
+ assert.deepEqual([0,1,2,3,4,5].map(i=>d.g3VoicePart(i)),[4,2,3,4,2,3]);
+ assert.equal(d.g3Interval(4,2),"オクターブ 2:1");assert.equal(d.g3Interval(2,3),"五度 3:2");assert.equal(d.g3Interval(3,4),"四度 4:3");assert.equal(d.g3Interval(4,4),"同音 1:1");
+ d.choVoicing="unison";assert.deepEqual([0,1,2].map(i=>d.g3VoicePart(i)),[4,4,4]);
+ assert.match(html,/var form = n === 1 \|\| n === 3 \|\| n === 6;/);
+});
