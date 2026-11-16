@@ -1,6 +1,6 @@
 # SOUND LAB：出典・使い方・近似の境界
 
-2026-11-11 の開発途中版。アプリは [index.html](../index.html)、検証状況は [verification.md](verification.md) を参照。
+2026-11-11 時点の記録です。アプリは [index.html](../index.html)、検証状況は [verification.md](verification.md)、あとから足した鳴らし物（振鈴・法鼓）の資料は [narashimono.md](narashimono.md) を参照。
 
 **論文の存在・書誌の確認、本文の確認、実装の検証、聴感の評価は別です。** このページで一次文献の本文を未読と記したものを、数値の裏づけとして扱いません。既存の解剖定数や経文・楽曲の出典は [README の出典一覧](../README.md#出典一覧) に残しています。
 

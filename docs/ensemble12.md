@@ -1,6 +1,6 @@
 # 十二人の堂 — 12声を中心にした追加調整
 
-現状はローカルの開発途中版です。従来のcheckpointは [verification.md](verification.md)、音響の出典・近似の境界は [sources.md](sources.md)。このページは後続の12人向け変更の記録であり、旧checkpointの測定を書き換えるものではありません。
+2026-11-11 時点の記録です（この変更は commit `a1e6b4c` で公開済み）。従来のcheckpointは [verification.md](verification.md)、音響の出典・近似の境界は [sources.md](sources.md)。このページは後続の12人向け変更の記録であり、旧checkpointの測定を書き換えるものではありません。
 
 ## 起動
 

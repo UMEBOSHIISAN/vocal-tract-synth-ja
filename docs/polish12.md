@@ -1,6 +1,6 @@
 # 12声の聴き比べ・自然終了・全文の確認
 
-ローカルの後続開発版。前段は [12人版](ensemble12.md)、文献と近似の境界は [sources.md](sources.md)。この変更はまだGitHubへcommit/pushしていません。
+2026-11-11 時点の記録です。前段は [12人版](ensemble12.md)、文献と近似の境界は [sources.md](sources.md)。この変更は commit `a1e6b4c` で公開済みです。
 
 ## 遊び方
 
