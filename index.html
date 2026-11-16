@@ -592,6 +592,38 @@
             <option value="unison">従来の同音読誦</option>
           </select>
           <p class="parse-note">般若心経の3人以上に適用。導師を元の高さに保ち、低音担当を加えます（標準時は約49・73.5・98Hz＋小さな個人差）。速さ・経文は変わりません。経験者の助言を参考にした音の演出で、宗派の正式な唱法の再現ではありません。変更すると停止し、次の再生とWAVへ反映します。</p>
+          <div id="naraBox">
+            <span class="free-lab">鳴らし物（法鼓・振鈴）— 般若心経に重ねる実録音</span>
+            <div class="preset-row">
+              <label class="preset-chip" for="naraFiles" tabindex="0">音源を読み込む（5ファイルまとめて選択）</label>
+              <input id="naraFiles" type="file" accept="audio/*,.m4a,.wav,.mp3,.flac" multiple hidden>
+              <button class="preset-chip" id="naraOn" aria-pressed="false" type="button" disabled>鳴らし物：OFF</button>
+              <button class="preset-chip" id="naraClear" type="button" hidden>保存した音源を消す</button>
+            </div>
+            <div class="preset-row">
+              <label class="free-lab" for="naraIntro">入堂</label>
+              <select id="naraIntro" class="preset-chip">
+                <option value="short">振鈴 → 法鼓・雷鳴（短い）</option>
+                <option value="full">振鈴 → 出頭太鼓を通しで（長い）</option>
+                <option value="off">なし</option>
+              </select>
+              <label class="free-lab" for="naraBeat">読経の拍子</label>
+              <select id="naraBeat" class="preset-chip">
+                <option value="char">法鼓ドン：1字1打</option>
+                <option value="two">法鼓ドン：2字1打</option>
+                <option value="off">なし</option>
+              </select>
+              <label class="free-lab" for="naraFinish">打ち上げ</label>
+              <select id="naraFinish" class="preset-chip">
+                <option value="on">角打ち（カッ）七打 → ドン</option>
+                <option value="off">なし</option>
+              </select>
+              <label class="free-lab" for="naraVol">音量</label>
+              <input id="naraVol" type="range" min="0" max="1" step="0.05" value="0.7">
+            </div>
+            <p class="parse-note" id="naraStatus">音源は未読み込みです。ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。</p>
+            <p class="parse-note">振鈴＝起床の合図、法鼓の雷鳴・出頭太鼓＝入堂、ドン＝読経の拍子、カッ（角打ち）＝打ち上げ、の順に並べます。根拠にした資料と、資料に無くこの版で決めた点は <a href="docs/narashimono.md">鳴らし物の出典と割り当て</a> に分けて書いています。録音そのものはこのページに含めていません（選んだファイルはこのブラウザ内だけに保存します）。変更は次の再生とWAVへ反映します。</p>
+          </div>
           <div id="otCtl" hidden>
             <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
             <div class="ot-grid" id="otGrid"></div>
@@ -2118,6 +2150,237 @@
       /* 声の数に応じた1声あたりの音量（重ねても割れないように下げる） */
       function choPeak(n) { return 1.5 / Math.pow(n, 0.8); }
 
+      /* ---------- 鳴らし物（法鼓・振鈴の実録音） ----------
+         録音は同梱しない。利用者が選んだファイルを切り出し、読経に重ねる。
+         並べ方の根拠と、資料に無くこの版で決めた点は docs/narashimono.md を参照。 */
+      var NARA = { on: false, intro: "short", beat: "char", finish: true, vol: 0.7, smp: {}, live: [], used: false };
+      var NARA_KINDS = [
+        ["rin", "振鈴", /振鈴|しんれい|shinrei/i], ["raimei", "雷鳴", /雷鳴|らいめい|raimei/i],
+        ["shutto", "出頭太鼓", /出頭|しゅっとう|shutto/i], ["kak", "カッ", /カッ|かっ|kak/i], ["don", "ドン", /ドン|どん|don/i]
+      ];
+      function narashiKind(name) {
+        var n = String(name || "").normalize("NFC");
+        for (var i = 0; i < NARA_KINDS.length; i++) if (NARA_KINDS[i][2].test(n)) return NARA_KINDS[i][0];
+        return null;
+      }
+      /* 音量の包絡（dB）。hop は約11.6ms、窓はその4倍。 */
+      function narashiEnv(x, sr) {
+        var hop = Math.max(1, Math.round(sr * 0.0116)), win = hop * 4, n = Math.max(0, Math.floor((x.length - win) / hop));
+        var db = new Float32Array(n), peak = -200;
+        for (var i = 0; i < n; i++) {
+          var s = 0, o = i * hop;
+          for (var j = 0; j < win; j++) { var v = x[o + j]; s += v * v; }
+          db[i] = 10 * Math.log10(s / win + 1e-12); if (db[i] > peak) peak = db[i];
+        }
+        return { db: db, hop: hop, peak: peak, sec: hop / sr };
+      }
+      /* 連続した鳴りのまとまり（雷鳴・振鈴・通し演奏用）。無音 0.35 秒以上で区切る。 */
+      function narashiRegions(x, sr, all) {
+        var e = narashiEnv(x, sr), thr = e.peak - 38, gap = Math.round(0.35 / e.sec), out = [], a = -1, last = -1;
+        function close() {
+          if (a < 0) return;
+          var pk = -200, en = 0;
+          for (var k = a; k <= last; k++) { if (e.db[k] > pk) pk = e.db[k]; en += Math.pow(10, e.db[k] / 10); }
+          if ((last - a) * e.sec >= 0.08 && (all || pk >= e.peak - 12))
+            out.push({ a: Math.max(0, a * e.sec - 0.01), b: Math.min(x.length / sr, (last + 4) * e.sec), energy: en });
+          a = -1;
+        }
+        for (var i = 0; i < e.db.length; i++) {
+          if (e.db[i] >= thr) { if (a < 0) a = i; last = i; }
+          else if (a >= 0 && i - last > gap) close();
+        }
+        close();
+        return out;
+      }
+      /* 1打ずつの切り出し（カッ・ドン用）。次の打点に食われて短い打は、長い打が3つ以上あれば捨てる。 */
+      function narashiHits(x, sr) {
+        var e = narashiEnv(x, sr), on = [], minGap = Math.round(0.07 / e.sec);
+        for (var i = 4; i < e.db.length; i++)
+          if (e.db[i] > e.peak - 24 && e.db[i] - e.db[i - 4] > 9 && (!on.length || i - on[on.length - 1] > minGap)) on.push(i);
+        var hits = on.map(function (st, k) {
+          var lim = Math.min(e.db.length, k + 1 < on.length ? on[k + 1] - 2 : e.db.length, st + Math.round(4 / e.sec)), end = st + 1;
+          while (end < lim && e.db[end] > e.peak - 46) end++;
+          return { a: Math.max(0, st * e.sec - 0.012), b: Math.min(x.length / sr, end * e.sec) };
+        });
+        var long = hits.filter(function (h) { return h.b - h.a >= 1.0; });
+        return long.length >= 3 ? long : hits;
+      }
+      function narashiCuts(kind, x, sr) {
+        if (kind === "kak" || kind === "don") return narashiHits(x, sr);
+        var r = narashiRegions(x, sr, kind === "shutto"); /* 通し演奏は静かな打も残す */
+        if (!r.length) return [];
+        if (kind === "shutto") return [{ a: r[0].a, b: r[r.length - 1].b }];
+        return [r.reduce(function (m, v) { return v.energy > m.energy ? v : m; })];
+      }
+      /* 字ごとの拍：各ノート（漢字1字）の最初のモーラが始まる時刻（秒・スコアの頭=0）。 */
+      function narashiBeats(song, segs) {
+        var first = {}, acc = 0, lastVoiced = 0;
+        segs.forEach(function (s) {
+          if (s.mora >= 0 && first[s.mora] === undefined) first[s.mora] = acc;
+          acc += s.dur; if (s.type !== "pause") lastVoiced = acc;
+        });
+        var beats = [];
+        (song.gisByNote || []).forEach(function (gis) { if (gis && gis.length && first[gis[0]] !== undefined) beats.push(first[gis[0]]); });
+        return { beats: beats, end: lastVoiced };
+      }
+      /* 並べ方（純関数）。t は読経の頭を 0 とした秒。入堂は負の時刻に置く。
+         len は各素材の長さ（秒）。無い素材の段は飛ばす。 */
+      function narashiPlan(beats, chantEnd, cfg, len) {
+        var ev = [], pre = [], cur = 0, outro = 0, n = 0;
+        if (cfg.intro !== "off") {
+          var body = cfg.intro === "full" ? "shutto" : "raimei";
+          if (len.rin) { pre.push({ at: 0, kind: "rin", gain: 0.8 }); cur = len.rin - Math.min(1.2, len.rin * 0.3); }
+          if (len[body]) { pre.push({ at: cur, kind: body, gain: 1 }); cur += len[body]; }
+          else if (len.rin) cur = len.rin;
+        }
+        var intro = pre.length ? cur + 0.8 : 0;
+        pre.forEach(function (p) { ev.push({ t: p.at - intro, kind: p.kind, gain: p.gain, idx: 0 }); });
+        if (cfg.beat !== "off" && len.don) {
+          var step = cfg.beat === "two" ? 2 : 1;
+          beats.forEach(function (t, i) { if (i % step === 0) ev.push({ t: t, kind: "don", gain: 0.36, idx: n++ }); }); /* 拍子は読経より控えめに */
+        }
+        if (cfg.finish && len.kak) {
+          /* 打ち上げ：角打ちを七打、間をつめていき、ドンで締める。 */
+          var t = chantEnd + 0.4, gap = 0.62;
+          for (var k = 0; k < 7; k++) { ev.push({ t: t, kind: "kak", gain: 0.55 + 0.06 * k, idx: k }); t += gap; gap *= 0.8; }
+          if (len.don) { ev.push({ t: t + 0.25, kind: "don", gain: 1, idx: n++ }); outro = t + 0.25 + Math.min(len.don, 3.5) - chantEnd; }
+          else outro = t + Math.min(len.kak, 2) - chantEnd;
+        }
+        return { intro: intro, outro: outro, events: ev };
+      }
+      function narashiLens() {
+        var len = {};
+        NARA_KINDS.forEach(function (k) {
+          var s = NARA.smp[k[0]];
+          if (s && s.cuts.length) len[k[0]] = s.cuts.reduce(function (m, c) { return Math.max(m, c.b - c.a); }, 0);
+        });
+        return len;
+      }
+      /* 今の設定での並び。鳴らし物を使わないときは null。 */
+      function narashiFor(song, raw, sp) {
+        if (!NARA.on || !song || !song.def || !song.def.kyo) return null;
+        var len = narashiLens();
+        if (!Object.keys(len).length) return null;
+        var b = narashiBeats(song, raw);
+        var plan = narashiPlan(b.beats.map(function (t) { return t / sp; }), b.end / sp, NARA, len);
+        return plan.events.length ? plan : null;
+      }
+      /* 太鼓は1台なので、次の打で前の余韻は打ち消される。同じ太鼓（カッ・ドン）の次の打までで音を切る長さを返す。 */
+      function narashiChoke(events) {
+        var next = {}, out = new Array(events.length);
+        events.map(function (e, i) { return i; }).sort(function (a, b) { return events[b].t - events[a].t; }).forEach(function (i) {
+          var e = events[i], drum = e.kind === "kak" || e.kind === "don";
+          out[i] = drum && next.t !== undefined ? next.t - e.t + 0.09 : Infinity;
+          if (drum) next.t = e.t;
+        });
+        return out;
+      }
+      /* at = 読経の頭（t=0）にあたるコンテキスト時刻。 */
+      function narashiSchedule(ctx, dest, plan, at, keep) {
+        var choke = narashiChoke(plan.events);
+        plan.events.forEach(function (e, i) {
+          var s = NARA.smp[e.kind]; if (!s || !s.cuts.length) return;
+          var c = s.cuts[e.idx % s.cuts.length], d = Math.min(c.b - c.a, choke[i]), t = Math.max(0, at + e.t), lv = e.gain * NARA.vol;
+          var src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = s.buf;
+          g.gain.setValueAtTime(lv, t); g.gain.setValueAtTime(lv, t + Math.max(0.01, d - 0.09)); g.gain.linearRampToValueAtTime(0, t + d);
+          src.connect(g); g.connect(dest); src.start(t, c.a, d);
+          if (keep) NARA.live.push(src);
+        });
+      }
+      function narashiStop() {
+        NARA.live.forEach(function (s) { try { s.stop(); s.disconnect(); } catch (e) {} });
+        NARA.live = [];
+      }
+      /* WAV：書き出した読経に、入堂・拍子・打ち上げを足して描き直す。chantAt = 読経の頭がバッファ内で始まる秒。 */
+      function narashiMix(buffer, plan, chantAt) {
+        var sr = buffer.sampleRate, endAll = plan.events.reduce(function (m, e) {
+          var s = NARA.smp[e.kind]; if (!s || !s.cuts.length) return m;
+          var c = s.cuts[e.idx % s.cuts.length]; return Math.max(m, chantAt + e.t + c.b - c.a);
+        }, 0);
+        var dur = plan.intro + Math.max(buffer.duration, endAll) + 0.05;
+        var off = new OfflineAudioContext(2, Math.ceil(dur * sr), sr), guard = off.createWaveShaper(), curve = new Float32Array(4097);
+        for (var i = 0; i < curve.length; i++) { var x = i * 2 / (curve.length - 1) - 1, a = Math.abs(x); curve[i] = a <= 0.85 ? x : Math.sign(x) * (0.85 + 0.13 * Math.tanh((a - 0.85) / 0.13)); }
+        guard.curve = curve; guard.connect(off.destination);
+        var voice = off.createBufferSource(), vg = off.createGain(); vg.gain.value = 0.85; /* 太鼓を足すぶん声を少し下げ、歪みを避ける */
+        voice.buffer = buffer; voice.connect(vg); vg.connect(guard); voice.start(plan.intro);
+        narashiSchedule(off, guard, plan, plan.intro + chantAt, false);
+        return off.startRendering();
+      }
+      function narashiStatus(msg) {
+        var have = NARA_KINDS.filter(function (k) { return NARA.smp[k[0]] && NARA.smp[k[0]].cuts.length; });
+        var el = document.getElementById("naraStatus"), on = document.getElementById("naraOn");
+        if (!have.length) NARA.on = false;
+        on.disabled = !have.length; on.setAttribute("aria-pressed", NARA.on ? "true" : "false");
+        on.textContent = NARA.on ? "鳴らし物：ON" : "鳴らし物：OFF";
+        document.getElementById("naraClear").hidden = !have.length;
+        el.textContent = (msg ? msg + " " : "") + (have.length
+          ? "読み込み済み：" + have.map(function (k) { var s = NARA.smp[k[0]]; return k[1] + "（" + (k[0] === "kak" || k[0] === "don" ? s.cuts.length + "打" : (s.cuts[0].b - s.cuts[0].a).toFixed(1) + "秒") + "）"; }).join("・") +
+            (have.length < NARA_KINDS.length ? "。未読み込み：" + NARA_KINDS.filter(function (k) { return have.indexOf(k) < 0; }).map(function (k) { return k[1]; }).join("・") : "")
+          : "音源は未読み込みです。ファイル名に「振鈴」「雷鳴」「出頭」「カッ」「ドン」を含む録音を選ぶと、自動で切り出して割り当てます。");
+      }
+      function narashiDb(mode, fn) {
+        return new Promise(function (resolve) {
+          try {
+            var rq = indexedDB.open("vts-narashi", 1);
+            rq.onupgradeneeded = function () { rq.result.createObjectStore("files"); };
+            rq.onerror = function () { resolve(null); };
+            rq.onsuccess = function () {
+              try {
+                var tx = rq.result.transaction("files", mode), out = fn(tx.objectStore("files"));
+                tx.oncomplete = function () { resolve(out && "result" in out ? out.result : true); };
+                tx.onerror = tx.onabort = function () { resolve(null); };
+              } catch (e) { resolve(null); }
+            };
+          } catch (e) { resolve(null); }
+        });
+      }
+      function narashiDecode(kind, data) {
+        var dec = new OfflineAudioContext(2, 1, 44100);
+        return dec.decodeAudioData(data.slice(0)).then(function (buf) {
+          var n = buf.length, mono = new Float32Array(n);
+          for (var ch = 0; ch < buf.numberOfChannels; ch++) { var d = buf.getChannelData(ch); for (var i = 0; i < n; i++) mono[i] += d[i] / buf.numberOfChannels; }
+          NARA.smp[kind] = { buf: buf, cuts: narashiCuts(kind, mono, buf.sampleRate) };
+          return true;
+        }, function () { return false; });
+      }
+      function narashiLoadFiles(files) {
+        var jobs = [], skipped = [];
+        Array.prototype.forEach.call(files, function (f) {
+          var kind = narashiKind(f.name);
+          if (!kind) { skipped.push(f.name); return; }
+          jobs.push(f.arrayBuffer().then(function (data) {
+            return narashiDecode(kind, data).then(function (ok) {
+              if (!ok) { skipped.push(f.name); return; }
+              return narashiDb("readwrite", function (st) { st.put(data, kind); });
+            });
+          }));
+        });
+        return Promise.all(jobs).then(function () {
+          stop(); if (Object.keys(narashiLens()).length) NARA.on = true;
+          narashiStatus(skipped.length ? "割り当てられなかったファイル：" + skipped.join("、") + "。" : "");
+        });
+      }
+      (function () {
+        if (typeof document === "undefined" || !document.getElementById("naraFiles")) return;
+        document.getElementById("naraFiles").addEventListener("change", function () { narashiLoadFiles(this.files); this.value = ""; });
+        document.getElementById("naraOn").addEventListener("click", function () { stop(); NARA.on = !NARA.on; narashiStatus(); });
+        document.getElementById("naraClear").addEventListener("click", function () {
+          stop(); NARA.smp = {}; NARA.on = false;
+          narashiDb("readwrite", function (st) { st.clear(); }).then(function () { narashiStatus("保存した音源を消しました。"); });
+        });
+        document.getElementById("naraIntro").addEventListener("change", function () { stop(); NARA.intro = this.value; });
+        document.getElementById("naraBeat").addEventListener("change", function () { stop(); NARA.beat = this.value; });
+        document.getElementById("naraFinish").addEventListener("change", function () { stop(); NARA.finish = this.value === "on"; });
+        document.getElementById("naraVol").addEventListener("input", function () { NARA.vol = +this.value; });
+        /* 前回選んだ音源があれば戻す（既定は OFF のまま。自動では鳴らさない）。 */
+        var got = {};
+        narashiDb("readonly", function (st) {
+          NARA_KINDS.forEach(function (k) { var r = st.get(k[0]); r.onsuccess = function () { if (r.result) got[k[0]] = r.result; }; });
+        }).then(function () {
+          return Promise.all(Object.keys(got).map(function (k) { return narashiDecode(k, got[k]); }));
+        }).then(function (r) { if (r.length) narashiStatus("前回の音源を戻しました。"); });
+      })();
+
       /* ---------- playback state ---------- */
       var speed = 1, playing = false, anim = null, loopOn = false, playMode = "phrase", loopTimer = null, playTicket = 0, endSignal = null;
       var duetKey = null; /* デュエットの相手プリセット（null = なし）。第2声は N2 グラフで独立合成 */
@@ -2153,7 +2416,9 @@
         var segs2 = raw2 ? scaled(raw2) : null;
         var voices=[{segs:segs,start:0,graph:N}];
         var total = segs.reduce(function (a, s) { return a + s.dur; }, 0);
-        var t0 = now + 0.09;voices[0].start=t0;
+        var nara = song && typeof narashiFor === "function" ? narashiFor(song, raw, playSpeed) : null;
+        if (typeof narashiStop === "function") narashiStop();
+        var t0 = now + 0.09 + (nara ? nara.intro : 0);voices[0].start=t0;
         var peak = segs2 ? 0.72 : 0.9;
         N.scene.tailUntil=t0+total+N.scene.plan.tail;
         prepareQualityVoice(N,cfg,0,t0,total,engine);
@@ -2191,7 +2456,9 @@
         }
         var end=0;
         voices.forEach(function(v){var acc=0;v.segs.forEach(function(s){s.start=acc;acc+=s.dur;});if(acc>0)end=Math.max(end,v.start-t0+acc);});
-        total=end;N.scene.tailUntil=t0+total+N.scene.plan.tail;
+        total=end;
+        if (nara) { narashiSchedule(AC, N.scene.guard, nara, t0, true); total += nara.outro; }
+        N.scene.tailUntil=t0+total+N.scene.plan.tail;
         anim = { segs: segs, total: total, startCtx: t0, mode: mode, items: items, song: song || null, duetKey: duetKey, voices:voices };
         V3.ensembleDraw=[];
         V3.kyoCur = 0;
@@ -2215,6 +2482,7 @@
         if (manOn) manUiOff();
         if (AC && N) silenceParams(AC.currentTime);
         if (AC) resetQualityTail(AC);
+        if (typeof narashiStop === "function") narashiStop();
         playing = false; anim = null;applyListening();
         document.getElementById("liveInd").classList.remove("on");
         document.getElementById("liveTxt").textContent = "STANDBY";
@@ -2696,7 +2964,7 @@
       /* スコアをオフラインで描いて WAV ダウンロードする（単体・一括で共用）。
          ファイル名は「フレーズ名_日時.wav」。Promise を返す。 */
       function renderAndDownload(raw, nameBase, raw2, extra, chant) {
-        var qc=qualityConfig(ANAT.quality),engineTube=tubeOn,renderSpeed=speed;
+        var qc=qualityConfig(ANAT.quality),engineTube=tubeOn,renderSpeed=speed,naraUsed=false;
         return new Promise(function (resolve) {
           try {
             var segs = raw.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / renderSpeed; return c; });
@@ -2747,9 +3015,14 @@
               });
               return Promise.all(Gs.map(tubeFlush));
             }).then(function () { return off.startRendering(); }).then(function (buffer) {
+              /* 鳴らし物：読経の頭は、切り落とした先頭の無音ぶん（lead）だけ手前にある */
+              var plan = chant && typeof narashiFor === "function" ? narashiFor(currentSong, raw, renderSpeed) : null;
+              naraUsed = !!plan;
+              return plan ? narashiMix(buffer, plan, 0.01 - lead) : buffer;
+            }).then(function (buffer) {
               var url = URL.createObjectURL(encodeWav(buffer));
               var a = document.createElement("a");
-              a.href = url; a.download = nameBase + (engineTube?"_tube":"_formant") + (qc.partials.on?"_multi":"") + (qc.human.amount?"_human":"") + (qc.room.on?"_room":"") + "_" + stampNow() + ".wav";
+              a.href = url; a.download = nameBase + (engineTube?"_tube":"_formant") + (qc.partials.on?"_multi":"") + (qc.human.amount?"_human":"") + (qc.room.on?"_room":"") + (naraUsed?"_narashi":"") + "_" + stampNow() + ".wav";
               document.body.appendChild(a); a.click(); a.remove();
               setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
               resolve(true);
