@@ -120,6 +120,10 @@
       .ot-row .v { font-family: var(--mono); text-align: right; color: var(--ink); }
       #view3d { width: 100%; height: auto; display: block; background: #020c10; cursor: grab; touch-action: none; }
       #view3d[hidden] { display: none; }
+      #viewAna { width: 100%; height: auto; display: block; background: #020c10; }
+      #viewAna[hidden] { display: none; }
+      .device-main.ana-wide { grid-template-columns: minmax(0, 1fr); }
+      .device-main.ana-wide .now-readout { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 18px; }
       .now-readout { padding: 10px 4px 0 6px; }
       .now-kana {
         font-size: 92px; line-height: 1.02; font-weight: 700; color: var(--green);
@@ -325,6 +329,7 @@
           <button class="tab" id="tab-airflow" aria-pressed="false"><span class="jp">気流</span>AIRFLOW</button>
           <button class="tab" id="tab-measure" aria-pressed="false"><span class="jp">計測</span>MEASUREMENTS</button>
           <button class="tab" id="tab-3d" aria-pressed="false"><span class="jp">立体</span>3D WIREFRAME</button>
+          <button class="tab" id="tab-ana" aria-pressed="false"><span class="jp">解剖</span>ANATOMY + SPECTRUM</button>
         </div>
 
         <div class="formants" aria-label="フォルマント周波数">
@@ -338,6 +343,8 @@
           <div class="tract-wrap">
             <canvas id="view3d" width="1280" height="760" hidden aria-label="声道の3Dワイヤーフレーム。ドラッグで回転。"></canvas>
             <p class="parse-note" id="note3d" hidden>3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした<b>近似</b>です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。遠い線ほど淡く描き、触っていない間はゆっくり左右に振って奥行きを見せます。顔と首には眼窩・鼻翼・耳介・頸椎（C1〜C7）を足しています（位置と大きさは解剖図を参考にした手置きの近似）。左の全体図には胸（肋骨・肺・横隔膜・気管支）を描き、声を出すあいだ横隔膜が上がり、息継ぎで下がって腹が前へ出ます（腹式呼吸の模式図。形と動きの量は実測ではありません）。舌には動きの残像が付き、読経モードでは息継ぎで肩が上がります。声帯の開閉と唇から広がる波面は、見えるように遅くした<b>表示上の演出</b>で、実際の振動数・波長ではありません。右下の「いま鳴っている音の成分」は出力を実際に周波数分析した値です。</p>
+            <canvas id="viewAna" width="1280" height="760" hidden aria-label="色を付けた声道の断面図と、出力のスペクトログラム・スペクトル。"></canvas>
+            <p class="parse-note" id="noteAna" hidden>左の断面図は、線画・3D と同じ構え（舌・顎・唇・軟口蓋）で動く<b>模式図</b>です。骨・脳・軟骨・筋の形と色、位置は手描きの近似で、医用画像や実測に基づくものではありません。右上のスペクトログラムと右下の金色の線は、出力を実際に周波数分析した値です。緑の点線は、合成器の設定値（共鳴の位置・帯域幅・音量比・声源の傾き）から計算した共鳴の形で、実測の線に高さを合わせて重ねています。合唱のときの実測は全員ぶんの合計です。</p>
             <svg class="tract" viewBox="0 0 640 600" role="img" aria-label="声道の正中矢状断面図。舌、顎、唇、軟口蓋が発音に合わせて動きます。">
               <defs>
                 <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1036,7 +1043,7 @@
       var OT_SWEEP = { f0: 180, lead: 3, step: 0.5, steps: 8, laps: 2, tail: 2.5,
         /* 強さ：共鳴が出会う所（舌の根 1）で、狙った倍音がいちばん強い倍音より約14dB 弱くなるよう、書き出した音を測って置いた値。
            途中の強さは録音から値を取れていないので、直線でつないだ。帯域幅は通常の歌に近い値（実測ではない）。 */
-        bw: [80, 95, 130], g0: [1, 0.5, 0.2], g1: [1, 1.4, 0.6] };
+        bw: [80, 95, 130], g0: [1, 0.25, 0.2], g1: [1, 0.45, 0.3] };
       function otSweepGains(S, root) {
         var r = root >= 0 ? Math.min(1, root) : 0;
         return S.g0.map(function (a, i) { return a + (S.g1[i] - a) * r; });
@@ -4294,6 +4301,368 @@
         cv.addEventListener("pointerup", function () { V3.drag = null; cv.style.cursor = "grab"; });
       })();
 
+      /* ANA-BEGIN */
+      /* ---------- 解剖＋解析ビュー（Canvas・外部ライブラリなし） ----------
+         左：色を付けた正中矢状断面。舌・顎・唇・軟口蓋は、線画・3D と同じ構え（pose）で動く。
+             組織の形・色・位置は手描きの模式図で、医用画像や実測に基づくものではない。
+         右上：出力を実際に周波数分析したスペクトログラム（0〜5kHz）。
+         右下：いまの出力のスペクトル（実測）と、合成器の共鳴の形（設定値からの計算）。 */
+      var anaOn = false;
+      var ANA = { seg: null, an: null, buf: null, sg: null, lut: null, SGW: 540, SGH: 250, FMAX: 5000 };
+      function anaLut() {
+        var stops = [[0, 4, 4, 14], [0.2, 38, 14, 86], [0.42, 122, 30, 122], [0.62, 204, 62, 96], [0.8, 248, 136, 46], [0.93, 252, 208, 96], [1, 255, 250, 214]], lut = [];
+        for (var i = 0; i < 256; i++) {
+          var v = i / 255, k = 0;
+          while (k < stops.length - 2 && v > stops[k + 1][0]) k++;
+          var a = stops[k], b = stops[k + 1], t = Math.max(0, Math.min(1, (v - a[0]) / (b[0] - a[0])));
+          lut.push([Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t), Math.round(a[3] + (b[3] - a[3]) * t)]);
+        }
+        return lut;
+      }
+      function anaSpline(c, pts, closed) {
+        var n = pts.length;
+        c.moveTo(pts[0][0], pts[0][1]);
+        for (var i = 0; i < (closed ? n : n - 1); i++) {
+          var p0 = pts[closed ? (i - 1 + n) % n : Math.max(0, i - 1)], p1 = pts[i % n],
+              p2 = pts[(i + 1) % n], p3 = pts[closed ? (i + 2) % n : Math.min(n - 1, i + 2)];
+          c.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]);
+        }
+        if (closed) c.closePath();
+      }
+      function anaBlob(c, pts, fill, stroke, lw) {
+        c.beginPath(); anaSpline(c, pts, true);
+        if (fill) { c.fillStyle = fill; c.fill(); }
+        if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw || 1; c.stroke(); }
+      }
+      function anaGrad(c, x0, y0, x1, y1, cols) {
+        var g = c.createLinearGradient(x0, y0, x1, y1);
+        cols.forEach(function (col, i) { g.addColorStop(i / (cols.length - 1), col); });
+        return g;
+      }
+      function anaRad(c, x, y, r0, r1, cols) {
+        var g = c.createRadialGradient(x, y, r0, x, y, r1);
+        cols.forEach(function (col, i) { g.addColorStop(i / (cols.length - 1), col); });
+        return g;
+      }
+      var ANA_P = null;
+      function anaPaths() {
+        if (ANA_P) return ANA_P;
+        ANA_P = {
+          /* 頭と首の外形（上唇の付け根まで）＋口の奥を通って首の前へ閉じる */
+          head: new Path2D("M 112 600 C 96 470, 91 330, 103 220 C 111 128, 176 56, 278 46 C 376 36, 454 82, 475 170 C 484 200, 478 218, 486 236 C 498 256, 514 274, 509 287 C 503 297, 482 297, 470 302 L 472 310 L 452 318 L 330 336 L 300 372 L 304 452 C 300 480, 296 500, 300 600 Z"),
+          cran: new Path2D("M 448 176 C 436 108, 368 68, 282 74 C 196 80, 132 136, 124 216 C 121 252, 134 280, 160 290 C 184 298, 204 282, 232 268 C 268 250, 312 246, 352 228 C 392 210, 438 206, 448 176 Z"),
+          cereb: new Path2D("M 136 232 C 150 216, 196 214, 222 232 C 238 246, 232 268, 210 280 C 186 292, 150 290, 138 268 C 132 256, 130 242, 136 232 Z"),
+          nasal: new Path2D("M 302 258 C 296 240, 300 224, 318 208 C 344 186, 396 180, 424 200 C 444 214, 458 244, 462 268 C 464 280, 456 288, 446 288 C 412 268, 372 258, 336 252 Z"),
+          airway: new Path2D("M 448 306 C 418 286, 372 273, 338 268 C 322 262, 310 258, 300 254 C 280 246, 238 240, 222 250 C 213 330, 213 420, 228 488 L 236 494 L 236 600 L 262 600 L 262 494 C 270 482, 274 462, 276 440 C 282 420, 288 404, 300 396 C 340 420, 400 430, 440 410 C 456 380, 462 340, 460 312 Z"),
+          palate: new Path2D("M 452 300 C 420 278, 372 264, 334 259 C 322 256, 316 250, 318 244 C 360 250, 420 262, 456 286 C 460 292, 458 298, 452 300 Z"),
+          jawSkin: new Path2D("M 262 322 C 280 356, 290 392, 298 422 C 308 462, 350 482, 400 475 C 442 469, 470 442, 471 402 C 472 390, 468 380, 463 371 C 466 360, 463 348, 456 337 L 436 346 C 420 372, 396 390, 356 394 C 326 396, 304 376, 290 350 Z"),
+          floor: new Path2D("M 290 350 C 302 380, 306 398, 312 416 C 322 444, 354 456, 392 450 C 422 446, 441 428, 444 398 C 445 384, 440 364, 436 346 C 420 372, 396 390, 356 394 C 326 396, 304 376, 290 350 Z"),
+          mand: new Path2D("M 433 350 C 442 354, 448 374, 447 398 C 445 424, 430 440, 414 443 C 404 444, 401 435, 407 427 C 419 412, 423 388, 424 362 C 425 353, 429 348, 433 350 Z"),
+          lowLip: new Path2D("M 437 330 C 451 320, 469 321, 472 332 C 474 344, 462 353, 448 352 C 438 350, 433 340, 437 330 Z"),
+          upLip: new Path2D("M 444 294 C 457 287, 474 289, 476 299 C 477 308, 466 316, 452 315 C 443 313, 439 301, 444 294 Z"),
+          epig: new Path2D("M 284 414 C 272 428, 266 448, 270 474 C 276 466, 282 452, 284 436 C 288 426, 289 418, 284 414 Z"),
+          thyroid: new Path2D("M 268 452 C 282 456, 292 468, 290 486 C 288 498, 278 502, 268 500 Z"),
+          cricoid: new Path2D("M 266 504 C 278 504, 284 510, 282 520 C 278 526, 270 526, 266 524 Z")
+        };
+        return ANA_P;
+      }
+      function anaAnatomy(c, p, nowMs) {
+        var P = anaPaths(), pdy = pharynxDy(), i;
+        var INK = "rgba(86,38,30,0.75)";
+        /* 首と頭の皮膚 */
+        c.save();
+        c.fillStyle = anaGrad(c, 100, 60, 480, 560, ["#f3cdb0", "#e8b595", "#d49a7a", "#b97f62"]);
+        c.fill(P.head);
+        c.strokeStyle = INK; c.lineWidth = 2.6; c.stroke(P.head);
+        /* 頭の中身は外形で切り抜く */
+        c.clip(P.head);
+        /* 皮下〜筋の層（首の後ろ・顔） */
+        c.fillStyle = anaGrad(c, 110, 300, 300, 600, ["#c9716a", "#b5564f"]);
+        c.beginPath(); c.moveTo(126, 600); c.bezierCurveTo(112, 480, 110, 380, 122, 296); c.lineTo(236, 252); c.lineTo(236, 600); c.closePath(); c.fill();
+        c.strokeStyle = "rgba(150,84,60,0.32)"; c.lineWidth = 12; c.stroke(P.head);
+        /* 顔の骨（上顎・鼻の骨）：鼻腔のまわり */
+        c.fillStyle = anaGrad(c, 300, 180, 470, 300, ["#f4ead0", "#e3d3ab"]);
+        c.beginPath(); c.moveTo(296, 262); c.bezierCurveTo(288, 220, 320, 186, 372, 178); c.bezierCurveTo(420, 172, 458, 196, 468, 236); c.bezierCurveTo(472, 262, 470, 284, 462, 300); c.lineTo(440, 300); c.bezierCurveTo(400, 276, 350, 266, 296, 262); c.fill();
+        /* 頭蓋骨：内面の線を太く塗って骨の厚みにする */
+        c.lineJoin = "round";
+        c.strokeStyle = "#cbb88a"; c.lineWidth = 27; c.stroke(P.cran);
+        c.strokeStyle = anaGrad(c, 120, 70, 450, 280, ["#f8f0da", "#eadbb6"]); c.lineWidth = 23; c.stroke(P.cran);
+        c.strokeStyle = "rgba(190,164,110,0.55)"; c.lineWidth = 9; c.setLineDash([2, 7]); c.stroke(P.cran); c.setLineDash([]);
+        /* 脳 */
+        c.fillStyle = anaRad(c, 300, 150, 20, 210, ["#f6cfc4", "#eab3a8", "#d99489"]);
+        c.fill(P.cran);
+        c.save(); c.clip(P.cran);
+        c.strokeStyle = "rgba(170,92,86,0.55)"; c.lineWidth = 1.6;
+        for (i = 0; i < 26; i++) {
+          var gx = 150 + (i * 53) % 290, gy = 96 + (i * 37) % 130, ga = i * 1.7;
+          c.beginPath();
+          c.moveTo(gx, gy);
+          c.bezierCurveTo(gx + 16 * Math.cos(ga), gy + 14 * Math.sin(ga), gx + 30 * Math.cos(ga + 1.1), gy + 12 * Math.sin(ga + 2), gx + 44 * Math.cos(ga + 0.4), gy + 26 * Math.sin(ga + 0.9));
+          c.stroke();
+        }
+        /* 脳梁と脳幹 */
+        c.strokeStyle = "#fbe9df"; c.lineWidth = 9; c.lineCap = "round";
+        c.beginPath(); c.moveTo(232, 178); c.bezierCurveTo(262, 142, 330, 140, 356, 176); c.stroke();
+        c.fillStyle = "#efc9a2";
+        c.beginPath(); c.moveTo(272, 196); c.bezierCurveTo(262, 222, 232, 250, 204, 274); c.lineTo(186, 262); c.bezierCurveTo(214, 240, 240, 214, 250, 192); c.closePath(); c.fill();
+        /* 小脳 */
+        c.fillStyle = "#e3a79a"; c.fill(P.cereb);
+        c.save(); c.clip(P.cereb); c.strokeStyle = "rgba(150,74,70,0.6)"; c.lineWidth = 1.2;
+        for (i = 0; i < 9; i++) { c.beginPath(); c.moveTo(226, 232 + i * 6); c.bezierCurveTo(190, 222 + i * 7, 160, 236 + i * 6, 134, 248 + i * 4); c.stroke(); }
+        c.restore();
+        c.restore();
+        c.strokeStyle = INK; c.lineWidth = 1; c.stroke(P.cran);
+        /* 脊髄と頸椎 */
+        c.strokeStyle = "#f1dba6"; c.lineWidth = 11; c.lineCap = "butt";
+        c.beginPath(); c.moveTo(196, 268); c.bezierCurveTo(176, 300, 150, 380, 150, 600); c.stroke();
+        c.strokeStyle = "rgba(160,120,60,0.5)"; c.lineWidth = 1; c.beginPath(); c.moveTo(201, 270); c.bezierCurveTo(182, 300, 156, 380, 156, 600); c.stroke();
+        for (i = 0; i < 7; i++) {
+          var vy = 294 + i * 45, vx = 166 - Math.max(0, 2 - i) * -4;
+          c.fillStyle = "#8fb6c4"; c.fillRect(vx + 2, vy + 37, 36, 8);                      /* 椎間板 */
+          c.fillStyle = anaGrad(c, vx, vy, vx + 40, vy + 38, ["#f6ecd2", "#dfcda2"]);
+          c.beginPath(); c.roundRect(vx, vy, 40, 37, 7); c.fill();
+          c.strokeStyle = INK; c.lineWidth = 0.9; c.stroke();
+          c.fillStyle = "rgba(196,170,118,0.6)";
+          for (var d = 0; d < 7; d++) c.fillRect(vx + 6 + (d * 13) % 28, vy + 6 + (d * 9) % 24, 2.2, 2.2);
+          /* 棘突起 */
+          c.fillStyle = "#e9dab4"; c.beginPath(); c.roundRect(vx - 44, vy + 10, 26, 13, 5); c.fill(); c.strokeStyle = INK; c.stroke();
+        }
+        /* 鼻腔 */
+        c.fillStyle = anaGrad(c, 300, 190, 460, 290, ["#123540", "#081d26"]); c.fill(P.nasal);
+        c.strokeStyle = "#e58d8c"; c.lineWidth = 3; c.stroke(P.nasal);
+        c.strokeStyle = INK; c.lineWidth = 1; c.stroke(P.nasal);
+        [[352, 214, 44, 10, -0.08], [372, 236, 48, 10, 0.1], [396, 258, 40, 8, 0.22]].forEach(function (t) {
+          c.save(); c.translate(t[0], t[1]); c.rotate(t[4]);
+          c.fillStyle = anaGrad(c, 0, -t[3], 0, t[3], ["#f09a98", "#cf6a70"]);
+          c.beginPath(); c.ellipse(0, 0, t[2], t[3], 0, 0, 7); c.fill(); c.strokeStyle = "rgba(120,40,46,0.7)"; c.stroke();
+          c.restore();
+        });
+        /* 副鼻腔（前頭洞・蝶形骨洞） */
+        c.fillStyle = "#0b2630"; c.strokeStyle = INK;
+        c.beginPath(); c.ellipse(455, 196, 6, 12, 0.2, 0, 7); c.fill(); c.stroke();
+        c.beginPath(); c.ellipse(292, 226, 11, 9, 0, 0, 7); c.fill(); c.stroke();
+        /* 気道（口・のど・気管）。舌や顎があとから上に重なる */
+        c.fillStyle = anaGrad(c, 230, 250, 460, 560, ["#0d2a34", "#061821"]); c.fill(P.airway);
+        c.strokeStyle = "#e58d8c"; c.lineWidth = 3.5; c.stroke(P.airway);
+        /* 咽頭の後ろの壁と食道 */
+        c.strokeStyle = "#e58d8c"; c.lineWidth = 5; c.lineCap = "round";
+        c.beginPath(); c.moveTo(219, 252); c.bezierCurveTo(211, 332, 211, 420, 226, 490); c.stroke();
+        c.strokeStyle = "#a8434b"; c.lineWidth = 3; c.beginPath(); c.moveTo(222, 494); c.lineTo(222, 600); c.stroke();
+        /* 硬口蓋（骨）と粘膜 */
+        c.fillStyle = anaGrad(c, 330, 250, 456, 300, ["#f4e9cf", "#dfcca0"]); c.fill(P.palate); c.strokeStyle = INK; c.lineWidth = 1; c.stroke(P.palate);
+        c.strokeStyle = "#e9908f"; c.lineWidth = 4; c.beginPath(); c.moveTo(448, 304); c.bezierCurveTo(418, 284, 372, 271, 338, 266); c.stroke();
+        c.restore(); /* 頭の切り抜きここまで */
+
+        /* 顎のまとまり（回して下げる） */
+        c.save();
+        c.translate(268, 318); c.rotate(p.jaw * 6.5 * jawScale() * Math.PI / 180); c.translate(-268, -318 + p.jaw * 2);
+        c.fillStyle = anaGrad(c, 280, 320, 450, 460, ["#e9b797", "#d0926f", "#b67a5c"]); c.fill(P.jawSkin);
+        c.strokeStyle = INK; c.lineWidth = 1.1; c.stroke(P.jawSkin);
+        c.fillStyle = anaGrad(c, 300, 350, 440, 450, ["#c85a5e", "#a8404a"]); c.fill(P.floor);
+        c.save(); c.clip(P.floor); c.strokeStyle = "rgba(255,190,180,0.28)"; c.lineWidth = 1;
+        for (i = 0; i < 14; i++) { c.beginPath(); c.moveTo(300 + i * 10, 350); c.lineTo(330 + i * 9, 460); c.stroke(); }
+        c.restore();
+        c.fillStyle = anaGrad(c, 400, 350, 446, 440, ["#f7eed6", "#dccb9f"]); c.fill(P.mand); c.strokeStyle = INK; c.stroke(P.mand);
+        c.fillStyle = "rgba(196,170,118,0.6)";
+        for (i = 0; i < 8; i++) c.fillRect(416 + (i * 7) % 22, 372 + (i * 11) % 52, 2, 2);
+        /* 下の歯 */
+        c.fillStyle = anaGrad(c, 428, 314, 444, 340, ["#ffffff", "#e9e2cc"]);
+        c.beginPath(); c.moveTo(430, 344); c.bezierCurveTo(427, 332, 430, 318, 436, 313); c.bezierCurveTo(443, 320, 444, 334, 441, 345); c.closePath(); c.fill(); c.strokeStyle = "rgba(110,90,60,0.8)"; c.stroke();
+        /* 舌骨 */
+        c.fillStyle = "#efe2bd"; c.beginPath(); c.ellipse(310, 446, 13, 6, 0.1, 0, 7); c.fill(); c.strokeStyle = INK; c.stroke();
+        /* 下唇 */
+        c.save(); c.translate(p.pro * 4, -p.lipClose * 11);
+        c.fillStyle = anaRad(c, 456, 334, 2, 22, ["#f08c90", "#cf5560"]); c.fill(P.lowLip); c.strokeStyle = "rgba(120,36,44,0.8)"; c.stroke(P.lowLip);
+        c.restore();
+        c.restore();
+
+        /* 喉頭：喉頭蓋・甲状軟骨・輪状軟骨・声帯・気管 */
+        c.save(); c.translate(0, pdy * 0.6);
+        c.fillStyle = anaGrad(c, 266, 414, 290, 474, ["#f3e7a8", "#d8c56c"]); c.fill(P.epig); c.strokeStyle = INK; c.lineWidth = 1; c.stroke(P.epig);
+        c.fillStyle = anaGrad(c, 266, 452, 292, 500, ["#dbe9d2", "#a9c9b6"]); c.fill(P.thyroid); c.stroke(P.thyroid);
+        c.fillStyle = "#b9d3c2"; c.fill(P.cricoid); c.stroke(P.cricoid);
+        for (i = 0; i < 4; i++) { c.fillStyle = "#c4dcd8"; c.beginPath(); c.roundRect(263, 534 + i * 18, 9, 11, 3); c.fill(); c.strokeStyle = INK; c.stroke(); }
+        var open = ANA.voiced ? 2.2 + 1.8 * Math.sin(nowMs * 0.09) : 5;
+        c.strokeStyle = "#ffd9cf"; c.lineWidth = 3.4; c.lineCap = "round";
+        c.beginPath(); c.moveTo(237, 480 - open * 0.5); c.lineTo(250, 486 - open); c.moveTo(263, 480 - open * 0.5); c.lineTo(250, 486 + open * 0.2); c.stroke();
+        if (ANA.voiced) { c.fillStyle = "rgba(255,214,140,0.5)"; c.beginPath(); c.arc(250, 484, 7 + 2 * Math.sin(nowMs * 0.09), 0, 7); c.fill(); }
+        c.restore();
+
+        /* 舌 */
+        var rootY = 428 + p.jaw * 7 + pdy;
+        var T = [[p.tx, p.ty], [p.tx - 2, p.ty + 22], [p.bx + 58, p.by + 6], [p.bx, p.by], [p.bx - 52, p.by + 14], [288, 352 + pdy * 0.8],
+                 [284, rootY], [336, rootY + 9], [p.tx - 20, p.ty + 34]];
+        var cx = p.bx + 2, cy = p.by + 46 + pdy * 0.4;
+        c.beginPath(); anaSpline(c, T, true);
+        c.fillStyle = anaRad(c, cx + 14, cy - 26, 6, 120, ["#f59a96", "#e0696c", "#b8434d"]); c.fill();
+        c.save(); c.clip();
+        c.strokeStyle = "rgba(255,214,204,0.35)"; c.lineWidth = 1.1;
+        for (i = 0; i < 15; i++) {
+          var a = -Math.PI * (0.06 + 0.9 * i / 14);
+          c.beginPath(); c.moveTo(cx + 46, rootY - 4); c.quadraticCurveTo(cx + 20, cy, cx + 20 + 130 * Math.cos(a), cy + 130 * Math.sin(a)); c.stroke();
+        }
+        c.restore();
+        c.strokeStyle = "rgba(120,30,40,0.85)"; c.lineWidth = 1.4; c.beginPath(); anaSpline(c, T, true); c.stroke();
+        /* 舌の表面の照り */
+        c.strokeStyle = "rgba(255,240,236,0.5)"; c.lineWidth = 2;
+        c.beginPath(); anaSpline(c, [[p.bx - 30, p.by + 10], [p.bx, p.by + 4], [p.bx + 50, p.by + 10], [p.tx - 12, p.ty + 6]], false); c.stroke();
+
+        /* 軟口蓋と口蓋垂 */
+        var vx2 = 300 + 34 * p.vel, vy2 = 334 - 64 * p.vel;
+        c.strokeStyle = "rgba(120,36,44,0.9)"; c.lineWidth = 12.5; c.lineCap = "round";
+        c.beginPath(); c.moveTo(338, 257); c.quadraticCurveTo((338 + vx2) / 2 - 8, (257 + vy2) / 2 + 2, vx2, vy2); c.stroke();
+        c.strokeStyle = "#ee8f90"; c.lineWidth = 10.5;
+        c.beginPath(); c.moveTo(338, 257); c.quadraticCurveTo((338 + vx2) / 2 - 8, (257 + vy2) / 2 + 2, vx2, vy2); c.stroke();
+        /* 上の歯と上唇 */
+        c.fillStyle = anaGrad(c, 428, 296, 446, 324, ["#ffffff", "#e9e2cc"]);
+        c.beginPath(); c.moveTo(432, 296); c.bezierCurveTo(430, 308, 434, 320, 440, 325); c.bezierCurveTo(447, 318, 449, 306, 447, 296); c.closePath(); c.fill(); c.strokeStyle = "rgba(110,90,60,0.8)"; c.lineWidth = 1; c.stroke();
+        c.save(); c.translate(p.pro * 5, 0);
+        c.fillStyle = anaRad(c, 460, 300, 2, 22, ["#f08c90", "#cf5560"]); c.fill(P.upLip); c.strokeStyle = "rgba(120,36,44,0.8)"; c.stroke(P.upLip);
+        c.restore();
+      }
+      var ANA_LABELS = [
+        ["脳", 300, 120, 0, 0], ["鼻腔", 392, 222, 528, 196], ["硬口蓋", 392, 276, 528, 250], ["軟口蓋", 334, 268, 100, 330],
+        ["唇", 466, 318, 528, 330], ["舌", 372, 352, 528, 384], ["咽頭", 224, 370, 100, 400], ["喉頭蓋", 276, 440, 100, 446],
+        ["声帯", 250, 486, 100, 492], ["気管", 250, 560, 100, 556], ["頸椎", 186, 312, 100, 284], ["下顎骨", 432, 410, 528, 448]
+      ];
+      function anaLabels(c) {
+        c.font = "13px sans-serif"; c.textBaseline = "middle";
+        ANA_LABELS.forEach(function (L) {
+          if (!L[3]) { c.fillStyle = "rgba(92,40,36,0.85)"; c.textAlign = "center"; c.fillText(L[0], L[1], L[2]); return; }
+          var right = L[3] > 300;
+          c.strokeStyle = "rgba(220,238,246,0.55)"; c.lineWidth = 0.9;
+          c.beginPath(); c.moveTo(L[1], L[2]); c.lineTo(L[3] + (right ? -4 : 4), L[4]); c.stroke();
+          c.fillStyle = "#eefaff"; c.beginPath(); c.arc(L[1], L[2], 2.2, 0, 7); c.fill();
+          c.textAlign = right ? "left" : "right"; c.fillStyle = "rgba(238,250,255,0.92)"; c.fillText(L[0], L[3], L[4]);
+        });
+        c.textAlign = "left"; c.textBaseline = "alphabetic";
+      }
+      /* 合成器の共鳴の形（設定値からの計算）。並列の帯域通過3本＋高い帯、声源の傾きと高域上限を掛ける */
+      function anaEnvelope(f, F, bw, g, lpf, f0, bands) {
+        function bp(fc, b) { var q = Math.max(0.6, fc / b), x = f / fc - fc / f; return 1 / Math.sqrt(1 + q * q * x * x); }
+        var s = g[0] * bp(F[0], bw[0]) + g[1] * bp(F[1], bw[1]) + g[2] * bp(F[2], bw[2]);
+        (bands || []).forEach(function (b) { s += b[2] * bp(b[0], b[1]); });
+        var src = Math.min(1, f0 / f) / Math.sqrt(1 + Math.pow(f / lpf, 4));
+        return 20 * Math.log10(Math.max(1e-7, s * src));
+      }
+      function anaPanel(c, x, y, w, h, title, right) {
+        c.fillStyle = "rgba(3,14,19,0.96)"; c.fillRect(x, y, w, h);
+        c.strokeStyle = "rgba(94,231,255,0.28)"; c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w, h);
+        c.font = "13px sans-serif"; c.fillStyle = "rgba(94,231,255,0.85)"; c.textAlign = "left"; c.fillText(title, x + 12, y + 20);
+        if (right) { c.textAlign = "right"; c.fillStyle = "rgba(238,250,255,0.5)"; c.fillText(right, x + w - 12, y + 20); c.textAlign = "left"; }
+      }
+      function renderAna(p, nowMs) {
+        var cv = document.getElementById("viewAna"), c = cv.getContext("2d"), W = cv.width, H = cv.height, seg = ANA.seg, i;
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.fillStyle = "#020c10"; c.fillRect(0, 0, W, H);
+        /* 左：解剖の断面 */
+        var bgx = c.createRadialGradient(290, 380, 40, 290, 380, 420); bgx.addColorStop(0, "#0b2630"); bgx.addColorStop(1, "#020c10");
+        c.fillStyle = bgx; c.fillRect(0, 0, 664, H);
+        c.save(); c.translate(64, 50); c.scale(1.06, 1.06);
+        anaAnatomy(c, p, nowMs); anaLabels(c);
+        c.restore();
+        c.font = "12px sans-serif"; c.fillStyle = "rgba(238,250,255,0.5)";
+        c.fillText("正中矢状断面（模式図・手描きの近似。医用画像や実測ではありません）", 14, H - 12);
+
+        var active = typeof qualitySoundActive === "function" && qualitySoundActive();
+        if (AC && N && N.analyser && !ANA.an) {
+          ANA.an = AC.createAnalyser(); ANA.an.fftSize = 8192; ANA.an.smoothingTimeConstant = 0.55;
+          N.analyser.connect(ANA.an); ANA.buf = new Float32Array(ANA.an.frequencyBinCount);
+        }
+        if (!ANA.sg) {
+          ANA.sg = document.createElement("canvas"); ANA.sg.width = ANA.SGW; ANA.sg.height = ANA.SGH; ANA.lut = anaLut();
+          var s0 = ANA.sg.getContext("2d"); s0.fillStyle = "rgb(4,4,14)"; s0.fillRect(0, 0, ANA.SGW, ANA.SGH);
+        }
+        var hz = ANA.an ? AC.sampleRate / ANA.an.fftSize : 1, FMAX = ANA.FMAX;
+        if (active && ANA.an) ANA.an.getFloatFrequencyData(ANA.buf);
+        /* 右上：スペクトログラム */
+        var px = 678, pw = W - px - 14, sy = 14, sh = 330;
+        anaPanel(c, px, sy, pw, sh, "スペクトログラム — 出力を周波数分析した実測", "0〜5 kHz ／ 新しい音が右");
+        var gx = px + 44, gy = sy + 34, gw = pw - 58, gh = sh - 62;
+        if (active && ANA.an && !reduced) {
+          var sc = ANA.sg.getContext("2d"), DX = 2;
+          sc.drawImage(ANA.sg, -DX, 0);
+          var col = sc.createImageData(DX, ANA.SGH), d = col.data;
+          for (var yy = 0; yy < ANA.SGH; yy++) {
+            var fq = FMAX * (1 - yy / ANA.SGH), b = fq / hz, b0 = Math.floor(b), db = ANA.buf[b0] + (ANA.buf[b0 + 1] - ANA.buf[b0]) * (b - b0);
+            var v = db > -200 ? Math.pow(Math.max(0, Math.min(1, (db + 110) / 74)), 0.8) : 0, rgb = ANA.lut[Math.round(v * 255)];
+            for (var xx = 0; xx < DX; xx++) { var o = (yy * DX + xx) * 4; d[o] = rgb[0]; d[o + 1] = rgb[1]; d[o + 2] = rgb[2]; d[o + 3] = 255; }
+          }
+          sc.putImageData(col, ANA.SGW - DX, 0);
+        }
+        c.imageSmoothingEnabled = true; c.drawImage(ANA.sg, gx, gy, gw, gh);
+        c.strokeStyle = "rgba(94,231,255,0.25)"; c.strokeRect(gx + 0.5, gy + 0.5, gw, gh);
+        c.font = "11px sans-serif"; c.fillStyle = "rgba(238,250,255,0.6)"; c.textAlign = "right";
+        for (i = 0; i <= 5; i++) { var ly = gy + gh - gh * i / 5; c.fillText(i + "k", gx - 6, ly + 4); c.fillStyle = "rgba(238,250,255,0.08)"; c.fillRect(gx, ly, gw, 1); c.fillStyle = "rgba(238,250,255,0.6)"; }
+        c.textAlign = "left";
+        if (!ANA.an || (!active && !ANA.seen)) { c.fillStyle = "rgba(238,250,255,0.55)"; c.font = "14px sans-serif"; c.fillText("再生すると表示されます", gx + 18, gy + gh / 2); }
+        if (active) ANA.seen = true;
+        /* 右下：スペクトルと共鳴の形 */
+        var qy = sy + sh + 14, qh = H - qy - 14;
+        anaPanel(c, px, qy, pw, qh, "スペクトル — いまの出力", "");
+        var ex = px + 44, ey = qy + 58, ew = pw - 58, eh = qh - 88, DB0 = -100, DB1 = -24;
+        function fx(f) { return ex + ew * f / FMAX; }
+        function fy(dB) { return ey + eh - eh * Math.max(0, Math.min(1, (dB - DB0) / (DB1 - DB0))); }
+        c.font = "11px sans-serif"; c.fillStyle = "rgba(238,250,255,0.6)"; c.textAlign = "center";
+        for (i = 0; i <= 5; i++) { c.fillText(i + " kHz", fx(i * 1000), ey + eh + 16); c.fillStyle = "rgba(238,250,255,0.07)"; c.fillRect(fx(i * 1000), ey, 1, eh); c.fillStyle = "rgba(238,250,255,0.6)"; }
+        c.textAlign = "left";
+        /* 凡例 */
+        var lx = px + pw - 300, lyy = qy + 20;
+        c.fillStyle = "#ffc24a"; c.fillRect(lx, lyy - 4, 18, 3); c.fillStyle = "rgba(238,250,255,0.85)"; c.font = "12px sans-serif"; c.fillText("倍音（実測）", lx + 24, lyy);
+        c.strokeStyle = "#49e0c8"; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(lx + 120, lyy - 3); c.lineTo(lx + 140, lyy - 3); c.stroke(); c.setLineDash([]);
+        c.fillText("共鳴の形（設定値から計算）", lx + 146, lyy);
+        var peak = -200;
+        if (active && ANA.an) {
+          var nb = Math.min(ANA.buf.length, Math.ceil(FMAX / hz));
+          c.beginPath(); c.moveTo(ex, ey + eh);
+          for (i = 1; i < nb; i++) { if (ANA.buf[i] > peak) peak = ANA.buf[i]; c.lineTo(fx(i * hz), fy(ANA.buf[i])); }
+          c.lineTo(ex + ew, ey + eh); c.closePath();
+          c.fillStyle = anaGrad(c, 0, ey, 0, ey + eh, ["rgba(255,208,96,0.85)", "rgba(240,120,40,0.35)", "rgba(120,30,60,0.12)"]); c.fill();
+          c.beginPath();
+          for (i = 1; i < nb; i++) { if (i === 1) c.moveTo(fx(hz), fy(ANA.buf[1])); else c.lineTo(fx(i * hz), fy(ANA.buf[i])); }
+          c.strokeStyle = "#ffc24a"; c.lineWidth = 1.2; c.stroke();
+        }
+        var voiced = seg && seg.gains && seg.gains.v > 0.05 && dispF0 > 20;
+        if (voiced && active) {
+          var O = ANAT.overtone, ot = !!seg.bw, F = [dispF[0], ot ? seg.f[1] : dispF[1], dispF[2]];
+          var bw = seg.bw || [80, 95, 130], g = seg.gains.g, lpf = ot ? seg.lpf : 1250;
+          var bands = ot && O.band > 0 ? O.bandF.map(function (bf, bi) { return [bf, O.bandBw[bi], O.band * OT_BAND_UNIT * O.bandMix[bi]]; }) : [];
+          var env = [], emax = -200;
+          for (i = 0; i <= 250; i++) { var ff = 60 + (FMAX - 60) * i / 250, e = anaEnvelope(ff, F, bw, g, lpf, dispF0, bands); env.push([ff, e]); if (e > emax) emax = e; }
+          var shift = (peak > -150 ? peak : -40) - emax + 3;
+          c.beginPath(); env.forEach(function (q, k) { var X = fx(q[0]), Y = fy(q[1] + shift); if (k) c.lineTo(X, Y); else c.moveTo(X, Y); });
+          c.strokeStyle = "#49e0c8"; c.lineWidth = 2; c.setLineDash([5, 4]); c.stroke(); c.setLineDash([]);
+          c.font = "12px sans-serif";
+          ["F1", "F2", "F3"].forEach(function (nm, j) {
+            if (!(F[j] > 0 && F[j] < FMAX)) return;
+            var Y = fy(anaEnvelope(F[j], F, bw, g, lpf, dispF0, bands) + shift);
+            c.fillStyle = "#49e0c8"; c.beginPath(); c.arc(fx(F[j]), Y, 3.2, 0, 7); c.fill();
+            c.fillStyle = "rgba(210,255,246,0.95)"; c.fillText(nm + " " + Math.round(F[j]) + " Hz", Math.min(fx(F[j]) + 6, ex + ew - 84), Math.max(ey + 12, Y - 8));
+          });
+          bands.forEach(function (b) { c.fillStyle = "rgba(255,214,140,0.9)"; c.fillText("帯 " + b[0], fx(b[0]) - 18, ey + 12); });
+          if (ot && O.snap) {
+            var kH = Math.max(1, Math.round(F[1] / dispF0));
+            c.fillStyle = "#ffd68c"; c.font = "12px sans-serif"; c.fillText("狙っている倍音：第" + kH + "倍音 ≈ " + Math.round(kH * dispF0) + " Hz（声の高さ " + Math.round(dispF0) + " Hz）", ex, qy + 38);
+          }
+        } else if (!active) { c.fillStyle = "rgba(238,250,255,0.55)"; c.font = "14px sans-serif"; c.fillText("再生すると表示されます", ex + 18, ey + eh / 2); }
+      }
+      (function () {
+        var cv = document.getElementById("viewAna"), tab = document.getElementById("tab-ana");
+        tab.addEventListener("click", function () {
+          if (!anaOn && view3dOn) document.getElementById("tab-3d").click();
+          anaOn = !anaOn;
+          tab.setAttribute("aria-pressed", anaOn ? "true" : "false");
+          cv.hidden = !anaOn; document.getElementById("noteAna").hidden = !anaOn;
+          document.querySelector(".device-main").classList.toggle("ana-wide", anaOn);
+          document.querySelector("svg.tract").style.display = anaOn || view3dOn ? "none" : "";
+          if (anaOn) renderAna(poseCur, performance.now());
+        });
+        document.getElementById("tab-3d").addEventListener("click", function () {
+          if (view3dOn && anaOn) { anaOn = false; document.querySelector(".device-main").classList.remove("ana-wide"); tab.setAttribute("aria-pressed", "false"); cv.hidden = true; document.getElementById("noteAna").hidden = true; document.querySelector("svg.tract").style.display = "none"; }
+        });
+      })();
+
+      /* ANA-END */
       /* ---------- airflow particles ---------- */
       var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       var ORAL_PATH = [[248, 486], [245, 418], [256, 350], [298, 316], [360, 304], [424, 310], [474, 316]];
@@ -4488,6 +4857,7 @@
         /* vocal folds shimmer while voicing */
         var voicing = (seg && seg.gains && seg.gains.v > 0.05) || manOn;
         V3.voiced = !!voicing; V3.mora = seg && seg.mora !== undefined ? seg.mora : -1;
+        ANA.voiced = !!voicing; ANA.seg = seg;
         if (voicing) {
           var sc = 1 + 0.16 * Math.sin(nowMs * 0.09);
           folds.setAttribute("transform", "translate(250 483) scale(1 " + sc.toFixed(3) + ") translate(-250 -483)");
@@ -4531,6 +4901,7 @@
         manApply();
         updateMeters(poseCur);
         if (tabMode !== "measure") drawScope(poseCur, elapsed);
+        if (anaOn) renderAna(poseCur, nowMs);
         requestAnimationFrame(frame);
       }
       renderTract(poseCur);
