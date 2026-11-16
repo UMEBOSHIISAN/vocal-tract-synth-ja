@@ -147,10 +147,11 @@ SOUND LABの **「十二人の堂 — おすすめ」→ PLAY** で、12人の�
 | [docs/recovery-low-chant.md](docs/recovery-low-chant.md) | 低音合唱を入れたときの作業記録（英語） |
 | [docs/video-12-voices.md](docs/video-12-voices.md) | 12人の低音曼荼羅の動画の作り方 |
 | [docs/video-sodo-no-asa.md](docs/video-sodo-no-asa.md) | 鳴らし物入りの動画「僧堂の朝」の作り方 |
+| [docs/video-12-low-chant-ritual-v2.md](docs/video-12-low-chant-ritual-v2.md) | 12声の低音合唱と鳴らし物を合わせたX向け動画（終盤の抜粋） |
 
 各検証記録は、その時点のソースに対するものです。あとの変更を測り直した値ではありません。
 
-**動画：** [12人の低音曼荼羅（60秒）](media/mandala-12-low-chant-X-60s.mp4) と、鳴らし物入りの [僧堂の朝（約66秒）](media/sodo-no-asa-hannya-narashimono-X-66s.mp4) を同梱しています。後者の振鈴・法鼓はオーナーの友人による生録音です。
+**動画：** [12人の低音曼荼羅（60秒）](media/mandala-12-low-chant-X-60s.mp4)、鳴らし物入りの [僧堂の朝（約66秒）](media/sodo-no-asa-hannya-narashimono-X-66s.mp4)、[12声の低音合唱と鳴らし物（約80秒）](media/mandala-12-low-chant-X-cinematic-ritual-v2.mp4) を同梱しています。新しい版は般若心経の終盤を抜粋し、友人の振鈴・法鼓録音と合わせた動画向けの編集です。制作・音順・同期の注意点は [動画メモ](docs/video-12-low-chant-ritual-v2.md) を参照してください。
 
 ## 開発の方針
 
