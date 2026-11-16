@@ -627,7 +627,7 @@
           <div id="otCtl" hidden>
             <span class="free-lab">倍音ボイスの調整 — 動かしたあと、もう一度再生すると反映されます（聴いて、きしきしの原因を切り分けるためのつまみ）</span>
             <div class="ot-grid" id="otGrid"></div>
-            <div class="preset-row"><button class="preset-chip" id="otReset" type="button">初期値に戻す</button><span class="parse-note" id="otVals"></span></div>
+            <div class="preset-row"><button class="preset-chip" id="otReset" type="button">初期値に戻す</button><button class="preset-chip" id="otMeasured" type="button">実測の値（1人・2026-11-16）</button><span class="parse-note" id="otVals"></span></div>
           </div>
         </div>
 
@@ -962,7 +962,8 @@
              狙った倍音だけを強め、土台（F1）と F3 を少し下げて浮き上がらせる。先行研究の“二重フォルマント”
              （F2・F3 を同じ倍音へ寄せて1本を強める）を、並列共鳴器の音量比で近似したもの。
            ※数値は近似で、個人・流派の実測ではない。 */
-        overtone: { f0Midi: 43, bw: [150, 25, 220], gains: [0.8, 4.2, 0.35], lpf: 5200, noise: 0.2, hop: 0.008 },
+        overtone: { f0Midi: 43, bw: [150, 25, 220], gains: [0.8, 4.2, 0.35], lpf: 5200, noise: 0.2, hop: 0.008,
+                    snap: 1, root: -0.1, rise: 0, vibRate: 5.5, vibCents: 0 },
         /* ⑧管モデル（実験・切り替え式）— 声道を、長さの等しい短い管をつないだ1本の音響管として時間領域で計算する
              （Kelly–Lochbaum 型の進行波モデル＝確立した音響理論。隣り合う管の断面積比で反射係数が決まる）。
            区間数：1区間の長さ = 音速 /(2×標本化周波数)。声道長 ÷ それ を四捨五入（長さの誤差は最大でも約1%）。
@@ -1001,6 +1002,23 @@
          F3 まで別の高調波に吸着すると無関係な2本目の笛音が鳴ってキシつくため、吸着は F2 の1本だけにする */
       function otSnap(f, f0) {
         return [f[0], Math.max(1, Math.round(f[1] / f0)) * Math.round(f0), f[2]];
+      }
+      /* 監修（2026-11-16）のつまみ。既定値では従来と同じ結果を返す。docs/kanshu-overtone-shijisho.md */
+      function otVowelF(f, f0, ot) {
+        var g = f;
+        if (ot.root >= 0) g = [f[0], 1000 + 1300 * ot.root, 3500 - 1000 * ot.root];
+        return ot.snap ? otSnap(g, f0) : g;
+      }
+      function otRise(segs, cents, snap) {
+        if (!cents) return segs;
+        var total = segs.reduce(function (a, s) { return a + s.dur; }, 0), acc = 0;
+        segs.forEach(function (s) {
+          var k = Math.pow(2, cents * (total ? acc / total : 0) / 1200);
+          acc += s.dur;
+          s.f0a = s.f0a * k; s.f0b = s.f0b * k;
+          if (snap && s.type === "vowel" && s.f) s.f = [s.f[0], s.f[1] * k, s.f[2]];
+        });
+        return segs;
       }
       var speakerKey = "male";
       var CUR = ANAT.speakers.male;
@@ -1636,14 +1654,14 @@
               });
             }
             var f = vowelF(m.vowel);
-            segment(dur - used, "vowel", gi, VPOSE[m.vowel], otSnap(f, f0),
+            segment(dur - used, "vowel", gi, VPOSE[m.vowel], otVowelF(f, f0, ot),
               { v: 0.88, g: ot.gains, nas: 0.015, noise: 0 }, 1,
               { vowel: m.vowel, legato: c === "L" || !c, fFrom: lastF });
             lastF = f;
           });
         });
         pause(0.18);
-        return segs;
+        return otRise(segs, ot.rise, ot.snap);
       }
       function buildSongScore(song) {
         if (song.def.kyo) return buildChantScore(song);
@@ -1842,6 +1860,7 @@
             var node = new AudioWorkletNode(ctx, "vtube", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1],
               processorOptions: { N: tubeN(G.vtl || CUR.vtl, ctx.sampleRate, ANAT.c), glot: T.glot, lip: T.lip, loss: T.loss, open: T.open, close: T.close } });
             node.connect(G.master); G.tube = node; G.tubeFs = ctx.sampleRate;
+            if (G.vibG && node.parameters.get("detune")) G.vibG.connect(node.parameters.get("detune"));
             return true;
           }, function () { return false; });
         } catch (e) { return Promise.resolve(false); }
@@ -1974,6 +1993,9 @@
         var oscGain = ctx.createGain(); oscGain.gain.value = 0;
         var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1250; lp.Q.value = 0.4;
         osc.connect(oscGain); oscGain.connect(lp);
+        var vib = ctx.createOscillator(); vib.type = "sine"; vib.frequency.value = 5.5;
+        var vibG = ctx.createGain(); vibG.gain.value = 0;
+        vib.connect(vibG); vibG.connect(osc.detune);
 
         function bp(freq, bw) {
           var f = ctx.createBiquadFilter(); f.type = "bandpass";
@@ -1994,9 +2016,9 @@
         var noiseG = ctx.createGain(); noiseG.gain.value = 0;
         noise.connect(noiseBP); noiseBP.connect(noiseG); noiseG.connect(master);
 
-        osc.start(); noise.start();
+        osc.start(); noise.start(); vib.start();
         return { ctx:ctx,scene:scene,q:q,hDry:hDry,hBands:hBands,humanGain:humanGain,auditionGain:auditionGain,output:auditionGain||humanGain,comp: comp, master: master, osc: osc, oscGain: oscGain, lp: lp, defQ: [f1.f.Q.value, f2.f.Q.value, f3.f.Q.value], otOn: false, otBus: false, otF2: null,
-                 f1: f1, f2: f2, f2b: f2b, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG };
+                 f1: f1, f2: f2, f2b: f2b, f3: f3, nasG: nasG, noiseBP: noiseBP, noiseG: noiseG, vib: vib, vibG: vibG };
       }
       function ensureCtx() {
         if (AC) { if (AC.state === "suspended") AC.resume(); return; }
@@ -2049,6 +2071,10 @@
           G.f1.f.Q.setTargetAtTime(ot2 ? Math.max(0.6, seg.f[0] / seg.bw[0]) : G.defQ[0], t, 0.02);
           G.f3.f.Q.setTargetAtTime(ot2 ? Math.max(0.6, seg.f[2] / seg.bw[2]) : G.defQ[2], t, 0.02);
           G.lp.frequency.setTargetAtTime(ot2 ? seg.lpf : 1250, t, 0.02);
+          if (G.vibG) {
+            G.vib.frequency.setTargetAtTime(ANAT.overtone.vibRate, t, 0.05);
+            G.vibG.gain.setTargetAtTime(ot2 ? ANAT.overtone.vibCents : 0, t, 0.05);
+          }
           if (ot2) {
             /* 子音（閉鎖・破裂・摩擦…）の短い区間ごとにホップすると、数十ms内に連続して跳んで
                キシッと鳴る（か・ど・し・じで報告）。ホップは母音の区間だけにし、子音の間は直前の高調波に留める */
@@ -2787,6 +2813,8 @@
 
       /* ---------- 倍音ボイスの調整つまみ（ANAT.overtone を直接動かす） ---------- */
       var OT_DEFAULT = JSON.parse(JSON.stringify(ANAT.overtone));
+      /* 読経の経験者1人の録音（2026-11-16）から置いた値。bw と gains は実測ではなく「倍音を強調しない」ための、通常の歌に近い値（つまみの刻みに合わせてある） */
+      var OT_MEASURED = { f0Midi: 53, bw: [80, 95, 130], gains: [1, 0.5, 0.2], snap: 0, root: -0.1, rise: 83, vibRate: 5.5, vibCents: 50 };
       var OT_CTL = [
         { k: "f2bw", lab: "F2 帯域幅 (Hz)", min: 10, max: 150, step: 5, get: function (o) { return o.bw[1]; }, set: function (o, v) { o.bw[1] = v; } },
         { k: "f2g", lab: "F2 音量", min: 0.5, max: 6, step: 0.1, get: function (o) { return o.gains[1]; }, set: function (o, v) { o.gains[1] = v; } },
@@ -2794,7 +2822,13 @@
         { k: "f3g", lab: "F3 音量", min: 0, max: 2, step: 0.05, get: function (o) { return o.gains[2]; }, set: function (o, v) { o.gains[2] = v; } },
         { k: "noise", lab: "子音の雑音 ×", min: 0, max: 1, step: 0.05, get: function (o) { return o.noise; }, set: function (o, v) { o.noise = v; } },
         { k: "hop", lab: "F2 ホップ速さ (s)", min: 0.004, max: 0.08, step: 0.002, get: function (o) { return o.hop; }, set: function (o, v) { o.hop = v; } },
-        { k: "lpf", lab: "音源の高域上限 (Hz)", min: 1500, max: 8000, step: 100, get: function (o) { return o.lpf; }, set: function (o, v) { o.lpf = v; } }
+        { k: "lpf", lab: "音源の高域上限 (Hz)", min: 1500, max: 8000, step: 100, get: function (o) { return o.lpf; }, set: function (o, v) { o.lpf = v; } },
+        { k: "f0", lab: "声の高さ (MIDI。43=98Hz／50=147Hz／53=175Hz)", min: 36, max: 57, step: 1, get: function (o) { return o.f0Midi; }, set: function (o, v) { o.f0Midi = v; } },
+        { k: "snap", lab: "F2 を倍音に合わせる (0=しない／1=する)", min: 0, max: 1, step: 1, get: function (o) { return o.snap; }, set: function (o, v) { o.snap = v; } },
+        { k: "root", lab: "舌の根 (-0.1=母音まかせ／0=広い／1=狭い)", min: -0.1, max: 1, step: 0.1, get: function (o) { return o.root; }, set: function (o, v) { o.root = v; } },
+        { k: "rise", lab: "読むうちに上がる量 (セント)", min: 0, max: 600, step: 1, get: function (o) { return o.rise; }, set: function (o, v) { o.rise = v; } },
+        { k: "vibCents", lab: "声の揺れの幅 (±セント)", min: 0, max: 80, step: 5, get: function (o) { return o.vibCents; }, set: function (o, v) { o.vibCents = v; } },
+        { k: "vibRate", lab: "声の揺れの速さ (回/秒)", min: 3, max: 8, step: 0.1, get: function (o) { return o.vibRate; }, set: function (o, v) { o.vibRate = v; } }
       ];
       (function () {
         var grid = document.getElementById("otGrid");
@@ -2812,6 +2846,10 @@
         });
         document.getElementById("otReset").addEventListener("click", function () {
           Object.keys(OT_DEFAULT).forEach(function (k) { ANAT.overtone[k] = JSON.parse(JSON.stringify(OT_DEFAULT[k])); });
+          Array.prototype.forEach.call(grid.children, function (r) { r._reset(); }); show();
+        });
+        document.getElementById("otMeasured").addEventListener("click", function () {
+          Object.assign(ANAT.overtone, OT_MEASURED, { bw: OT_MEASURED.bw.slice(), gains: OT_MEASURED.gains.slice() });
           Array.prototype.forEach.call(grid.children, function (r) { r._reset(); }); show();
         });
         show();
