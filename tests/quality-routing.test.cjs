@@ -73,3 +73,41 @@ test('offline graphs omit audition processing rather than depending on a unity g
  const g=c.buildGraph(ctx,null,c.qualityDefaults(),false);assert.equal(g.auditionGain,null,'offline still includes live-only audition DSP');assert.equal(g.output,g.humanGain);assert.ok(g.humanGain.outputs.includes(g.scene.input));
  c.prepareQualityVoice(g,c.qualityDefaults(),0,.01,1,false);c.setVoiceAudition([g],0);assert.ok(g.humanGain.outputs.includes(g.scene.input));
 });
+
+test('each choir voice schedules its own pitch and overtone envelope and exposes the same curve to the stage',()=>{
+ const {ctx,c}=setup(), q=c.qualityDefaults();
+ c.ANAT={quality:q,tube:{open:.4,close:.16}};
+ const start=html.indexOf('      function buildGraph('),end=html.indexOf('      function ensureCtx()',start);
+ vm.runInContext(html.slice(start,end),c);
+ const render=(count,voice,offset=0)=>{
+   const g=c.buildGraph(ctx,null,q,false);
+   const tubeDetune=new Param();g.tube={port:{postMessage(){}},parameters:new Map([['detune',tubeDetune]])};
+   c.prepareQualityVoice(g,q,voice,1,6,true,offset,count);
+   return {g,tubeDetune};
+ };
+ for(const [count,voice] of [[1,0],[12,0],[0,4]]) {
+   const {g}=render(count,voice);assert.ok(!g.choirMotion);assert.ok(!g.choirTone);
+ }
+ const parts=[3,6,12].map(n=>render(n,1));
+ for(const {g,tubeDetune} of parts) {
+   assert.ok(g.choirMotion,'missing choir automation at the default humanisation setting');
+   const detune=g.osc.detune.events.at(-1),tone=g.choirTone.gain.events.at(-1);
+   assert.equal(detune[0],'curve');assert.equal(tone[0],'curve');
+   assert.deepEqual(tubeDetune.events.at(-1),detune);
+   for(const b of g.hBands)assert.deepEqual(b.f.detune.events.at(-1),detune);
+   const mid=(detune[1].length-1)/2;
+   const frame=c.choirFrame(g.choirMotion,4);
+   assert.equal(frame.cents,detune[1][mid]);assert.equal(frame.color,tone[1][mid]);
+   assert.ok(detune[1].every(x=>Math.abs(x)<=9.01));assert.ok(tone[1].every(x=>Math.abs(x)<=4.01));
+ }
+ const extent=g=>Math.max(...g.choirMotion.pitch.map(Math.abs));
+ assert.ok(extent(parts[0].g)<extent(parts[1].g)&&extent(parts[1].g)<extent(parts[2].g));
+ const voices=Array.from({length:11},(_,i)=>render(12,i+1).g.choirMotion);
+ for(const key of ['pitch','color'])assert.equal(new Set(voices.map(x=>x[key].slice(0,9).join(','))).size,11);
+ const shifted=render(12,1,1).g.choirMotion;
+ assert.equal(shifted.pitch[0],voices[0].pitch[10]);assert.equal(shifted.color[0],voices[0].color[10]);
+ c.resetQualityVoice(parts[2].g,9);assert.ok(!parts[2].g.choirMotion);
+ c.prepareQualityVoice(parts[2].g,q,1,10,3,true,0,0);
+ assert.equal(parts[2].g.osc.detune.events.at(-1)[1],0);
+ assert.equal(parts[2].g.choirTone.gain.events.at(-1)[1],0);
+});

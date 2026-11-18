@@ -120,6 +120,28 @@
       .ot-row .v { font-family: var(--mono); text-align: right; color: var(--ink); }
       #view3d { width: 100%; height: auto; display: block; background: #020c10; cursor: grab; touch-action: none; }
       #view3d[hidden] { display: none; }
+      .device-main.choir-wide { grid-template-columns: minmax(0,1fr); }
+      .device-main.choir-wide .now-readout { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+      #choirStage[data-view] { --stage-ink: #eed6a5; border: 1px solid #385055; background: #041016; color: #fff1d6; }
+      #stageBar, #stageFoot { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 10px clamp(10px,2vw,24px); }
+      #stageBar { border-bottom: 1px solid #273c42; background: linear-gradient(105deg,#132127,#07131a); }
+      #stageBar h3 { margin: 0; font: 500 clamp(17px,2.6vw,29px)/1.3 "Hiragino Mincho ProN","Yu Mincho",serif; letter-spacing: .11em; color: var(--stage-ink); }
+      #stageFoot { border-top: 1px solid #273c42; background: #071419; }
+      .stage-switch { display: inline-flex; gap: 2px; align-items: center; }
+      .stage-switch button { min-height: 34px; padding: 4px 10px; cursor: pointer; border: 1px solid transparent; background: transparent; color: #9eb5bb; font: inherit; font-size: 13px; }
+      .stage-switch button[aria-pressed="true"] { border-color: #58605a; background: #202a29; color: #ffe4ae; }
+      .stage-switch button:focus-visible, #view3d:focus-visible { outline: 2px solid #76deed; outline-offset: -2px; }
+      #stageVerse { flex: 1 1 330px; color: #e7e0cd; font: 500 clamp(16px,2vw,23px)/1.8 "Hiragino Mincho ProN","Yu Mincho",serif; overflow-wrap: anywhere; }
+      #stageVerse ruby { display: inline-block; display: inline ruby; margin-right: .15em; padding: 0 .03em; }
+      #stageVerse rt { color: #9bb4b9; font: 10px sans-serif; }
+      #stageVerse ruby[aria-current="true"], #stageVerse ruby[aria-current="true"] rt { color: #ffcb72; }
+      #stageMantra { display: block; color: #d5c098; font: italic 14px/1.5 Georgia,serif; }
+      #stageBar[hidden], #stageFoot[hidden] { display: none; }
+      #choirStage[data-view="stage"] #view3d { touch-action: pan-y; }
+      @media (max-width: 600px) {
+        #choirStage[data-view] { margin-inline: -6px; }
+        .stage-switch button { min-height: 44px; min-width: 44px; }
+      }
       #viewAna { width: 100%; height: auto; display: block; background: #020c10; }
       #viewAna[hidden] { display: none; }
       .device-main.ana-wide { grid-template-columns: minmax(0, 1fr); }
@@ -290,6 +312,7 @@
 
       @media (max-width: 760px) {
         .device-main { grid-template-columns: minmax(0, 1fr); }
+        .phrase .word-group { max-width: 100%; box-sizing: border-box; flex-wrap: wrap; }
         .now-readout { padding: 2px 2px 0; display: grid; grid-template-columns: auto 1fr; column-gap: 16px; align-items: start; }
         .now-kana { font-size: 64px; min-height: 66px; }
         .now-side { padding-top: 6px; }
@@ -341,7 +364,23 @@
 
         <div class="device-main">
           <div class="tract-wrap">
-            <canvas id="view3d" width="1280" height="760" hidden aria-label="声道の3Dワイヤーフレーム。ドラッグで回転。"></canvas>
+            <div id="choirStage">
+              <div id="stageBar" hidden>
+                <h3 id="stageTitle"></h3>
+                <div class="stage-switch" role="group" aria-label="3Dの表示">
+                  <button type="button" data-stage-view="stage" aria-pressed="true">全景</button>
+                  <button type="button" data-stage-view="detail" aria-pressed="false">声道・計測</button>
+                </div>
+              </div>
+              <canvas id="view3d" width="1280" height="760" hidden aria-label="声道の3Dワイヤーフレーム。ドラッグで回転。"></canvas>
+              <div id="stageFoot" hidden>
+                <div id="stageVerse"><span id="stageReading"></span><span id="stageMantra"></span></div>
+                <div class="stage-switch" role="group" aria-label="全景の人数">
+                  <button type="button" data-stage-count="1">1人</button><button type="button" data-stage-count="3">3人</button>
+                  <button type="button" data-stage-count="6">6人</button><button type="button" data-stage-count="12">12人</button>
+                </div>
+              </div>
+            </div>
             <p class="parse-note" id="note3d" hidden>3D は既存の矢状断面（舌・顎・唇・軟口蓋・咽頭壁）の形を立体に起こした<b>近似</b>です。左右幅は矢状径からの推定で、MRI 実測の断面積ではありません。ドラッグで回転できます。遠い線ほど淡く描き、触っていない間はゆっくり左右に振って奥行きを見せます。顔と首には眼窩・鼻翼・耳介・頸椎（C1〜C7）を足しています（位置と大きさは解剖図を参考にした手置きの近似）。左の全体図には胸（肋骨・肺・横隔膜・気管支）を描き、声を出すあいだ横隔膜が上がり、息継ぎで下がって腹が前へ出ます（腹式呼吸の模式図。形と動きの量は実測ではありません）。舌には動きの残像が付き、読経モードでは息継ぎで肩が上がります。声帯の開閉と唇から広がる波面は、見えるように遅くした<b>表示上の演出</b>で、実際の振動数・波長ではありません。右下の「いま鳴っている音の成分」は出力を実際に周波数分析した値です。</p>
             <canvas id="viewAna" width="1280" height="760" hidden aria-label="色を付けた声道の断面図と、出力のスペクトログラム・スペクトル。"></canvas>
             <p class="parse-note" id="noteAna" hidden>左の断面図は、線画・3D と同じ構え（舌・顎・唇・軟口蓋）で動く<b>模式図</b>です。骨・脳・軟骨・筋の形と色、位置は手描きの近似で、医用画像や実測に基づくものではありません。右上のスペクトログラムと右下の金色の線は、出力を実際に周波数分析した値です。緑の点線は、合成器の設定値（共鳴の位置・帯域幅・音量比・声源の傾き）から計算した共鳴の形で、実測の線に高さを合わせて重ねています。合唱のときの実測は全員ぶんの合計です。</p>
@@ -594,6 +633,7 @@
             <button class="preset-chip" data-cho="108" aria-pressed="false" type="button">108人（大曼荼羅）</button>
           </div>
           <p class="parse-note">合唱は声道の長さ・音程・入りの時間を少しずつずらして重ねます。36人以上では3重の輪を描き、最大12系統の合成声で全体の響きを作ります。人数は次の再生・WAV書き出しから反映します。</p>
+          <label class="loop-lab"><input type="checkbox" id="choirVariation" checked /> 合唱の声ごとに倍音と音程を揺らす</label>
           <label class="free-lab" for="chantVoicing">読経の声域</label>
           <select id="chantVoicing" class="preset-chip">
             <option value="low">低音合唱 — 低音・五度・オクターブ</option>
@@ -884,6 +924,27 @@
         return { cents: 12 * h.amount * slow(0.8 + 0.6 * qHash(voice, seed), 17),
           gain: 1 + 0.08 * h.amount * slow(1.2 + qHash(voice + 3, seed), 991) };
       }
+      // 合成上の個人差。人数は実際に鳴る声で数え、導師を基準にする。
+      function choirProfile(count, voice, seed) {
+        if (!(count > 1) || voice === 0) return null;
+        return { spread: Math.sqrt((Math.min(12, count) - 1) / 11),
+          phase: 2 * Math.PI * qHash(voice, seed + 103), other: 2 * Math.PI * qHash(voice, seed + 631),
+          slow: 2 * Math.PI * (0.19 + 0.22 * qHash(voice, seed + 311)),
+          fast: 2 * Math.PI * (0.61 + 0.32 * qHash(voice, seed + 823)),
+          shade: 2 * qHash(voice, seed + 613) - 1 };
+      }
+      function choirVariation(p, t) {
+        return { cents: p.spread * (6 * Math.sin(p.phase + t * p.slow) + 3 * Math.sin(p.other + t * p.fast)),
+          color: p.spread * (2 * p.shade + 2 * Math.sin(p.other + t * p.slow * 1.31)) };
+      }
+      // AudioParamに渡したサンプルを、その声の再生時計で線形補間する。
+      function choirFrame(motion, now) {
+        if (!motion || now < motion.start || now > motion.start + motion.duration) return null;
+        var pos = Math.min(motion.pitch.length - 1, (now - motion.start) / motion.duration * (motion.pitch.length - 1));
+        var i = Math.floor(pos), j = Math.min(i + 1, motion.pitch.length - 1), f = pos - i;
+        return { cents: motion.pitch[i] + f * (motion.pitch[j] - motion.pitch[i]),
+          color: motion.color[i] + f * (motion.color[j] - motion.color[i]) };
+      }
       function ensembleScore(segs, voice, input) {
         var h=qualityConfig({human:input}).human,shift=new Float64Array(segs.length+1);
         if(voice && h.amount)for(var i=1;i<segs.length;i++){
@@ -1001,6 +1062,7 @@
            倍音ボイスでは、声ごとに自分の F0 の高調波へ F2 を合わせ直す。
            ※値はすべて仮置き。集団での読経・合唱の人ごとのばらつきの実測値は取り込めていない（聴感未確認）。 */
         chorus: {
+          variation: true, // 声ごとに基音と高次倍音の強さをゆっくり変える
           vtl:   [0.5, -0.5, 0.9, -0.9, 0.3, -0.3, 1.2, -1.2, 0.7, -0.7, 0.15],
           cents: [9, -11, 16, -14, 5, -7, 21, -19, 12, -9, 3],
           delay: [22, 35, 12, 48, 28, 8, 41, 17, 55, 31, 44],
@@ -2012,7 +2074,7 @@
           if(b){slot.f.Q.setTargetAtTime(Math.max(0.6,b.order*seg.f0a/G.q.partials.width),t,0.012);qualityPitchParam(slot.f.frequency,seg,t,b.order);}
         });
       }
-      function prepareQualityVoice(G,input,voice,start,duration,engineTube,offset) {
+      function prepareQualityVoice(G,input,voice,start,duration,engineTube,offset,choirCount) {
         G.q=qualityConfig(input);G.engineTube=!!engineTube;G.voiceIndex=voice;G.humanStart=start;
         var q=G.q,scene=G.scene,shape=singerShape(q,voice);G.sourceShape=shape;
         if(G.auditionGain){G.auditionGain.gain.cancelScheduledValues(0);G.auditionGain.gain.setValueAtTime(1,start);}
@@ -2023,10 +2085,27 @@
         }else G.osc.type="sawtooth";
         if(G.tube)G.tube.port.postMessage({shape:{open:q.source==="pulse"?shape.open:ANAT.tube.open,close:q.source==="pulse"?shape.close:ANAT.tube.close}});
         var n=Math.max(2,Math.min(6001,Math.ceil(duration*10)+1)),pitch=new Float32Array(n),gain=new Float32Array(n);
-        for(var i=0;i<n;i++){var h=humanAt((offset||0)+i*duration/(n-1),voice,q.human);pitch[i]=h.cents;gain[i]=h.gain;}
+        var profile = choirProfile(choirCount, voice, q.human.seed), color = profile ? new Float32Array(n) : null;
+        var span = Math.max(0.01, duration);
+        for (var i = 0; i < n; i++) {
+          var time = (offset || 0) + i * duration / (n - 1), h = humanAt(time, voice, q.human);
+          pitch[i] = h.cents; gain[i] = h.gain;
+          if (profile) { var shift = choirVariation(profile, time); pitch[i] += shift.cents; color[i] = shift.color; }
+        }
+        G.choirMotion = profile ? { start: start, duration: span, pitch: pitch, color: color } : null;
+        if (profile && !G.choirTone) {
+          // 共鳴3本・管モデル・倍音ミックスが共用する声の出力。独唱にはノードを挿入しない。
+          var shelf = G.ctx.createBiquadFilter(); shelf.type = "highshelf"; shelf.frequency.value = 1100; shelf.gain.value = 0;
+          G.master.disconnect(); G.master.connect(shelf); shelf.connect(G.hDry);
+          G.hBands.forEach(function (b) { shelf.connect(b.f); }); G.choirTone = shelf;
+        }
+        if (G.choirTone) {
+          var tone = G.choirTone.gain; tone.cancelScheduledValues(0);
+          if (color) tone.setValueCurveAtTime(color, start, span); else tone.setValueAtTime(0, start);
+        }
         var detunes=[G.osc.detune].concat(G.hBands.map(function(b){return b.f.detune;}));
         if(G.tube && G.tube.parameters.get("detune"))detunes.push(G.tube.parameters.get("detune"));
-        detunes.forEach(function(p){p.cancelScheduledValues(0);if(q.human.amount)p.setValueCurveAtTime(pitch,start,Math.max(0.01,duration));else p.setValueAtTime(0,start);});
+        detunes.forEach(function(p){p.cancelScheduledValues(0);if(q.human.amount || profile)p.setValueCurveAtTime(pitch,start,span);else p.setValueAtTime(0,start);});
         G.humanGain.gain.cancelScheduledValues(0);
         if(q.human.amount)G.humanGain.gain.setValueCurveAtTime(gain,start,Math.max(0.01,duration));else G.humanGain.gain.setValueAtTime(1,start);
       }
@@ -2040,6 +2119,8 @@
       }
       function resetQualityVoice(G,now) {
         if(!G.hBands)return;
+        G.choirMotion = null;
+        if (G.choirTone) { G.choirTone.gain.cancelScheduledValues(0); G.choirTone.gain.setValueAtTime(0,now); }
         G.hDry.gain.cancelScheduledValues(0);G.hDry.gain.setValueAtTime(1,now);
         var params=[G.osc.detune].concat(G.hBands.map(function(b){b.g.gain.cancelScheduledValues(0);b.g.gain.setTargetAtTime(0,now,0.02);b.f.frequency.cancelScheduledValues(0);return b.f.detune;}));
         if(G.tube&&G.tube.parameters.get("detune"))params.push(G.tube.parameters.get("detune"));
@@ -2555,13 +2636,14 @@
         var segs = scaled(raw);
         var segs2 = raw2 ? scaled(raw2) : null;
         var voices=[{segs:segs,start:0,graph:N}];
+        var choirCount = song && choN > 1 && ANAT.chorus.variation ? 1 + (segs2 ? 1 : 0) + choExtraCount(choN, !!segs2) : 0;
         var total = segs.reduce(function (a, s) { return a + s.dur; }, 0);
         var nara = song && typeof narashiFor === "function" ? narashiFor(song, raw, playSpeed) : null;
         if (typeof narashiStop === "function") narashiStop();
         var t0 = now + 0.09 + (nara ? nara.intro : 0);voices[0].start=t0;
         var peak = segs2 ? 0.72 : 0.9;
         N.scene.tailUntil=t0+total+N.scene.plan.tail;
-        prepareQualityVoice(N,cfg,0,t0,total,engine);
+        prepareQualityVoice(N,cfg,0,t0,total,engine,0,choirCount);
         N.master.gain.cancelScheduledValues(now);
         N.master.gain.setValueAtTime(0, now);
         N.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
@@ -2571,7 +2653,7 @@
           /* 第2声：別の声道パラメータで構築したスコアを、独立した合成グラフ N2 で同時再生 */
           if (!N2) N2 = buildGraph(AC, null);
           N2.vtl = (ANAT.speakers[duetKey] || CUR).vtl;
-          prepareQualityVoice(N2,cfg,1,t0,total,engine);
+          prepareQualityVoice(N2,cfg,1,t0,total,engine,0,choirCount);
           N2.master.gain.cancelScheduledValues(now);
           N2.master.gain.setValueAtTime(0, now);
           N2.master.gain.linearRampToValueAtTime(peak, t0 + 0.02);
@@ -2588,7 +2670,7 @@
           if (segs2) { N2.master.gain.cancelScheduledValues(now); N2.master.gain.setValueAtTime(0, now); N2.master.gain.linearRampToValueAtTime(cp, t0 + 0.02); }
           for (var ci = 1; ci <= extraCount; ci++) {
             var CG = choGraph(ci), ct = t0 + ANAT.chorus.delay[ci - 1] / 1000;
-            prepareQualityVoice(CG,cfg,ci+(segs2?1:0),ct,total,engine);
+            prepareQualityVoice(CG,cfg,ci+(segs2?1:0),ct,total,engine,0,choirCount);
             CG.master.gain.cancelScheduledValues(now); CG.master.gain.setValueAtTime(0, now); CG.master.gain.linearRampToValueAtTime(cp, t0 + 0.02);
             var singerSegs=scaled(choScore(song,ci));voices.push({segs:singerSegs,start:ct,graph:CG});
             singerSegs.forEach(function(sg){scheduleSegG(CG,sg,ct);ct+=sg.dur;});
@@ -3017,6 +3099,9 @@
       });
 
       /* ---------- sound laboratory controls (all values are synthesis settings) ---------- */
+      document.getElementById("choirVariation").addEventListener("change", function () {
+        stop(); ANAT.chorus.variation = this.checked;
+      });
       document.getElementById("chantVoicing").addEventListener("change", function () {
         stop(); choVoicing = this.value === "low" ? "low" : "unison";
       });
@@ -3122,6 +3207,7 @@
          ファイル名は「フレーズ名_日時.wav」。Promise を返す。 */
       function renderAndDownload(raw, nameBase, raw2, extra, chant) {
         var qc=qualityConfig(ANAT.quality),engineTube=tubeOn,renderSpeed=speed,naraUsed=false;
+        var choirCount = extra && extra.length && ANAT.chorus && ANAT.chorus.variation ? 1 + (raw2 ? 1 : 0) + extra.length : 0;
         return new Promise(function (resolve) {
           try {
             var segs = raw.map(function (s) { var c = Object.assign({}, s); c.dur = s.dur / renderSpeed; return c; });
@@ -3164,7 +3250,7 @@
             var ready = engineTube ? Promise.all(Gs.map(function (G) { return tubeAttach(off, G); })) : Promise.resolve([]);
             ready.then(function (results) {
               if(engineTube && results.some(function(ok){return !ok;})) throw new Error("tube_unavailable");
-              Gs.forEach(function(G,i){var delay=i<nBase?0:extra[i-nBase].delay;prepareQualityVoice(G,qc,i,Math.max(0.001,delay-lead+0.01),Math.max(0.01,sourceDur-delay),engineTube,Math.max(0,lead-delay));});
+              Gs.forEach(function(G,i){var delay=i<nBase?0:extra[i-nBase].delay;prepareQualityVoice(G,qc,i,Math.max(0.001,delay-lead+0.01),Math.max(0.01,sourceDur-delay),engineTube,Math.max(0,lead-delay),choirCount);});
               schedAll(Gs[0], segs);
               if (segs2) schedAll(Gs[1], segs2);
               (extra || []).forEach(function (ex, k) {
@@ -3236,6 +3322,7 @@
           choN = +b.dataset.cho;listenVoice=-1;applyListening();
           Array.prototype.forEach.call(document.querySelectorAll("[data-cho]"), function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
           ensureCtx(); choPrepare();
+          if (view3dOn) render3D(poseCur, true);
         });
       });
       /* 音の作り方の切り替え（共鳴3本 ⇔ 管モデル）。次の再生・書き出しから反映 */
@@ -3575,7 +3662,7 @@
         ctx.beginPath();
         pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
         if (close) ctx.closePath();
-        dz /= pts.length || 1;
+        dz = dz / (pts.length || 1) * (vp.depthScale || 1);
         var inheritedAlpha=ctx.globalAlpha;ctx.globalAlpha = inheritedAlpha*g3Fog(dz);
         ctx.strokeStyle = col; ctx.lineWidth = w * (vp.lw || 1) * Math.max(0.7, Math.min(1.35, 1 - dz / 500)); ctx.stroke();
         ctx.globalAlpha = inheritedAlpha;
@@ -3584,7 +3671,7 @@
         var dz = 0;
         ctx.beginPath();
         pts.forEach(function (q, i) { var s = g3Proj(q[0], q[1], q[2] || 0, vp); dz += s[2]; if (i) ctx.lineTo(s[0], s[1]); else ctx.moveTo(s[0], s[1]); });
-        var inheritedAlpha=ctx.globalAlpha;ctx.closePath(); ctx.globalAlpha = inheritedAlpha*g3Fog(dz / (pts.length || 1)); ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = inheritedAlpha;
+        var inheritedAlpha=ctx.globalAlpha;ctx.closePath(); ctx.globalAlpha = inheritedAlpha*g3Fog(dz / (pts.length || 1) * (vp.depthScale || 1)); ctx.fillStyle = col; ctx.fill(); ctx.globalAlpha = inheritedAlpha;
       }
       function fillBand(ctx, vp, r0, r1, col) {
         for (var k = 0; k < r0.length; k++) { var k2 = (k + 1) % r0.length; g3Fill(ctx, vp, [r0[k], r0[k2], r1[k2], r1[k]], col); }
@@ -4001,7 +4088,8 @@
         ctx.save(); ctx.globalCompositeOperation = "lighter";
         for (k = 0; k < 110; k++) {
           var hx = Math.sin(k * 12.9898) * 43758.5453, hy = Math.sin(k * 78.233) * 12543.137; hx -= Math.floor(hx); hy -= Math.floor(hy);
-          ctx.fillStyle = "rgba(190,230,255," + (0.18 + 0.32 * Math.abs(Math.sin(now / 1300 * mv + k))).toFixed(2) + ")"; ctx.fillRect(base.cx - 312 + hx * 624, 36 + hy * 600, 1.4, 1.4);
+          ctx.fillStyle = "rgba(190,230,255," + (0.18 + 0.32 * Math.abs(Math.sin(now / 1300 * mv + k))).toFixed(2) + ")";
+          ctx.fillRect(base.width ? hx * base.width : base.cx - 312 + hx * 624, base.height ? hy * base.height : 36 + hy * 600, 1.4, 1.4);
         }
         var c0 = g3Proj(330, fy, 0, base), c1 = g3Proj(330, fy - 900, 0, base), rad = 110 + 170 * g;
         var gr = ctx.createRadialGradient(c0[0], c0[1], 0, c0[0], c0[1], rad);
@@ -4021,7 +4109,7 @@
         /* 経文の輪：いま読んでいる字（金色）を中心に、前後の字を床の外周に並べる */
         var KY = currentSong && currentSong.def.kyo;
         if (KY && KY.length) {
-          var cur = V3.kyoCur || 0, m = Math.min(KY.length, 84), rot = reduced ? 0 : now / 30000;
+          var cur = V3.kyoCur || 0, m = Math.min(KY.length, base.width ? 32 : 84), rot = reduced ? 0 : now / 30000;
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
           for (k = 0; k < m; k++) {
             var idx = ((cur - (m >> 1) + k) % KY.length + KY.length) % KY.length, an = TAU * k / m + rot;
@@ -4101,8 +4189,13 @@
         var solo = n === 1, det = solo ? 3 : n <= 3 ? 2 : n <= 6 ? 1 : 0;
         var R = solo ? 330 : Math.max(n===12?850:640, n * 430 / (2 * Math.PI) - 100), Rs = solo ? 0 : R, zoom = solo ? 0.45 : 430 / (2 * R + 620), lw = n > 6 ? 0.55 : solo ? 1 : 0.8;
         var fy = 1147, base = { cx: vp.cx, cy: vp.cy + 20 - (fy - 310) * 0.45 * Math.cos(vp.pitch) * zoom, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500 };
+        if (vp.width) {
+          base = g3StageCamera(vp, R, fy);
+          zoom = base.zoom;
+        }
         var gold = "rgba(255,206,120,0.5)", cyan = "rgba(94,231,255,0.32)", TAU = Math.PI * 2;
         function ringPts(r, m, a0) { var o = []; for (var k = 0; k <= m; k++) { var a = a0 + TAU * k / m; o.push([330 + r * Math.cos(a), fy, r * Math.sin(a)]); } return o; }
+        if (vp.width) g3StageFloor(ctx, base, R, fy, n);
         g3MandalaFx(ctx, base, R, fy, solo);
         g3Line(ctx, base, ringPts(R + 330, 96, 0), "rgba(255,206,120,0.28)", 1);
         g3Line(ctx, base, ringPts(R + 250, 72, 0), gold, 1.6);
@@ -4142,10 +4235,16 @@
         if (V3.voiced && !reduced) { /* 声が中心へ集まる輪（演出） */
           for (var w = 0; w < 3; w++) { var ph = ((Date.now() / 1600 + w / 3) % 1); g3Line(ctx, base, ringPts(R * (1 - ph) * 0.95, 60, 0), "rgba(255,214,140," + (0.5 * ph).toFixed(3) + ")", 1.4); }
         }
-        for (var i = 0; i < n; i++) {
+        // 奥から順に描き、声・座席番号は元のインデックスで結ぶ。
+        var stageLabels = [], seats = Array.from({length:n}, function (_, i) { return i; });
+        if (vp.width) seats.sort(function (a, b) {
+          return Math.sin(TAU * b / n - base.yaw) - Math.sin(TAU * a / n - base.yaw);
+        });
+        for (var seat = 0; seat < n; seat++) {
+          var i = seats[seat];
           var ang = TAU * i / n, th = ang + Math.PI;
           if (!form) g3Line(ctx, base, [[330 + R * 0.62 * Math.cos(ang), fy, R * 0.62 * Math.sin(ang)], [330 + (R + 225) * Math.cos(ang), fy, (R + 225) * Math.sin(ang)]], cyan, 1);
-          var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: vp.yaw, pitch: vp.pitch, dist: 6500, lod: n > 6, lw: lw, det: det,
+          var vpi = { cx: base.cx, cy: base.cy, zoom: zoom, yaw: base.yaw, pitch: base.pitch, dist: 6500, lod: n > 6, lw: lw, det: det, depthScale: base.depthScale,
             ring: { c: Math.cos(th), s: Math.sin(th), px: Rs * Math.cos(ang) - (solo ? 50 : 0), pz: Rs * Math.sin(ang) } };
           var v=playing&&anim&&anim.voices?anim.voices[i]:null;
           var frame=v&&AC?singerFrame(v.segs,AC.currentTime-v.start):null,target=frame&&frame.seg.pose?frame.seg.pose:p;
@@ -4159,7 +4258,13 @@
           ctx.save();if(n>1&&listenVoice>=0&&listenVoice!==i)ctx.globalAlpha*=0.2;
           V3.voiced=frame?frame.voiced:false;V3.glow=(savedGlow||0)*(V3.voiced?1:0.12);
           if(!reduced)vpi.yaw+=0.025*Math.sin(Date.now()/1800+i*1.73);
-          g3Scene(ctx,vpi,ds.pose);g3Body(ctx,Object.assign({},vpi,{yo:38}),ds.lung);
+          var robed = vp.width && currentSong.def.overtone;
+          if (robed) {
+            g3StageRobe(ctx, vpi, G3_PART[g3VoicePart(i)][1], i === 0);
+            g3StageHead(ctx, vpi, ds.pose);
+          } else {
+            g3Scene(ctx,vpi,ds.pose); g3Body(ctx,Object.assign({},vpi,{yo:38}),ds.lung);
+          }
           /* 光背（頭の後ろの輪）と、口から中心へ向かう声の光（演出）。色は人ごとに少しずつ変える */
           var gl = V3.glow || 0, hue = 38 + (i * 137) % 60 - 30, hal = [], hal2 = [], tm = reduced ? 0 : Date.now() / 1100;
           if (n === 3 || n === 6) { /* 声部ごとの色と、足もとの花（花びらの数＝声部の数字） */
@@ -4176,26 +4281,40 @@
             var tgtK = dispF0 > 20 ? Math.round(dispF[1] / dispF0) : -1, NH = 32, bx0 = 70, by0 = 330;
             for (var sk = 1; sk <= NH; sk++) {
               var lv = g3HarmLevel(sk), sa = TAU * (sk - 0.5) / NH, sr0 = 215, sr1 = 250 + 360 * lv, on = sk === tgtK;
-              g3Line(ctx, vpi, [[bx0, by0 - sr0 * Math.cos(sa), sr0 * Math.sin(sa)], [bx0, by0 - sr1 * Math.cos(sa), sr1 * Math.sin(sa)]], on ? "rgba(255,214,120," + (0.55 + 0.45 * lv).toFixed(2) + ")" : "rgba(120,220,255," + (0.14 + 0.6 * lv).toFixed(2) + ")", on ? 3.4 : 1.4);
+              g3Line(ctx, vpi, [[bx0, by0 - sr0 * Math.cos(sa), sr0 * Math.sin(sa)], [bx0, by0 - sr1 * Math.cos(sa), sr1 * Math.sin(sa)]], on ? "rgba(255,214,120," + (0.55 + 0.45 * lv).toFixed(2) + ")" : "rgba(120,220,255," + (0.30 + 0.55 * lv).toFixed(2) + ")", on ? 3.4 : 1.4);
             }
             var bk1 = [], bk2 = [];
             for (var bq = 0; bq <= 64; bq++) { var ba = TAU * bq / 64; bk1.push([bx0, by0 - 215 * Math.cos(ba), 215 * Math.sin(ba)]); bk2.push([bx0, by0 - 610 * Math.cos(ba), 610 * Math.sin(ba)]); }
-            g3Line(ctx, vpi, bk1, "rgba(255,214,140,0.5)", 1.6); g3Line(ctx, vpi, bk2, "rgba(255,214,140,0.16)", 1);
+            g3Line(ctx, vpi, bk1, "rgba(255,214,140,0.65)", 1.6); g3Line(ctx, vpi, bk2, "rgba(255,214,140,0.34)", 1);
           }
-          for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + (178 + 6 * Math.sin(tm * 2 + i)) * Math.cos(ha), (178 + 6 * Math.sin(tm * 2 + i)) * Math.sin(ha)]); }
+          var moment = v && frame && frame.voiced ? choirFrame(v.graph.choirMotion, AC.currentTime) : null;
+          var haloRadius = moment ? 178 + (reduced ? 0 : moment.cents * 1.3) : 178;
+          var haloInk = moment ? 0.40 + 0.045 * moment.color : 0.1 + 0.25 * gl;
+          for (var hk = 0; hk <= 32; hk++) { var ha = hk / 32 * TAU; hal.push([228, 196 + 158 * Math.cos(ha), 158 * Math.sin(ha)]); hal2.push([226, 196 + haloRadius * Math.cos(ha), haloRadius * Math.sin(ha)]); }
           g3Line(ctx, vpi, hal, "hsla(" + hue + ",100%,72%," + (0.22 + 0.5 * gl).toFixed(2) + ")", 2.2);
-          g3Line(ctx, vpi, hal2, "hsla(" + hue + ",100%,80%," + (0.1 + 0.25 * gl).toFixed(2) + ")", 1);
+          g3Line(ctx, vpi, hal2, "hsla(" + hue + ",100%,80%," + haloInk.toFixed(2) + ")", moment ? 2.2 : 1);
           var m0 = [482, 308, 0], m1 = [330 + R - 20, 520, 0];
           if (!solo) g3Line(ctx, vpi, [m0, m1], "hsla(" + hue + ",100%,70%," + (0.06 + 0.16 * gl).toFixed(2) + ")", 1);
           if (V3.voiced && !solo) for (var bk = 0; bk < 4; bk++) {
             var bt = ((tm * 0.55 + bk / 4 + i * 0.13) % 1), bt2 = Math.min(1, bt + 0.07);
             g3Line(ctx, vpi, [[m0[0] + (m1[0] - m0[0]) * bt, m0[1] + (m1[1] - m0[1]) * bt, 0], [m0[0] + (m1[0] - m0[0]) * bt2, m0[1] + (m1[1] - m0[1]) * bt2, 0]], "hsla(" + hue + ",100%,82%," + (0.85 * (1 - bt)).toFixed(2) + ")", 2.6);
           }
-          if(n===12){
-            var label=g3Proj(228,0,0,vpi);ctx.save();ctx.globalCompositeOperation="source-over";ctx.font="20px sans-serif";ctx.textAlign="center";
-            ctx.fillStyle=V3.voiced?"#ffd68c":"rgba(143,210,223,0.7)";ctx.fillText(i===0?"導師":String(i+1),label[0],label[1]-8);ctx.restore();
+          if (n===12) {
+            var label=g3Proj(228,0,0,vpi);
+            if (vp.width) stageLabels.push({n:i, x:label[0], y:label[1]-7, voiced:V3.voiced});
+            else {ctx.save();ctx.globalCompositeOperation="source-over";ctx.font="20px sans-serif";ctx.textAlign="center";
+              ctx.fillStyle=V3.voiced?"#ffd68c":"rgba(143,210,223,0.7)";ctx.fillText(i===0?"導師":String(i+1),label[0],label[1]-8);ctx.restore();}
           }
           ctx.restore();V3.voiced=savedVoiced;V3.glow=savedGlow;
+        }
+        if(stageLabels.length){
+          ctx.save();ctx.globalCompositeOperation="source-over";ctx.font="15px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+          stageLabels.forEach(function(l){
+            if(listenVoice>=0 && listenVoice!==l.n)return;
+            var name=l.n===0?"導師":String(l.n+1), w=ctx.measureText(name).width+9;
+            ctx.fillStyle="rgba(5,20,28,.85)";ctx.fillRect(l.x-w/2,l.y-9,w,18);
+            ctx.fillStyle=l.n===0||l.voiced?"#ffdc9c":"#acc5c6";ctx.fillText(name,l.x,l.y);
+          });ctx.restore();
         }
       }
       /* 同じ長さの輪郭を全員に使い、輪と口の動きだけを投影する大人数用の描画。 */
@@ -4276,12 +4395,213 @@
         layout.sort(function (a, b) { return b.depth - a.depth; });
         layout.forEach(function (s) { g3CrowdSinger(ctx, s.seat, pose, s.color); });
       }
-      function render3D(p) {
+      var stageForms = {
+        1: { title: "独唱　光背と蓮台", yaw: -1.02, pitch: 0.24, ink: "220,171,105" },
+        3: { title: "三人　音程の弦", yaw: -Math.PI / 6, pitch: 0.56, ink: "196,144,99" },
+        6: { title: "六人　六角の波紋", yaw: Math.PI / 12, pitch: 0.76, ink: "81,170,177" },
+        12: { title: "十二人の堂", yaw: Math.PI / 24, pitch: 0.93, ink: "184,145,94" }
+      };
+      var stageView = "stage", stageKey = "", stagePhrase = null, stageActiveWord = null;
+      function syncChoirStage() {
+        var form = view3dOn && appMode === "song" && stageForms[choN];
+        var key = form ? choN + "/" + stageView : "";
+        if (key !== stageKey) {
+          var wrap = document.getElementById("choirStage"), cv = document.getElementById("view3d");
+          document.querySelector(".device-main").classList.toggle("choir-wide", !!form);
+          document.getElementById("stageBar").hidden = !form;
+          document.getElementById("stageFoot").hidden = !form;
+          document.getElementById("note3d").hidden = !view3dOn || !!(form && stageView === "stage");
+          if (form) {
+            wrap.dataset.view = stageView;
+            document.getElementById("stageTitle").textContent = form.title;
+            cv.tabIndex = 0;
+            cv.setAttribute("aria-label", form.title + (stageView === "stage" ? "の全景。ドラッグまたは矢印キーで回転。" : "の声道・計測。"));
+          } else {
+            delete wrap.dataset.view; cv.removeAttribute("tabindex");
+            cv.setAttribute("aria-label","声道の3Dワイヤーフレーム。ドラッグで回転。");
+          }
+          wrap.querySelectorAll("[data-stage-view]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.stageView === stageView)); });
+          wrap.querySelectorAll("[data-stage-count]").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.stageCount === choN)); });
+          stageKey = key; stagePhrase = null;
+        }
+        return form && stageView === "stage";
+      }
+      function chantPosition() {
+        var cur = -1;
+        if (playing && anim && anim.song === currentSong && V3.mora >= 0) {
+          var i = currentSong.kyoByMora[V3.mora];
+          if (i !== undefined) { cur = i; V3.kyoCur = i; }
+        }
+        return cur;
+      }
+      function stageCaption() {
+        var ky = currentSong.def.kyo, cur = ky ? chantPosition() : -1;
+        var pos = cur >= 0 ? cur : playing && V3.kyoCur !== undefined ? V3.kyoCur : 0;
+        var phrase = ky && ky[pos], key = currentSong.key + "/" + (phrase ? phrase.ph : "");
+        var words = document.getElementById("stageReading");
+        if (stagePhrase !== key) {
+          words.textContent = ""; stageActiveWord = null;
+          if (phrase) ky.forEach(function (c, i) {
+            if (c.ph !== phrase.ph) return;
+            var ruby = document.createElement("ruby"), rt = document.createElement("rt");
+            ruby.dataset.word = i; ruby.textContent = c.k; rt.textContent = c.r;
+            ruby.appendChild(rt); words.appendChild(ruby);
+          });
+          else words.textContent = currentSong.def.title;
+          document.getElementById("stageMantra").textContent = phrase && phrase.mantra ? currentSong.def.mantra : "";
+          stagePhrase = key;
+        }
+        if (stageActiveWord !== cur) {
+          var old = words.querySelector("[aria-current]"); if (old) old.removeAttribute("aria-current");
+          var next = words.querySelector('[data-word="' + cur + '"]'); if (next) next.setAttribute("aria-current","true");
+          stageActiveWord = cur;
+        }
+      }
+      // Fit the outer inscription, raised floor, heads and solo halo at the chosen camera angle.
+      function g3StageCamera(vp, radius, floor) {
+        var base = { cx:0, cy:0, zoom:1, yaw:vp.yaw, pitch:-vp.pitch, dist:6500,
+          depthScale: vp.mandala === 1 ? 0.60 : 0.28, width:vp.width, height:vp.height };
+        var left=Infinity, right=-Infinity, top=Infinity, bottom=-Infinity, solo=vp.mandala === 1;
+        function bound(p) { left=Math.min(left,p[0]); right=Math.max(right,p[0]); top=Math.min(top,p[1]); bottom=Math.max(bottom,p[1]); }
+        for (var i=0; i<48; i++) {
+          var a=i*Math.PI/24, c=Math.cos(a), s=Math.sin(a);
+          bound(g3Proj(330+(radius+336)*c,floor+28,(radius+336)*s,base));
+          if (solo) {
+            // The seated soloist faces -X with the same 50-unit shift as its skeleton.
+            bound(g3Proj(540,330-610*c,-610*s,base));
+          } else {
+            bound(g3Proj(330+(radius+145)*c,20,(radius+145)*s,base));
+          }
+        }
+        var z=Math.min(vp.width*0.92/(right-left),vp.height*0.89/(bottom-top));
+        base.zoom=z; base.cx=(vp.width-(left+right)*z)/2; base.cy=(vp.height-(top+bottom)*z)/2;
+        return base;
+      }
+      function g3StageHead(ctx, vp, pose) {
+        var head = g3Proj(289, 202, 0, vp);
+        var axes = [[436,202,0], [289,46,0], [289,202,99]].map(function (p) { return g3Proj(p[0],p[1],p[2],vp); });
+        var rx = Math.hypot.apply(null, axes.map(function (p) { return p[0] - head[0]; }));
+        var ry = Math.hypot.apply(null, axes.map(function (p) { return p[1] - head[1]; }));
+        var chin = g3Proj(305,299,0,vp), neck = g3Proj(305,441,0,vp);
+        ctx.beginPath(); ctx.moveTo(chin[0],chin[1]); ctx.lineTo(neck[0],neck[1]);
+        ctx.strokeStyle="#75644e"; ctx.lineWidth=rx*.83; ctx.lineCap="round"; ctx.stroke();
+        var shade = ctx.createRadialGradient(head[0]-rx*.37,head[1]-ry*.58,0,head[0],head[1],Math.max(rx,ry)*1.15);
+        shade.addColorStop(0,"#e1c28a"); shade.addColorStop(.43,"#a49271"); shade.addColorStop(.78,"#58605a"); shade.addColorStop(1,"#283c41");
+        ctx.fillStyle = shade; ctx.beginPath(); ctx.ellipse(head[0],head[1],rx,ry,0,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle="rgba(242,209,149,.5)"; ctx.lineWidth=.9; ctx.stroke();
+        function facesCamera(x,y,z) { return g3Proj(x,y,z,vp)[2] < g3Proj(289,y,0,vp)[2]+14; }
+        [-1,1].forEach(function (side) {
+          function at(x,y,z) { return [x,y,side*z]; }
+          if(facesCamera(302,224,side*95)) {
+            g3Fill(ctx,vp,[at(304,205,97),at(323,213,101),at(325,245,108),at(307,260,100),at(299,239,97)],"#a89170");
+            g3Line(ctx,vp,[at(306,249,103),at(315,225,107),at(306,218,102)],"#655e50",1.15);
+          }
+          if(facesCamera(409,205,side*53)) {
+            g3Line(ctx,vp,[at(422,192,21),at(418,185,46),at(404,186,67)],"#72654d",1.4);
+            g3Line(ctx,vp,[at(427,208,20),at(420,214,43),at(408,204,65)],"#283d3d",1.7);
+          }
+        });
+        if(facesCamera(434,245,0)) {
+          g3Line(ctx,vp,[[425,207,0],[445,242,0],[435,248,9]],"#76664e",1.45);
+          var opening=V3.voiced?Math.max(2,Math.min(15,3+pose.jaw*12)):1;
+          g3Fill(ctx,vp,[[417,273,-33],[431,270,0],[417,273,33],[429,273+opening,0]],V3.voiced?"#874e36":"#655747");
+        }
+      }
+      // Five cloth seams describe the shoulders, lap and hem in local singer coordinates.
+      var robeRings = [[305,422,62,65],[286,545,113,188],[292,790,122,160],[309,964,175,202],[340,1105,214,244]].map(function (level) {
+        return Array.from({length:16},function (_,i) {
+          var a = i*Math.PI/8;
+          return [level[0]+level[2]*Math.cos(a),level[1],level[3]*Math.sin(a)];
+        });
+      });
+      function g3StageRobe(ctx, vp, thread, leader) {
+        var rings = robeRings.map(function (ring) { return ring.map(function (p) { return g3Proj(p[0],p[1],p[2],vp); }); });
+        var hem = rings[rings.length-1], collar = rings[0];
+        var panels = hem.map(function (p,i) { return {i:i, z:p[2]+hem[(i+1)%hem.length][2]}; });
+        panels.sort(function (a,b) { return b.z-a.z; });
+        var palette = leader ? [135,89,52] : thread === G3_PART[2][1] ? [65,78,99] : thread === G3_PART[4][1] ? [65,87,81] : [46,87,95];
+        panels.forEach(function (panel) {
+          var i = panel.i, j = (i+1)%hem.length;
+          var light = .83+.22*Math.cos(i*Math.PI/8+vp.yaw-Math.atan2(vp.ring.s,vp.ring.c))+.04*(i%2);
+          var cloth = palette.map(function (c) { return Math.round(c*light); }).join(",");
+          ctx.beginPath(); ctx.moveTo(collar[i][0],collar[i][1]);
+          rings.forEach(function (r) { ctx.lineTo(r[i][0],r[i][1]); });
+          for (var k=rings.length-1;k>=0;k--) ctx.lineTo(rings[k][j][0],rings[k][j][1]);
+          ctx.closePath(); ctx.fillStyle="rgb("+cloth+")"; ctx.fill();
+          ctx.lineWidth=.65; ctx.strokeStyle="rgb("+cloth+")"; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(hem[i][0],hem[i][1]); ctx.lineTo(hem[j][0],hem[j][1]);
+          ctx.strokeStyle=leader?"#bf9458":"#689496"; ctx.lineWidth=1; ctx.stroke();
+        });
+        // A band curves across the robe. Paint just the portion facing the camera.
+        var chest = g3Proj(310,612,0,vp), range = robeRings[1].length;
+        for(var i=0;i<range;i++){
+          var a=i*Math.PI/8, b=(i+1)*Math.PI/8, mid=(a+b)/2;
+          var face=g3Proj(310+110*Math.cos(mid),612,174*Math.sin(mid),vp);
+          if(face[2]>chest[2])continue;
+          function sash(t, offset) { return [293+118*Math.cos(t),615+92*Math.sin(t)+offset,176*Math.sin(t)]; }
+          g3Fill(ctx,vp,[sash(a,0),sash(b,0),sash(b,40),sash(a,40)],"rgba("+thread+",.62)");
+          g3Line(ctx,vp,[sash(a,0),sash(b,0)],"rgba(255,221,153,.8)",1.2);
+        }
+        // Broad folded sleeves meet at the hands; the far sleeve disappears behind the back.
+        [-1,1].forEach(function (s) {
+          if (g3Proj(344,684,s*172,vp)[2] > g3Proj(293,684,0,vp)[2]+18) return;
+          var sleeve=[[275,518,s*152],[337,570,s*177],[375,692,s*132],[432,648,s*34],[446,704,s*24],[374,817,s*85],[284,846,s*173],[241,755,s*186]];
+          g3Fill(ctx,vp,sleeve,leader?"#846045":"#39545b");
+          g3Line(ctx,vp,sleeve,"rgba(210,186,143,.48)",1,true);
+          g3Line(ctx,vp,[[257,680,s*183],[299,790,s*152],[373,780,s*92]],"rgba(178,172,145,.42)",1.0);
+          var hand=[[427,663,s*36],[443,628,s*19],[451,586,s*9],[456,608,s*6],[449,673,s*18],[438,692,s*27]];
+          g3Fill(ctx,vp,hand,"#c9ad82"); g3Line(ctx,vp,hand,"rgba(238,211,157,.65)",.8,true);
+        });
+      }
+      function g3StageFloor(ctx, base, radius, floor, count) {
+        var outer=radius+320, rim=[], lower=[], tau=Math.PI*2;
+        function point(r,a,h) { return [330+r*Math.cos(a),floor+h,r*Math.sin(a)]; }
+        for (var i=0;i<=72;i++) { var a=i*tau/72; rim.push(point(outer,a,0)); lower.push(point(outer,a,22)); }
+        g3Fill(ctx,base,lower,"rgba(5,22,30,.88)");
+        g3Line(ctx,base,lower,"rgba(92,172,174,.46)",1.5,true);
+        g3Fill(ctx,base,rim,"rgba(13,39,46,.82)");
+        if (count === 12) {
+          // Each brass or enamel inlay belongs to the singer in that seat.
+          for (var j=0;j<count;j++) {
+            var span=tau/count, arc=[], back=[];
+            for (var k=0;k<=9;k++) {
+              var angle=span*(j-0.43+0.86*k/9);
+              arc.push(point(outer-8,angle,-2)); back.unshift(point(outer-36,angle,-2));
+            }
+            var rgb=G3_PART[g3VoicePart(j)][1];
+            g3Fill(ctx,base,arc.concat(back),"rgba("+rgb+",.25)");
+            g3Line(ctx,base,arc,"rgba("+rgb+",.95)",j===0?3:1.8);
+          }
+        }
+      }
+      function drawChoirStage(cv, ctx, pose) {
+        var form=stageForms[choN], width=Math.max(1,cv.clientWidth);
+        var height=Math.round(width<600 ? width*(choN===1?1.12:0.94) : Math.min(570,width*0.58));
+        var dpr=Math.min(2,window.devicePixelRatio || 1), pw=Math.round(width*dpr), ph=Math.round(height*dpr);
+        if (cv.width!==pw || cv.height!==ph) { cv.width=pw; cv.height=ph; }
+        ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalCompositeOperation="source-over";
+        var bg=ctx.createRadialGradient(width*.5,height*.55,0,width*.5,height*.55,Math.max(width*.66,height*.72));
+        bg.addColorStop(0,"#16313a"); bg.addColorStop(.50,"#0a1a24"); bg.addColorStop(1,"#02070e");
+        ctx.fillStyle=bg; ctx.fillRect(0,0,width,height);
+        var unit=Math.min(width/610,height/470), w=width/unit,h=height/unit;
+        ctx.scale(unit,unit); ctx.lineJoin="round";ctx.lineCap="round";
+        var wash=ctx.createRadialGradient(w*.48,h*.70,0,w*.48,h*.70,w*.48);
+        wash.addColorStop(0,"rgba("+form.ink+",.19)"); wash.addColorStop(1,"rgba("+form.ink+",0)");
+        ctx.fillStyle=wash;ctx.fillRect(0,0,w,h);
+        var pitch=Math.max(.06,Math.min(1.30,form.pitch+V3.pitch-.16)), yaw=form.yaw+V3.yaw-.75;
+        g3Mandala(ctx,{mandala:choN,width:w,height:h,pitch:pitch,yaw:yaw},pose);
+      }
+      function render3D(p, force) {
         if (!V3.ready) g3Init();
         V3.last = p;
         var cv = document.getElementById("view3d"), ctx = cv.getContext("2d");
+        var cover = syncChoirStage(), clock = performance.now();
+        if (!force && clock - V3.drawAt < (choN >= 12 ? 50 : 32)) return;
+        V3.drawAt = clock;
+        if (!cover && (cv.width !== 1280 || cv.height !== 760)) { cv.width=1280; cv.height=760; }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.globalCompositeOperation = "source-over";
+        if (!cover) { ctx.fillStyle = "#020c10"; ctx.fillRect(0, 0, cv.width, cv.height); }
         ctx.globalCompositeOperation = "lighter"; ctx.lineJoin = "round"; ctx.lineCap = "round";
         var W = cv.width / 2, monk = appMode === "song" && currentSong && currentSong.def.overtone, zz = monk ? 0.92 : 1.2, cyy = monk ? 300 : 395;
         var nowT = Date.now();
@@ -4296,6 +4616,14 @@
         else if (playing || manOn) V3.lung = V3.voiced ? Math.max(0.08, V3.lung - dtR / 12) : V3.lung + (1 - V3.lung) * Math.min(1, dtR * 5);
         else V3.lung += ((0.5 + 0.22 * Math.sin(nowT / 1900)) - V3.lung) * Math.min(1, dtR * 4);
         var nCho = (appMode === "song" && choN > 1) ? choN : 1, soloMan = appMode === "song" && choN <= 1 && monk;
+        if (stageKey) stageCaption();
+        if (cover) {
+          if (N && N.analyser && qualitySoundActive()) {
+            if (!V3.spec || V3.spec.length !== N.analyser.frequencyBinCount) V3.spec = new Float32Array(N.analyser.frequencyBinCount);
+            N.analyser.getFloatFrequencyData(V3.spec);
+          }
+          drawChoirStage(cv, ctx, p); return;
+        }
         var VIEWS = [{ cx: W * 0.5 + 40, cy: 245, zoom: 0.6, yaw: V3.yaw + sway, pitch: V3.pitch, chest: true, label: monk ? "VIEW  3/4  読経（胸まで）" : "VIEW  3/4（胸まで）" }, { cx: W * 1.5 + 50, cy: cyy, zoom: zz, yaw: 0, pitch: 0, label: "VIEW  SIDE", labels: true }];
         if (nCho > 1 || soloMan) VIEWS[0] = { mandala: nCho, cx: W * 0.5, cy: soloMan ? 318 : 330, yaw: V3.yaw + (V3.drag || reduced ? 0 : nowT / 14000),
           pitch: Math.max(soloMan ? 0.12 : 0.4, Math.min(1.2, V3.pitch + (soloMan ? 0.14 : nCho <= 3 ? 0.5 : nCho <= 6 ? 0.62 : nCho===12 ? 0.5 : 0.72))), label: soloMan ? "VIEW  独唱 — 倍音の光背と蓮台" : nCho === 3 ? "VIEW  三人 — 三角と音程の弦" : nCho === 6 ? "VIEW  六人 — 六角と波紋" : "VIEW  曼荼羅（" + nCho + "人）" };
@@ -4325,11 +4653,7 @@
         }
         /* 経文：いま読んでいる句を漢字とふりがなで出し、読んでいる字を金色にする（読経モードのみ） */
         if (monk && currentSong.def.kyo) {
-          var KY = currentSong.def.kyo, cur = -1;
-          if (playing && anim && anim.song === currentSong && V3.mora >= 0) {
-            var activeToken = anim.song.kyoByMora[V3.mora];
-            if (activeToken !== undefined) { cur = activeToken; V3.kyoCur = cur; }
-          }
+          var KY = currentSong.def.kyo, cur = chantPosition();
           var showI = cur >= 0 ? cur : (playing && V3.kyoCur !== undefined ? V3.kyoCur : 0), phI = KY[showI].ph, row = KY.filter(function (c) { return c.ph === phI; });
           ctx.font = "30px serif"; var wds = row.map(function (c) { return Math.max(34, ctx.measureText(c.k).width + 8); }), tw = wds.reduce(function (a, b) { return a + b; }, 0), x0 = W * 0.5 - tw / 2 + 20;
           ctx.textAlign = "center";
@@ -4380,21 +4704,37 @@
       }
       (function () {
         var cv = document.getElementById("view3d"), tab = document.getElementById("tab-3d");
+        document.querySelectorAll("[data-stage-view]").forEach(function (b) {
+          b.addEventListener("click", function () { stageView = b.dataset.stageView; render3D(poseCur, true); });
+        });
+        document.querySelectorAll("[data-stage-count]").forEach(function (b) {
+          b.addEventListener("click", function () { document.querySelector('[data-cho="' + b.dataset.stageCount + '"]').click(); });
+        });
         tab.addEventListener("click", function () {
           view3dOn = !view3dOn;
           tab.setAttribute("aria-pressed", view3dOn ? "true" : "false");
           cv.hidden = !view3dOn; document.getElementById("note3d").hidden = !view3dOn;
           document.querySelector("svg.tract").style.display = view3dOn ? "none" : "";
-          if (view3dOn) render3D(poseCur);
+          if (view3dOn) { stageView = "stage"; render3D(poseCur, true); }
+          else syncChoirStage();
         });
-        (function loop() { if (view3dOn && !V3.drag && V3.last && !reduced && choN <= 12) render3D(V3.last); setTimeout(loop, 80); })();
         cv.addEventListener("pointerdown", function (e) { V3.drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); cv.style.cursor = "grabbing"; });
         cv.addEventListener("pointermove", function (e) {
           if (!V3.drag) return;
           V3.yaw += (e.clientX - V3.drag[0]) * 0.01; V3.pitch = Math.max(-0.6, Math.min(0.9, V3.pitch + (e.clientY - V3.drag[1]) * 0.006));
-          V3.drag = [e.clientX, e.clientY]; if (V3.last) render3D(V3.last);
+          V3.drag = [e.clientX, e.clientY]; if (V3.last) render3D(V3.last, true);
         });
-        cv.addEventListener("pointerup", function () { V3.drag = null; cv.style.cursor = "grab"; });
+        function release() { V3.drag = null; cv.style.cursor = "grab"; }
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach(function (type) { cv.addEventListener(type, release); });
+        cv.addEventListener("keydown", function (e) {
+          if (e.key === "Home") { V3.yaw = 0.75; V3.pitch = 0.16; }
+          else if (e.key === "ArrowLeft") V3.yaw -= 0.12;
+          else if (e.key === "ArrowRight") V3.yaw += 0.12;
+          else if (e.key === "ArrowUp") V3.pitch = Math.min(0.9, V3.pitch + 0.08);
+          else if (e.key === "ArrowDown") V3.pitch = Math.max(-0.6, V3.pitch - 0.08);
+          else return;
+          e.preventDefault(); render3D(poseCur, true);
+        });
       })();
 
       /* ANA-BEGIN */
@@ -4949,7 +5289,6 @@
         });
         var flowT = seg ? seg.flow : (manOn ? 0.85 : 0.03);
         poseCur.flowCur += (flowT - poseCur.flowCur) * (1 - Math.exp(-dt / 0.08));
-        renderTract(poseCur);
         /* vocal folds shimmer while voicing */
         var voicing = (seg && seg.gains && seg.gains.v > 0.05) || manOn;
         V3.voiced = !!voicing; V3.mora = seg && seg.mora !== undefined ? seg.mora : -1;
@@ -4966,6 +5305,7 @@
         for (var j = 0; j < 3; j++) dispF[j] += (fT[j] - dispF[j]) * kf;
         var f0T = seg && playing ? (seg.f0a + seg.f0b) / 2 : (manOn ? manF0 : 0);
         dispF0 += (f0T - dispF0) * kf;
+        renderTract(poseCur);
         if (playing || manOn) {
           f1v.textContent = Math.round(dispF[0]); f2v.textContent = Math.round(dispF[1]); f3v.textContent = Math.round(dispF[2]);
           f0v.textContent = dispF0 > 20 ? Math.round(dispF0) : "---";
