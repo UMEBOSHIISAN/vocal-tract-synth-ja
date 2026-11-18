@@ -2,7 +2,13 @@
 
 ブラウザで動く、日本語向けの声道シミュレータです。単一の `index.html` だけで完結し、ビルド工程はありません(Google Fonts のみ外部から読み込みます)。フォルマント合成で母音・歌を鳴らします。
 
-## 現状（2026-11-16）
+## 声の曼荼羅
+
+般若心経の全文を、独唱から三人、六人、十二人へと編成を変えながら唱える縦長の映像です。2分01秒の「羯諦羯諦」で、それまでの四編成の声と舞台が重なります。読んでいる字は金色に変わります。
+
+[動画を開く（MP4・2分12秒・86.4 MB）](media/koe-no-mandala-hannya-1-3-6-12-X.mp4?raw=true) · [X投稿文](docs/video-koe-no-mandala.md#x投稿文)
+
+## 現状（2026-11-18）
 
 公開している `main` の内容です。**「動く」ことと「人が聴いて／見て確かめた」ことを分けて**書きます。
 
@@ -22,7 +28,7 @@
 | [人数ごとの全景と合唱の揺れ](#人数ごとの全景と合唱の揺れ) | 11-18 | 1・3・6・12人の画面、再生、経題のWAVをChromeで確認 |
 | [解剖ビュー（色つき断面・スペクトログラム・スペクトル）](#解剖ビュー2026-11-16) | 11-16 | Chrome（headless）での表示まで。実機の見た目・重さは未確認 |
 
-- **試験：** Node 54件が通過（`node --test tests/*.test.cjs`）。部品の試験で、スピーカーから出る音や全 UI 操作の代わりにはなりません。
+- **試験：** Node 57件が通過（`node --test tests/*.test.cjs`）。部品の試験で、スピーカーから出る音や全 UI 操作の代わりにはなりません。
 - **まだ無いもの：** 鼻腔への分岐、MRI 実測の声道断面積の取り込み、読経の速さの実測合わせ（録音長からの換算のまま）、僧侶の読経の F0・帯域幅の実測値、法鼓の型打ちの合成、Chrome 以外での確認。
 - **言えないこと：** 宗派の正式な読誦・声明・鳴らし物の作法の再現、実在の寺院の音響、医学的に妥当な生体モデル。いずれも主張していません。
 
@@ -187,10 +193,11 @@ SOUND LABの **「十二人の堂 — おすすめ」→ PLAY** で、12人の�
 | [docs/video-12-voices.md](docs/video-12-voices.md) | 12人の低音曼荼羅の動画の作り方 |
 | [docs/video-sodo-no-asa.md](docs/video-sodo-no-asa.md) | 鳴らし物入りの動画「僧堂の朝」の作り方 |
 | [docs/video-12-low-chant-ritual-v2.md](docs/video-12-low-chant-ritual-v2.md) | 12声の低音合唱と鳴らし物を合わせたX向け動画（終盤の抜粋） |
+| [声の曼荼羅](docs/video-koe-no-mandala.md) | 四編成で唱える般若心経の全文、聴きどころとX投稿文 |
 
 各検証記録は、その時点のソースに対するものです。あとの変更を測り直した値ではありません。
 
-**動画：** [12人の低音曼荼羅（60秒）](media/mandala-12-low-chant-X-60s.mp4)、鳴らし物入りの [僧堂の朝（約66秒）](media/sodo-no-asa-hannya-narashimono-X-66s.mp4)、[12声の低音合唱と鳴らし物（約80秒）](media/mandala-12-low-chant-X-cinematic-ritual-v2.mp4) を同梱しています。新しい版は般若心経の終盤を抜粋し、友人の振鈴・法鼓録音と合わせた動画向けの編集です。制作・音順・同期の注意点は [動画メモ](docs/video-12-low-chant-ritual-v2.md) を参照してください。
+**動画：** [12人の低音曼荼羅（60秒）](media/mandala-12-low-chant-X-60s.mp4)、鳴らし物入りの [僧堂の朝（約66秒）](media/sodo-no-asa-hannya-narashimono-X-66s.mp4)、[12声の低音合唱と鳴らし物（約80秒）](media/mandala-12-low-chant-X-cinematic-ritual-v2.mp4) を同梱しています。約80秒の版は般若心経の終盤を抜粋し、友人の振鈴・法鼓録音と合わせた動画向けの編集です。制作・音順・同期の注意点は [動画メモ](docs/video-12-low-chant-ritual-v2.md) を参照してください。
 
 ## 開発の方針
 
@@ -275,4 +282,4 @@ SOUND LAB追加分の独立した資料確認は **[出典ページ](docs/source
 
 ## クレジット
 
-本プロジェクトは [jamesondh/chimera-vocal-synth](https://github.com/jamesondh/chimera-vocal-synth)(MIT License)への着想のオマージュで、コードは独自実装です。デモ曲 2 曲(Twinkle, twinkle / Made of air)の曲データは、同リポジトリの DEMO_SONGS から転記しています。
+本プロジェクトは Jameson Hodge さんの「Chimera Vocal Synth」に着想を得た独自実装です。デモ曲2曲（Twinkle, twinkle／Made of air）の曲データは、原作の DEMO_SONGS から転記しています。[Chimera Vocal Synth（MIT License）](https://github.com/jamesondh/chimera-vocal-synth)
